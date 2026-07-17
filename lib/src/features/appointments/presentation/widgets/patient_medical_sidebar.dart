@@ -1,0 +1,375 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../patients/domain/patient_model.dart';
+import '../../../patients/data/patient_repository.dart';
+import '../../data/appointment_repository.dart';
+import '../../domain/appointment_model.dart';
+import '../../data/visit_note_repository.dart';
+import 'package:intl/intl.dart';
+
+final patientAppointmentsProvider = FutureProvider.family.autoDispose<List<AppointmentModel>, String>((ref, patientId) async {
+  return ref.watch(appointmentRepositoryProvider).getPatientAppointments(patientId);
+});
+
+class PatientMedicalSidebar extends ConsumerWidget {
+  final String patientId;
+  final String patientName;
+  final String clinicId;
+
+  const PatientMedicalSidebar({
+    super.key,
+    required this.patientId,
+    required this.patientName,
+    required this.clinicId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final patientAsync = ref.watch(patientsListProvider(clinicId));
+    final patientAppointmentsAsync = ref.watch(patientAppointmentsProvider(patientId)); // Note: I need to ensure this provider is exposed or define it here if it's private. Let's assume it's exposed or I will expose it.
+    final patientNotesAsync = ref.watch(patientVisitNotesProvider(patientId));
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.1)),
+      ),
+      color: Theme.of(context).colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ─── Header: Avatar and Details ───
+            Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      patientName.isNotEmpty ? patientName[0] : '؟',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        patientName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: Theme.of(context).textTheme.titleLarge?.color,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      patientAsync.when(
+                        data: (patients) {
+                          final sorted = List.from(patients)
+                            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+                          final idx = sorted.indexWhere((p) => p.id == patientId);
+                          final patient = idx != -1 ? sorted[idx] : null;
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  if (idx != -1)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'ملف #${idx + 1}',
+                                        style: GoogleFonts.jetBrainsMono(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: Theme.of(context).colorScheme.secondary),
+                                      ),
+                                    ),
+                                  if (idx != -1) const SizedBox(width: 8),
+                                  if (patient?.gender != null)
+                                    Text(
+                                      patient!.gender == 'male' ? 'ذكر' : 'أنثى',
+                                      style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                                    ),
+                                  if (patient?.gender != null && patient.birthDate != null)
+                                    Text(' • ', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                                  if (patient?.birthDate != null)
+                                    Text(
+                                      '${DateTime.now().year - patient!.birthDate!.year} سنة',
+                                      style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          );
+                        },
+                        loading: () => const SizedBox(height: 14, width: 60, child: LinearProgressIndicator()),
+                        error: (_, __) => const SizedBox(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Divider(height: 1),
+            const SizedBox(height: 24),
+
+            // ─── Medical History ───
+            const Row(
+              children: [
+                Icon(Icons.history_edu_rounded, size: 18),
+                SizedBox(width: 8),
+                Text('التاريخ المرضي', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            patientAsync.when(
+              data: (patients) {
+                final patient = patients.cast<PatientModel?>().firstWhere((p) => p?.id == patientId, orElse: () => null);
+                if (patient?.medicalHistory != null && patient!.medicalHistory!.isNotEmpty) {
+                  final historyItems = patient.medicalHistory!
+                      .split(RegExp(r'[،,-]'))
+                      .map((s) => s.trim())
+                      .where((s) => s.isNotEmpty)
+                      .toList();
+                  
+                  if (historyItems.isEmpty) {
+                    historyItems.add(patient.medicalHistory!.trim());
+                  }
+
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: historyItems.map((mh) => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.error.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Theme.of(context).colorScheme.error.withOpacity(0.3)),
+                          ),
+                          child: Text(
+                            mh,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        )).toList(),
+                  );
+                } else {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle_outline, size: 16, color: Theme.of(context).hintColor),
+                        const SizedBox(width: 8),
+                        Text('لا توجد أمراض مزمنة مسجلة.', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                      ],
+                    ),
+                  );
+                }
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (_, __) => const SizedBox(),
+            ),
+            const SizedBox(height: 24),
+            const Divider(height: 1),
+            const SizedBox(height: 24),
+
+            // ─── Previous Visits ───
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.event_note_rounded, size: 18),
+                    SizedBox(width: 8),
+                    Text('الزيارات السابقة', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Could open full history dialog later
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                  ),
+                  child: const Text('عرض الكل', style: TextStyle(fontSize: 11)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            patientAppointmentsAsync.when(
+              data: (appts) {
+                if (appts.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: Theme.of(context).hintColor),
+                        const SizedBox(width: 8),
+                        Text('لا توجد زيارات سابقة.', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                      ],
+                    ),
+                  );
+                }
+
+                // Sort by date descending and take top 5
+                final sorted = List.from(appts)..sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
+                final recent = sorted.take(5).toList();
+
+                return Column(
+                  children: recent.map((appt) {
+                    final date = DateFormat('d MMMM yyyy', 'ar').format(appt.appointmentDate);
+                    
+                    // Extract full visit details from notes if available
+                    String? complaint;
+                    String? diagnosis;
+                    String? instructions;
+                    
+                    final notesList = patientNotesAsync.value;
+                    if (notesList != null) {
+                      final note = notesList.cast<dynamic>().firstWhere((n) => n.appointmentId == appt.id, orElse: () => null);
+                      if (note != null && note.notes.isNotEmpty) {
+                        final parts = note.notes.split('\n---\n');
+                        if (parts.isNotEmpty) complaint = parts[0].trim();
+                        if (parts.length > 1) diagnosis = parts[1].trim();
+                        if (parts.length > 2) instructions = parts[2].trim();
+                      }
+                    }
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            margin: const EdgeInsets.only(top: 2),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(Icons.history_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  date,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+                                if (appt.appointmentTypeName != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    appt.appointmentTypeName!,
+                                    style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                                const SizedBox(height: 8),
+                                if (complaint != null && complaint.isNotEmpty) ...[
+                                  Text(
+                                    'الشكوى:',
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+                                  ),
+                                  Text(
+                                    complaint,
+                                    style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8), height: 1.4),
+                                  ),
+                                  const SizedBox(height: 6),
+                                ],
+                                if (diagnosis != null && diagnosis.isNotEmpty) ...[
+                                  Text(
+                                    'التشخيص:',
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+                                  ),
+                                  Text(
+                                    diagnosis,
+                                    style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8), height: 1.4),
+                                  ),
+                                  const SizedBox(height: 6),
+                                ],
+                                if (instructions != null && instructions.isNotEmpty) ...[
+                                  Text(
+                                    'التعليمات:',
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+                                  ),
+                                  Text(
+                                    instructions,
+                                    style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8), height: 1.4),
+                                  ),
+                                ],
+                                if ((complaint == null || complaint.isEmpty) && 
+                                    (diagnosis == null || diagnosis.isEmpty) && 
+                                    (instructions == null || instructions.isEmpty)) ...[
+                                  Text(
+                                    'لا توجد بيانات مسجلة.',
+                                    style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor.withOpacity(0.5), fontStyle: FontStyle.italic),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Icon(Icons.chevron_left_rounded, size: 16, color: Theme.of(context).hintColor.withOpacity(0.5)),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+              loading: () => const SizedBox(height: 40, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
