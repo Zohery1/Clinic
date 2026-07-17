@@ -270,96 +270,12 @@ class PatientMedicalSidebar extends ConsumerWidget {
                       }
                     }
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.05)),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            margin: const EdgeInsets.only(top: 2),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Icon(Icons.history_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  date,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: Theme.of(context).textTheme.bodyLarge?.color,
-                                  ),
-                                ),
-                                if (appt.appointmentTypeName != null) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    appt.appointmentTypeName!,
-                                    style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor, fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                                const SizedBox(height: 8),
-                                if (complaint != null && complaint.isNotEmpty) ...[
-                                  Text(
-                                    'الشكوى:',
-                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
-                                  ),
-                                  Text(
-                                    complaint,
-                                    style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8), height: 1.4),
-                                  ),
-                                  const SizedBox(height: 6),
-                                ],
-                                if (diagnosis != null && diagnosis.isNotEmpty) ...[
-                                  Text(
-                                    'التشخيص:',
-                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
-                                  ),
-                                  Text(
-                                    diagnosis,
-                                    style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8), height: 1.4),
-                                  ),
-                                  const SizedBox(height: 6),
-                                ],
-                                if (instructions != null && instructions.isNotEmpty) ...[
-                                  Text(
-                                    'التعليمات:',
-                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
-                                  ),
-                                  Text(
-                                    instructions,
-                                    style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8), height: 1.4),
-                                  ),
-                                ],
-                                if ((complaint == null || complaint.isEmpty) && 
-                                    (diagnosis == null || diagnosis.isEmpty) && 
-                                    (instructions == null || instructions.isEmpty)) ...[
-                                  Text(
-                                    'لا توجد بيانات مسجلة.',
-                                    style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor.withOpacity(0.5), fontStyle: FontStyle.italic),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Icon(Icons.chevron_left_rounded, size: 16, color: Theme.of(context).hintColor.withOpacity(0.5)),
-                          ),
-                        ],
-                      ),
+                    return _VisitHistoryItem(
+                      date: date,
+                      appt: appt,
+                      complaint: complaint,
+                      diagnosis: diagnosis,
+                      instructions: instructions,
                     );
                   }).toList(),
                 );
@@ -368,6 +284,142 @@ class PatientMedicalSidebar extends ConsumerWidget {
               error: (_, __) => const SizedBox.shrink(),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VisitHistoryItem extends StatefulWidget {
+  final String date;
+  final AppointmentModel appt;
+  final String? complaint;
+  final String? diagnosis;
+  final String? instructions;
+
+  const _VisitHistoryItem({
+    required this.date,
+    required this.appt,
+    this.complaint,
+    this.diagnosis,
+    this.instructions,
+  });
+
+  @override
+  State<_VisitHistoryItem> createState() => _VisitHistoryItemState();
+}
+
+class _VisitHistoryItemState extends State<_VisitHistoryItem> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDetails = (widget.complaint != null && widget.complaint!.isNotEmpty) ||
+                       (widget.diagnosis != null && widget.diagnosis!.isNotEmpty) ||
+                       (widget.instructions != null && widget.instructions!.isNotEmpty);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+      ),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _isExpanded = !_isExpanded;
+          });
+        },
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(Icons.history_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.date,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                          ),
+                        ),
+                        if (widget.appt.appointmentTypeName != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.appt.appointmentTypeName!,
+                            style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    size: 20,
+                    color: Theme.of(context).hintColor.withOpacity(0.5)
+                  ),
+                ],
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: _isExpanded
+                    ? Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 12),
+                        padding: const EdgeInsets.only(top: 12, right: 8, left: 8),
+                        decoration: BoxDecoration(
+                          border: Border(top: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.1))),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (widget.complaint != null && widget.complaint!.isNotEmpty) ...[
+                              Text('الشكوى:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
+                              const SizedBox(height: 2),
+                              Text(widget.complaint!, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8), height: 1.4)),
+                              const SizedBox(height: 10),
+                            ],
+                            if (widget.diagnosis != null && widget.diagnosis!.isNotEmpty) ...[
+                              Text('التشخيص:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
+                              const SizedBox(height: 2),
+                              Text(widget.diagnosis!, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8), height: 1.4)),
+                              const SizedBox(height: 10),
+                            ],
+                            if (widget.instructions != null && widget.instructions!.isNotEmpty) ...[
+                              Text('التعليمات:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
+                              const SizedBox(height: 2),
+                              Text(widget.instructions!, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8), height: 1.4)),
+                            ],
+                            if (!hasDetails) ...[
+                              Text('لا توجد بيانات مسجلة.', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor.withOpacity(0.5), fontStyle: FontStyle.italic)),
+                            ],
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
         ),
       ),
     );

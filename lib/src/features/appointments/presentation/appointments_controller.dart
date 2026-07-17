@@ -38,4 +38,4 @@ final appointmentsForDateProvider = FutureProvider.autoDispose.family<List<Appoi
 });
  
 // مزود لتخزين فلتر قائمة المرضى المحدد حالياً
-final dashboardFilterProvider = StateProvider<String>((ref) => 'all');
+final dashboardFilterProvider = StateProvider<String>((ref) => 'confirmed');
