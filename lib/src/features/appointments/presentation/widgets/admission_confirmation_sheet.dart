@@ -21,7 +21,10 @@ class AdmissionConfirmationSheet extends StatelessWidget {
       case 'completed':
         return 'إنهاء الكشف؟';
       case 'cancelled':
-        return 'إلغاء الموعد؟';
+      case 'cancelled_by_clinic':
+        return 'إلغاء من قبل العيادة؟';
+      case 'cancelled_by_patient':
+        return 'إلغاء / عدم حضور المريض؟';
       default:
         return 'تأكيد الإجراء';
     }
@@ -34,7 +37,10 @@ class AdmissionConfirmationSheet extends StatelessWidget {
       case 'completed':
         return 'سيتم تسجيل الكشف كمكتمل. يمكن التراجع لمدة 5 ثوانٍ.';
       case 'cancelled':
-        return 'سيتم إلغاء الموعد نهائياً. يمكن التراجع لمدة 5 ثوانٍ.';
+      case 'cancelled_by_clinic':
+        return 'سيتم إلغاء الموعد من طرف الطبيب/العيادة نهائياً.';
+      case 'cancelled_by_patient':
+        return 'سيتم تسجيل الموعد كملغي بسبب عدم حضور المريض أو اعتذاره.';
       default:
         return 'هل أنت متأكد من هذا الإجراء؟';
     }
@@ -47,13 +53,16 @@ class AdmissionConfirmationSheet extends StatelessWidget {
       case 'completed':
         return 'إنهاء الكشف';
       case 'cancelled':
+      case 'cancelled_by_clinic':
         return 'إلغاء الموعد';
+      case 'cancelled_by_patient':
+        return 'تأكيد عدم الحضور';
       default:
         return 'تأكيد';
     }
   }
 
-  bool get _isDangerous => targetStatus == 'cancelled';
+  bool get _isDangerous => targetStatus.startsWith('cancelled');
 
   @override
   Widget build(BuildContext context) {

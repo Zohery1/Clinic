@@ -625,17 +625,23 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: patient.gender == 'female'
-                        ? const Color(0xFFEC4899).withOpacity(0.12)
-                        : Theme.of(context).colorScheme.primary.withOpacity(0.12),
-                    child: Icon(
-                      patient.gender == 'female' ? Icons.woman_rounded : Icons.man_rounded,
-                      color: patient.gender == 'female'
-                          ? const Color(0xFFEC4899)
-                          : Theme.of(context).colorScheme.primary,
-                      size: 18,
+                  Container(
+                    width: 32,
+                    height: 32,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
+                          : Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '#${fileNumbers[patient.id] ?? ""}',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -659,24 +665,6 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
-                                    : Theme.of(context).scaffoldBackgroundColor,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '#${fileNumbers[patient.id] ?? ""}',
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                         if (patient.phone != null && patient.phone!.isNotEmpty) ...[
@@ -692,37 +680,59 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                       ],
                     ),
                   ),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textHint, size: 16),
-                    onSelected: (action) {
-                      if (action == 'edit') {
-                        _showEditPatientDialog(context, clinicId, patient);
-                      } else if (action == 'delete') {
-                        _showDeleteConfirmationDialog(context, clinicId, patient);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit_outlined, color: AppTheme.primary, size: 16),
-                            SizedBox(width: 8),
-                            Text('تعديل البيانات', style: TextStyle(fontSize: 13)),
-                          ],
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.add_task_rounded, color: AppTheme.primary, size: 16),
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppTheme.primaryLight,
+                          padding: const EdgeInsets.all(6),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                         ),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => BookAppointmentDialog(
+                              clinicId: clinicId,
+                              preselectedPatientId: patient.id,
+                            ),
+                          );
+                        },
                       ),
-                      if (user.role == UserRole.doctor)
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 16),
-                              SizedBox(width: 8),
-                              Text('حذف المريض', style: TextStyle(color: AppTheme.error, fontSize: 13)),
-                            ],
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textHint, size: 16),
+                        onSelected: (action) {
+                          if (action == 'edit') {
+                            _showEditPatientDialog(context, clinicId, patient);
+                          } else if (action == 'delete') {
+                            _showDeleteConfirmationDialog(context, clinicId, patient);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined, color: AppTheme.primary, size: 16),
+                                SizedBox(width: 8),
+                                Text('تعديل البيانات', style: TextStyle(fontSize: 13)),
+                              ],
+                            ),
                           ),
-                        ),
+                          if (user.role == UserRole.doctor)
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 16),
+                                  SizedBox(width: 8),
+                                  Text('حذف المريض', style: TextStyle(color: AppTheme.error, fontSize: 13)),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ],
@@ -904,21 +914,47 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
           // ─── Vitals and clinical variables grid ───
           LayoutBuilder(
             builder: (context, profileConstraints) {
-              final crossCount = profileConstraints.maxWidth >= 700 ? 4 : 2;
-              return GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: crossCount,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: profileConstraints.maxWidth >= 700 ? 2.5 : 3.0,
-                children: [
-                  _buildClinicalMetaItem('رقم الهاتف', patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير مسجل', Icons.phone_rounded, Colors.blue, useExpanded: false),
-                  _buildClinicalMetaItem('العنوان', displayAddress.isNotEmpty ? displayAddress : 'غير مسجل', Icons.location_on_outlined, Colors.teal, useExpanded: false),
-                  _buildClinicalMetaItem('العمر', age != null ? '$age سنة' : 'غير مسجل', Icons.cake_outlined, Colors.orange, useExpanded: false),
-                  _buildClinicalMetaItem('رقم الملف', fileNo, Icons.badge_rounded, Colors.purple, useExpanded: false),
-                ],
-              );
+              final isWide = profileConstraints.maxWidth >= 700;
+              final items = [
+                _buildClinicalMetaItem('رقم الهاتف', patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير مسجل', Icons.phone_rounded, Colors.blue),
+                _buildClinicalMetaItem('العنوان', displayAddress.isNotEmpty ? displayAddress : 'غير مسجل', Icons.location_on_outlined, Colors.teal),
+                _buildClinicalMetaItem('العمر', age != null ? '$age سنة' : 'غير مسجل', Icons.cake_outlined, Colors.orange),
+                _buildClinicalMetaItem('رقم الملف', fileNo, Icons.badge_rounded, Colors.purple),
+              ];
+              
+              if (isWide) {
+                return Row(
+                  children: [
+                    items[0],
+                    const SizedBox(width: 12),
+                    items[1],
+                    const SizedBox(width: 12),
+                    items[2],
+                    const SizedBox(width: 12),
+                    items[3],
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        items[0],
+                        const SizedBox(width: 12),
+                        items[1],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        items[2],
+                        const SizedBox(width: 12),
+                        items[3],
+                      ],
+                    ),
+                  ],
+                );
+              }
             },
           ),
           const SizedBox(height: 16),
@@ -1045,114 +1081,44 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             final date = intl.DateFormat('yyyy/MM/dd', 'ar').format(app.appointmentDate.toLocal());
             final time = intl.DateFormat('hh:mm a', 'ar').format(app.appointmentDate.toLocal());
 
-            return IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Column(
-                    children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          width: 2,
-                          color: index == appointments.length - 1 ? Colors.transparent : AppTheme.border,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: AppTheme.cardDecoration(context),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.calendar_today_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
-                                    const SizedBox(width: 6),
-                                    Text(date, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                                    const SizedBox(width: 12),
-                                    Icon(Icons.access_time_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
-                                    const SizedBox(width: 6),
-                                    Text(time, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7))),
-                                  ],
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: _getStatusColor(app.status).withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    _translateStatus(app.status),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: _getStatusColor(app.status),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                             const SizedBox(height: 8),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: PatientVisitNoteSection(
-                                    clinicId: clinicId,
-                                    appointmentId: app.id,
-                                    patientId: patient.id,
-                                    patientName: patient.fullName,
-                                    isDoctor: user.role == UserRole.doctor,
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.edit_note_rounded, color: Theme.of(context).colorScheme.primary),
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => VisitNotesDialog(
-                                        clinicId: clinicId,
-                                        appointmentId: app.id,
-                                        patientId: patient.id,
-                                        patientName: patient.fullName,
-                                      ),
-                                    ).then((_) {
-                                      ref.invalidate(visitNoteProvider(app.id));
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+            return Stack(
+              children: [
+                if (index != appointments.length - 1)
+                  Positioned(
+                    top: 16,
+                    bottom: 0,
+                    right: 5,
+                    child: Container(
+                      width: 2,
+                      color: AppTheme.border,
                     ),
                   ),
-                ],
-              ),
+                Positioned(
+                  top: 4,
+                  right: 0,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 28, bottom: 20),
+                  child: _TimelineAppointmentCard(
+                    app: app,
+                    date: date,
+                    time: time,
+                    clinicId: clinicId,
+                    patient: patient,
+                    user: user,
+                    getStatusColor: _getStatusColor,
+                    translateStatus: _translateStatus,
+                  ),
+                ),
+              ],
             );
           },
         );
@@ -1369,7 +1335,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                 Text('حذف المريض',
                                     style: TextStyle(color: AppTheme.error, fontSize: 13)),
                               ],
-                            ),
+                             ),
                           ),
                       ],
                     ),
@@ -1384,3 +1350,142 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
   }
 }
 
+class _TimelineAppointmentCard extends ConsumerStatefulWidget {
+  final AppointmentModel app;
+  final String date;
+  final String time;
+  final String clinicId;
+  final PatientModel patient;
+  final UserModel user;
+  final Color Function(String) getStatusColor;
+  final String Function(String) translateStatus;
+
+  const _TimelineAppointmentCard({
+    required this.app,
+    required this.date,
+    required this.time,
+    required this.clinicId,
+    required this.patient,
+    required this.user,
+    required this.getStatusColor,
+    required this.translateStatus,
+  });
+
+  @override
+  ConsumerState<_TimelineAppointmentCard> createState() => _TimelineAppointmentCardState();
+}
+
+class _TimelineAppointmentCardState extends ConsumerState<_TimelineAppointmentCard> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: AppTheme.cardDecoration(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                      const SizedBox(width: 6),
+                      Text(widget.date, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                      const SizedBox(width: 12),
+                      Icon(Icons.access_time_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                      const SizedBox(width: 6),
+                      Text(widget.time, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7))),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: widget.getStatusColor(widget.app.status).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          widget.translateStatus(widget.app.status),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: widget.getStatusColor(widget.app.status),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                        size: 20,
+                        color: Theme.of(context).hintColor.withOpacity(0.5),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _isExpanded
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: PatientVisitNoteSection(
+                                clinicId: widget.clinicId,
+                                appointmentId: widget.app.id,
+                                patientId: widget.patient.id,
+                                patientName: widget.patient.fullName,
+                                isDoctor: widget.user.role == UserRole.doctor,
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.edit_note_rounded, color: Theme.of(context).colorScheme.primary),
+                              style: IconButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => VisitNotesDialog(
+                                    clinicId: widget.clinicId,
+                                    appointmentId: widget.app.id,
+                                    patientId: widget.patient.id,
+                                    patientName: widget.patient.fullName,
+                                  ),
+                                ).then((_) {
+                                  ref.invalidate(visitNoteProvider(widget.app.id));
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}

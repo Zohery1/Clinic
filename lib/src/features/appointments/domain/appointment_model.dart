@@ -31,6 +31,7 @@ class AppointmentModel {
   final AppointmentPatient patient;
   final double totalPaid; // إجمالي المدفوع (الكشف + الخدمات)
   final DateTime? updatedAt;
+  final List<String>? serviceNames;
 
   AppointmentModel({
     required this.id,
@@ -44,6 +45,7 @@ class AppointmentModel {
     required this.patient,
     required this.totalPaid,
     this.updatedAt,
+    this.serviceNames,
   });
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) {
@@ -52,9 +54,13 @@ class AppointmentModel {
 
     final services = json['appointment_services'] as List<dynamic>?;
     double servicesTotal = 0.0;
+    List<String> serviceNamesList = [];
     if (services != null) {
       for (var s in services) {
         servicesTotal += (s['price_charged'] as num? ?? 0.0).toDouble();
+        if (s['services'] != null && s['services']['name'] != null) {
+          serviceNamesList.add(s['services']['name'] as String);
+        }
       }
     }
     final basePrice = json['price_charged'] != null ? (json['price_charged'] as num).toDouble() : 0.0;
@@ -71,6 +77,7 @@ class AppointmentModel {
       priceCharged: basePrice,
       totalPaid: basePrice + servicesTotal,
       updatedAt: updatedAtStr != null ? DateTime.parse(updatedAtStr) : null,
+      serviceNames: serviceNamesList,
       // معالجة البيانات المنضمة (Join) مع جدول المرضى
       patient: json['patients'] != null
           ? AppointmentPatient.fromJson(json['patients'] as Map<String, dynamic>)

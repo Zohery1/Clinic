@@ -29,7 +29,7 @@ class AppointmentRepository {
       // جلب البيانات مع عمل JOIN لبيانات المريض (الاسم والهاتف والعنوان) ونوع الكشف والخدمات الإضافية
       final List<dynamic> response = await _supabase
           .from('appointments')
-          .select('*, patients(full_name, phone, address), appointment_types(name), appointment_services(price_charged)')
+          .select('*, patients(full_name, phone, address), appointment_types(name), appointment_services(price_charged, services(name))')
           .eq('clinic_id', clinicId)
           .gte('appointment_date', start)
           .lte('appointment_date', end)
@@ -124,7 +124,7 @@ class AppointmentRepository {
     try {
       final List<dynamic> response = await _supabase
           .from('appointments')
-          .select('*, patients(full_name, phone, address), appointment_types(name), appointment_services(price_charged)')
+          .select('*, patients(full_name, phone, address), appointment_types(name), appointment_services(price_charged, services(name))')
           .eq('patient_id', patientId)
           .order('appointment_date', ascending: false);
 

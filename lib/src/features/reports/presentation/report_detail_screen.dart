@@ -110,8 +110,13 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
             final totalVisits = report['totalVisits'] as int;
             final newPatients = report['newPatientsCount'] as int;
             final oldPatients = report['oldPatientsCount'] as int;
+            final cancelledAppointmentsCount = report['cancelledAppointmentsCount'] as int;
+            final cancelledByPatientCount = report['cancelledByPatientCount'] as int? ?? 0;
+            final previousRevenue = (report['previousRevenue'] as num?)?.toDouble() ?? 0.0;
+            final comparisonLabel = report['comparisonLabel'] as String? ?? 'مقارنة بالفترة السابقة';
+            final peakTimes = (report['peakTimes'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
-            final bool hasData = totalVisits > 0;
+            final bool hasData = totalVisits > 0 || cancelledAppointmentsCount > 0 || cancelledByPatientCount > 0;
 
             return RefreshIndicator(
               color: Theme.of(context).colorScheme.primary,
@@ -120,7 +125,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
               child: ListView(
                 padding: EdgeInsets.all(isDesktop ? 28 : 16),
                 children: [
-                  // ── بطاقات الملخص الأربع ──
+                  // ── بطاقات الملخص ──
                   _buildSummaryCards(
                     context,
                     isDark: isDark,
@@ -131,6 +136,10 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                     totalVisits: totalVisits,
                     newPatients: newPatients,
                     oldPatients: oldPatients,
+                    cancelledCount: cancelledAppointmentsCount,
+                    cancelledByPatientCount: cancelledByPatientCount,
+                    previousRevenue: previousRevenue,
+                    comparisonLabel: comparisonLabel,
                   ),
 
                   const SizedBox(height: 20),
@@ -138,6 +147,12 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                   if (!hasData)
                     _buildEmptyState(context)
                   else ...[
+                    // ── أوقات الذروة ──
+                    if (peakTimes.isNotEmpty) ...[
+                      _buildPeakTimesChart(context, isDark, peakTimes),
+                      const SizedBox(height: 20),
+                    ],
+
                     // ── صف: Pie + بطاقة المرضى ──
                     isDesktop
                         ? Row(
@@ -164,32 +179,64 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
 
                     const SizedBox(height: 20),
 
-                    // ── جدول الكشوفات ──
-                    if (appointmentsByType.isNotEmpty)
-                      _buildBreakdownCard(
-                        context,
-                        isDark: isDark,
-                        title: 'تفاصيل الكشوفات حسب النوع',
-                        icon: Icons.medical_services_outlined,
-                        accentColor: Theme.of(context).colorScheme.primary,
-                        items: appointmentsByType,
-                        totalRevenue: totalAppRev,
-                      ),
+                    // ── جداول الكشوفات والخدمات ──
+                    if (isDesktop && appointmentsByType.isNotEmpty && servicesByType.isNotEmpty)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _buildBreakdownCard(
+                              context,
+                              isDark: isDark,
+                              title: 'تفاصيل الكشوفات حسب النوع',
+                              icon: Icons.medical_services_outlined,
+                              accentColor: Theme.of(context).colorScheme.primary,
+                              items: appointmentsByType,
+                              totalRevenue: totalAppRev,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildBreakdownCard(
+                              context,
+                              isDark: isDark,
+                              title: 'تفاصيل الخدمات المقدمة',
+                              icon: Icons.build_outlined,
+                              accentColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                              items: servicesByType,
+                              totalRevenue: totalSvcRev,
+                            ),
+                          ),
+                        ],
+                      )
+                    else ...[
+                      // ── جدول الكشوفات ──
+                      if (appointmentsByType.isNotEmpty)
+                        _buildBreakdownCard(
+                          context,
+                          isDark: isDark,
+                          title: 'تفاصيل الكشوفات حسب النوع',
+                          icon: Icons.medical_services_outlined,
+                          accentColor: Theme.of(context).colorScheme.primary,
+                          items: appointmentsByType,
+                          totalRevenue: totalAppRev,
+                        ),
 
-                    if (appointmentsByType.isNotEmpty && servicesByType.isNotEmpty)
-                      const SizedBox(height: 16),
+                      if (appointmentsByType.isNotEmpty && servicesByType.isNotEmpty)
+                        const SizedBox(height: 16),
 
-                    // ── جدول الخدمات ──
-                    if (servicesByType.isNotEmpty)
-                      _buildBreakdownCard(
-                        context,
-                        isDark: isDark,
-                        title: 'تفاصيل الخدمات المقدمة',
-                        icon: Icons.build_outlined,
-                        accentColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
-                        items: servicesByType,
-                        totalRevenue: totalSvcRev,
-                      ),
+                      // ── جدول الخدمات ──
+                      if (servicesByType.isNotEmpty)
+                        _buildBreakdownCard(
+                          context,
+                          isDark: isDark,
+                          title: 'تفاصيل الخدمات المقدمة',
+                          icon: Icons.build_outlined,
+                          accentColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                          items: servicesByType,
+                          totalRevenue: totalSvcRev,
+                        ),
+                    ],
 
                     const SizedBox(height: 24),
                   ],
@@ -202,6 +249,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     );
   }
 
+
   // ── بطاقات الملخص ──
   Widget _buildSummaryCards(
     BuildContext context, {
@@ -213,7 +261,18 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     required int totalVisits,
     required int newPatients,
     required int oldPatients,
+    required int cancelledCount,
+    required int cancelledByPatientCount,
+    required double previousRevenue,
+    required String comparisonLabel,
   }) {
+    double revenueDiff = totalRev - previousRevenue;
+    double revenuePct = previousRevenue == 0 ? (totalRev > 0 ? 100.0 : 0.0) : (revenueDiff / previousRevenue).abs() * 100;
+    
+    final shortLabel = comparisonLabel.replaceAll('مقارنة ', '');
+    String trendText = '${revenuePct.toStringAsFixed(0)}% ($shortLabel)';
+    bool trendIsPositive = revenueDiff >= 0;
+
     final cards = [
       _SummaryCardData(
         label: 'إجمالي الإيرادات',
@@ -222,6 +281,8 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         accentColor: Theme.of(context).colorScheme.primary,
         bgColor: Theme.of(context).colorScheme.primary.withOpacity(0.10),
         mono: true,
+        trendText: trendText,
+        trendIsPositive: trendIsPositive,
       ),
       _SummaryCardData(
         label: 'إيرادات الكشوفات',
@@ -253,6 +314,26 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
             : const Color(0xFFF5F3FF),
         mono: false,
       ),
+      _SummaryCardData(
+        label: 'إلغاء (من العيادة)',
+        value: '$cancelledCount',
+        icon: Icons.event_busy_outlined,
+        accentColor: isDark ? const Color(0xFFF87171) : const Color(0xFFEF4444),
+        bgColor: isDark
+            ? const Color(0xFFF87171).withOpacity(0.10)
+            : const Color(0xFFFEF2F2),
+        mono: false,
+      ),
+      _SummaryCardData(
+        label: 'عدم حضور (مريض)',
+        value: '$cancelledByPatientCount',
+        icon: Icons.person_off_outlined,
+        accentColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B),
+        bgColor: isDark
+            ? const Color(0xFFFBBF24).withOpacity(0.10)
+            : const Color(0xFFFFFBEB),
+        mono: false,
+      ),
     ];
 
     if (isDesktop) {
@@ -282,6 +363,14 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
             Expanded(child: _buildSummaryCard(context, cards[2])),
             const SizedBox(width: 10),
             Expanded(child: _buildSummaryCard(context, cards[3])),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(child: _buildSummaryCard(context, cards[4])),
+            const SizedBox(width: 10),
+            Expanded(child: _buildSummaryCard(context, cards[5])),
           ],
         ),
       ],
@@ -319,14 +408,35 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            data.value,
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              fontFamily: data.mono ? 'JetBrains Mono' : null,
-              color: Theme.of(context).textTheme.titleLarge?.color,
-            ),
+          Row(
+            children: [
+              Text(
+                data.value,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: data.mono ? 'JetBrains Mono' : null,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
+              ),
+              if (data.trendText != null && data.trendIsPositive != null) ...[
+                const Spacer(),
+                Icon(
+                  data.trendIsPositive! ? Icons.arrow_upward : Icons.arrow_downward,
+                  color: data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  data.trendText!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -880,6 +990,136 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     );
   }
 
+  Widget _buildPeakTimesChart(BuildContext context, bool isDark, List<Map<String, dynamic>> peakTimes) {
+    if (peakTimes.isEmpty) return const SizedBox.shrink();
+
+    // Take top 7 peak times to avoid overcrowding
+    final displayTimes = peakTimes.take(7).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: AppTheme.cardDecoration(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.access_time, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                widget.isMonthly ? 'أكثر الأيام ازدحاماً (أوقات الذروة)' : 'أكثر الساعات ازدحاماً (أوقات الذروة)',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 200,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: displayTimes.map((e) => (e['count'] as int).toDouble()).reduce((a, b) => a > b ? a : b) + 1,
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (group) => isDark ? Colors.grey[800]! : Colors.white,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        '${displayTimes[group.x.toInt()]['label']}\n',
+                        TextStyle(
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        children: <TextSpan>[
+                          TextSpan(
+                            text: '${rod.toY.toInt()} زيارة',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        if (value >= 0 && value < displayTimes.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              displayTimes[value.toInt()]['label'] as String,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context).textTheme.bodySmall?.color,
+                              ),
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                      reservedSize: 28,
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 28,
+                      getTitlesWidget: (value, meta) {
+                        if (value % 1 == 0) {
+                          return Text(
+                            value.toInt().toString(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 1,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: isDark ? Colors.white10 : Colors.black12,
+                    strokeWidth: 1,
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: List.generate(
+                  displayTimes.length,
+                  (index) => BarChartGroupData(
+                    x: index,
+                    barRods: [
+                      BarChartRodData(
+                        toY: (displayTimes[index]['count'] as int).toDouble(),
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 16,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── حالة فارغة ──
   Widget _buildEmptyState(BuildContext context) {
     return Container(
@@ -925,6 +1165,8 @@ class _SummaryCardData {
   final Color accentColor;
   final Color bgColor;
   final bool mono;
+  final String? trendText;
+  final bool? trendIsPositive;
 
   const _SummaryCardData({
     required this.label,
@@ -933,6 +1175,10 @@ class _SummaryCardData {
     required this.accentColor,
     required this.bgColor,
     required this.mono,
+    this.trendText,
+    this.trendIsPositive,
   });
 }
+
+
 

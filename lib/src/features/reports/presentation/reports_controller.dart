@@ -6,21 +6,21 @@ import '../../appointments/domain/appointment_type_model.dart';
 import '../../appointments/domain/service_model.dart';
 
 // مزود لقائمة أنواع المواعيد
-final appointmentTypesProvider = FutureProvider<List<AppointmentTypeModel>>((ref) async {
+final appointmentTypesProvider = FutureProvider.autoDispose<List<AppointmentTypeModel>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return ref.watch(reportsRepositoryProvider).getAppointmentTypes(user.clinicId);
 });
 
 // مزود لقائمة الخدمات الإضافية
-final servicesProvider = FutureProvider<List<ServiceModel>>((ref) async {
+final servicesProvider = FutureProvider.autoDispose<List<ServiceModel>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return ref.watch(reportsRepositoryProvider).getServices(user.clinicId);
 });
 
 // مزود دخل اليوم المختار
-final todayRevenueProvider = FutureProvider<double>((ref) async {
+final todayRevenueProvider = FutureProvider.autoDispose<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
   final selectedDate = ref.watch(selectedDateProvider);
@@ -28,30 +28,32 @@ final todayRevenueProvider = FutureProvider<double>((ref) async {
 });
 
 // مزود دخل الشهر الحالي
-final monthRevenueProvider = FutureProvider<double>((ref) async {
+final monthRevenueProvider = FutureProvider.autoDispose<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
   return ref.watch(reportsRepositoryProvider).getMonthRevenue(user.clinicId);
 });
 
 // مزود دخل آخر 7 أيام للرسم البياني
-final weeklyRevenueProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final weeklyRevenueProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return ref.watch(reportsRepositoryProvider).getWeeklyRevenue(user.clinicId);
 });
 
 // مزود دخل آخر 6 أسابيع للرسم البياني الأسبوعي
-final sixWeeksRevenueProvider = FutureProvider<List<double>>((ref) async {
+final sixWeeksRevenueProvider = FutureProvider.autoDispose<List<double>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
 
   final today = DateTime.now();
-  final todayMidnight = DateTime(today.year, today.month, today.day);
-  final fortyOneDaysAgo = todayMidnight.subtract(const Duration(days: 41));
-
-  final startStr = "${fortyOneDaysAgo.year}-${fortyOneDaysAgo.month.toString().padLeft(2, '0')}-${fortyOneDaysAgo.day.toString().padLeft(2, '0')}";
-  final endStr = "${todayMidnight.year}-${todayMidnight.month.toString().padLeft(2, '0')}-${todayMidnight.day.toString().padLeft(2, '0')}";
+  final diff = today.weekday >= DateTime.saturday ? today.weekday - DateTime.saturday : today.weekday + 7 - DateTime.saturday;
+  final currentSaturday = DateTime(today.year, today.month, today.day).subtract(Duration(days: diff));
+  
+  // Query starting 35 days before current Saturday (giving 6 Saturday-to-Friday weeks)
+  final thirtyFiveDaysAgo = currentSaturday.subtract(const Duration(days: 35));
+  final startStr = "${thirtyFiveDaysAgo.year}-${thirtyFiveDaysAgo.month.toString().padLeft(2, '0')}-${thirtyFiveDaysAgo.day.toString().padLeft(2, '0')}";
+  final endStr = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
 
   final dailyData = await ref.read(reportsRepositoryProvider).getDailyStats(
         clinicId: user.clinicId,
@@ -67,12 +69,17 @@ final sixWeeksRevenueProvider = FutureProvider<List<double>>((ref) async {
     if (date == null) continue;
 
     final dateMidnight = DateTime(date.year, date.month, date.day);
-    final diffDays = todayMidnight.difference(dateMidnight).inDays;
-    if (diffDays >= 0 && diffDays < 42) {
-      final weekIdx = diffDays ~/ 7;
-      if (weekIdx >= 0 && weekIdx < 6) {
-        weeklyRevenues[weekIdx] += (dayData['revenue'] as num? ?? 0.0).toDouble();
-      }
+    final diffDaysFromSaturday = dateMidnight.difference(currentSaturday).inDays;
+    
+    int weekIdx = -1;
+    if (diffDaysFromSaturday >= 0 && diffDaysFromSaturday <= 6) {
+      weekIdx = 0;
+    } else if (diffDaysFromSaturday < 0) {
+      weekIdx = (-diffDaysFromSaturday - 1) ~/ 7 + 1;
+    }
+
+    if (weekIdx >= 0 && weekIdx < 6) {
+      weeklyRevenues[weekIdx] += (dayData['revenue'] as num? ?? 0.0).toDouble();
     }
   }
 
@@ -80,7 +87,7 @@ final sixWeeksRevenueProvider = FutureProvider<List<double>>((ref) async {
 });
 
 // مزود إحصائيات الأيام التفصيلية (Family Provider)
-final dailyStatsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, rangeStr) async {
+final dailyStatsProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, rangeStr) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   final parts = rangeStr.split('_');
@@ -94,7 +101,7 @@ final dailyStatsProvider = FutureProvider.family<List<Map<String, dynamic>>, Str
 });
 
 // مزود إحصائيات الشهور التراكمية
-final monthlyStatsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final monthlyStatsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return ref.watch(reportsRepositoryProvider).getMonthlyStats(user.clinicId);
@@ -102,7 +109,7 @@ final monthlyStatsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) as
 
 // مزود التقرير التفصيلي لفترة زمنية محددة (يوم أو شهر)
 // المفتاح: "startDate_endDate" (مثال: "2025-01-15_2025-01-15")
-final detailedReportProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, rangeStr) async {
+final detailedReportProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, rangeStr) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) {
     return {

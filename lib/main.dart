@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:async';
 import 'src/core/constants/supabase_config.dart';
 import 'src/core/theme/app_theme.dart';
 import 'src/core/theme/theme_provider.dart';
@@ -56,11 +57,37 @@ class AuthGate extends ConsumerStatefulWidget {
 class _AuthGateState extends ConsumerState<AuthGate> {
   bool _isInitializing = true;
   bool _isLoggedIn = false;
+  late final StreamSubscription<AuthState> _authSubscription;
 
   @override
   void initState() {
     super.initState();
     _checkInitialSession();
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+      final session = data.session;
+      if (session != null) {
+        final success = await ref.read(loginControllerProvider.notifier).tryAutoLogin();
+        if (mounted) {
+          setState(() {
+            _isLoggedIn = success;
+            _isInitializing = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoggedIn = false;
+            _isInitializing = false;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _checkInitialSession() async {

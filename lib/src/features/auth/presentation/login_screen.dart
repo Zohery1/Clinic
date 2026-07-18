@@ -214,6 +214,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               : const Text('تسجيل الدخول'),
                         ),
                         const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: theme.dividerColor.withOpacity(0.2))),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'أو سجل الدخول عبر',
+                                style: TextStyle(fontSize: 12, color: theme.hintColor),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: theme.dividerColor.withOpacity(0.2))),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        OutlinedButton.icon(
+                          onPressed: loginState.isLoading
+                              ? null
+                              : () => ref.read(loginControllerProvider.notifier).signInWithGoogle(),
+                          icon: Icon(Icons.g_mobiledata_rounded, size: 32, color: theme.colorScheme.primary),
+                          label: const Text('تسجيل الدخول باستخدام Google'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.4)),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                         Wrap(
                           alignment: WrapAlignment.center,
                           crossAxisAlignment: WrapCrossAlignment.center,

@@ -648,90 +648,44 @@ class PatientDetailsDialog extends ConsumerWidget {
             final date = intl.DateFormat('yyyy/MM/dd', 'ar').format(app.appointmentDate.toLocal());
             final time = intl.DateFormat('hh:mm a', 'ar').format(app.appointmentDate.toLocal());
 
-            return IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Column(
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          width: 2,
-                          color: index == appointments.length - 1 ? Colors.transparent : Theme.of(context).dividerColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          decoration: AppTheme.cardDecoration(context),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(Icons.calendar_today_rounded, size: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
-                                        const SizedBox(width: 4),
-                                        Text(date, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                                        const SizedBox(width: 8),
-                                        Text(time, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
-                                      ],
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: _getStatusColor(context, app.status).withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        _translateStatus(app.status),
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: _getStatusColor(context, app.status),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                const SizedBox(height: 8),
-                                const SizedBox(height: 8),
-                                AppointmentServicesSection(appointmentId: app.id),
-                                PatientVisitNoteSection(
-                                  clinicId: clinicId,
-                                  appointmentId: app.id,
-                                  patientId: patient.id,
-                                  patientName: patient.fullName,
-                                  isDoctor: isDoctor,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+            return Stack(
+              children: [
+                if (index != appointments.length - 1)
+                  Positioned(
+                    top: 14,
+                    bottom: 0,
+                    right: 4,
+                    child: Container(
+                      width: 2,
+                      color: Theme.of(context).dividerColor,
                     ),
                   ),
-                ],
-              ),
+                Positioned(
+                  top: 3,
+                  right: 0,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 22, bottom: 8),
+                  child: _DialogTimelineAppointmentCard(
+                    app: app,
+                    date: date,
+                    time: time,
+                    clinicId: clinicId,
+                    patient: patient,
+                    isDoctor: isDoctor,
+                    getStatusColor: _getStatusColor,
+                    translateStatus: _translateStatus,
+                  ),
+                ),
+              ],
             );
           },
         );
@@ -922,4 +876,114 @@ class AppointmentServicesSection extends ConsumerWidget {
     );
   }
 }
+
+class _DialogTimelineAppointmentCard extends ConsumerStatefulWidget {
+  final AppointmentModel app;
+  final String date;
+  final String time;
+  final String clinicId;
+  final PatientModel patient;
+  final bool isDoctor;
+  final Color Function(BuildContext, String) getStatusColor;
+  final String Function(String) translateStatus;
+
+  const _DialogTimelineAppointmentCard({
+    required this.app,
+    required this.date,
+    required this.time,
+    required this.clinicId,
+    required this.patient,
+    required this.isDoctor,
+    required this.getStatusColor,
+    required this.translateStatus,
+  });
+
+  @override
+  ConsumerState<_DialogTimelineAppointmentCard> createState() => _DialogTimelineAppointmentCardState();
+}
+
+class _DialogTimelineAppointmentCardState extends ConsumerState<_DialogTimelineAppointmentCard> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: AppTheme.cardDecoration(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_rounded, size: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                      const SizedBox(width: 4),
+                      Text(widget.date, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                      const SizedBox(width: 8),
+                      Text(widget.time, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: widget.getStatusColor(context, widget.app.status).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          widget.translateStatus(widget.app.status),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: widget.getStatusColor(context, widget.app.status),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                        size: 18,
+                        color: Theme.of(context).hintColor.withOpacity(0.5),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: _isExpanded
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(height: 1),
+                      AppointmentServicesSection(appointmentId: widget.app.id),
+                      PatientVisitNoteSection(
+                        clinicId: widget.clinicId,
+                        appointmentId: widget.app.id,
+                        patientId: widget.patient.id,
+                        patientName: widget.patient.fullName,
+                        isDoctor: widget.isDoctor,
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 

@@ -230,7 +230,7 @@ class QueueCard extends ConsumerWidget {
           ),
           const SizedBox(width: 6),
           _DangerIconButton(
-            onTap: () => _showAdmissionSheet(context, ref, 'cancelled'),
+            onTap: () => _showCancelOptionsSheet(context, ref),
           ),
         ],
       );
@@ -256,7 +256,7 @@ class QueueCard extends ConsumerWidget {
               ),
               const SizedBox(width: 6),
               _DangerIconButton(
-                onTap: () => _showAdmissionSheet(context, ref, 'cancelled'),
+                onTap: () => _showCancelOptionsSheet(context, ref),
               ),
             ],
           ),
@@ -265,6 +265,81 @@ class QueueCard extends ConsumerWidget {
     }
 
     return const SizedBox.shrink();
+  }
+
+  void _showCancelOptionsSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'سبب الإلغاء',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).textTheme.titleMedium?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showAdmissionSheet(context, ref, 'cancelled_by_patient');
+                },
+                icon: const Icon(Icons.person_off_outlined),
+                label: const Text('المريض لم يحضر / اعتذر'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error.withOpacity(0.1),
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showAdmissionSheet(context, ref, 'cancelled_by_clinic');
+                },
+                icon: const Icon(Icons.cancel_outlined),
+                label: const Text('إلغاء من قبل العيادة / الطبيب'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _openExamination(BuildContext context) {

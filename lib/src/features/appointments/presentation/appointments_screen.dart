@@ -45,6 +45,8 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
       case 'completed':
         return const Color(0xFF10B981); // Green (منتهي)
       case 'cancelled':
+      case 'cancelled_by_patient':
+      case 'cancelled_by_clinic':
         return const Color(0xFFEF4444); // Red (ملغي)
       default:
         return const Color(0xFFF59E0B); // Orange (في الانتظار)
@@ -60,7 +62,10 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
       case 'completed':
         return 'منتهي';
       case 'cancelled':
-        return 'ملغي';
+      case 'cancelled_by_clinic':
+        return 'ملغي (عيادة)';
+      case 'cancelled_by_patient':
+        return 'عدم حضور / ملغي (مريض)';
       default:
         return 'في الانتظار';
     }
@@ -142,7 +147,8 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
     // Generate 7 days: Sat through Fri
     final now = DateTime.now();
     // Find the Saturday of this week
-    final saturday = now.subtract(Duration(days: (now.weekday % 7)));
+    final diff = now.weekday >= DateTime.saturday ? now.weekday - DateTime.saturday : now.weekday + 7 - DateTime.saturday;
+    final saturday = now.subtract(Duration(days: diff));
     final days = List.generate(7, (i) => saturday.add(Duration(days: i)));
 
     return Container(
@@ -180,7 +186,7 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
             child: Row(
               children: days.map((day) {
                 final isSelected = DateUtils.isSameDay(selectedDate, day);
-                final isFriday = day.weekday == DateTime.friday;
+                final isFriday = false;
                 final dayLabel = intl.DateFormat('E', 'ar').format(day);
                 final dayNum = intl.DateFormat('d').format(day);
 
@@ -767,7 +773,7 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
     final waitingCount = appointments.where((a) => a.status == 'confirmed').length;
     final withDoctorCount = appointments.where((a) => a.status == 'pending').length;
     final completedCount = appointments.where((a) => a.status == 'completed').length;
-    final cancelledCount = appointments.where((a) => a.status == 'cancelled').length;
+    final cancelledCount = appointments.where((a) => a.status.startsWith('cancelled')).length;
 
     return SliverToBoxAdapter(
       child: Padding(
@@ -886,7 +892,7 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
           ..sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
 
         final cancelled = appointments
-            .where((a) => a.status == 'cancelled')
+            .where((a) => a.status.startsWith('cancelled'))
             .toList()
           ..sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
 
@@ -1053,7 +1059,7 @@ class _StaggeredAppointmentCardState
         .format(appointment.appointmentDate.toLocal());
     final statusColor = widget.getStatusColor(appointment.status);
     final statusText = widget.translateStatus(appointment.status);
-    final isCompleted = appointment.status == 'completed' || appointment.status == 'cancelled';
+    final isCompleted = appointment.status == 'completed' || appointment.status.startsWith('cancelled');
 
     // جلب رقم ملف المريض ديناميكياً
     final patientsAsync = ref.watch(patientsListProvider(widget.clinicId));

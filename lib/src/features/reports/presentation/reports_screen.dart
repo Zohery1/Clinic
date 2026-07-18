@@ -1221,6 +1221,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               final dayNum = intl.DateFormat('d MMMM yyyy', 'ar').format(date);
               final revenue = (log['revenue'] as num).toDouble();
               final visits = log['visits'] as int;
+              
+              final today = DateTime.now();
+              final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
 
               return InkWell(
                 onTap: () => Navigator.push(
@@ -1240,8 +1243,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).textTheme.bodyLarge?.color),
                   ),
                   subtitle: Text(
-                    '$visits كشف',
-                    style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                    isToday ? '$visits كشف • نشط اليوم' : '$visits كشف',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isToday 
+                          ? const Color(0xFFF59E0B) 
+                          : Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                      fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1295,11 +1304,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 final dayNum = intl.DateFormat('d MMMM yyyy', 'ar').format(date);
                 final revenue = (log['revenue'] as num).toDouble();
                 final visits = log['visits'] as int;
-                final isFriday = dayName == 'الجمعة';
+                final isFriday = false;
 
-                final statusLabel = isFriday ? 'عطلة رسمية' : 'مكتمل';
-                final statusColor = isFriday ? (Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF94A3B8)) : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF34D399) : const Color(0xFF10B981));
-                final statusBg = isFriday ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF1F3F5)) : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF065F46) : const Color(0xFFD1FAE5));
+                final today = DateTime.now();
+                final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
+
+                final statusLabel = isToday ? 'نشط اليوم' : (isFriday ? 'عطلة رسمية' : 'مكتمل');
+                final statusColor = isToday 
+                    ? const Color(0xFFF59E0B) // Amber
+                    : (isFriday 
+                        ? (Theme.of(context).textTheme.bodySmall?.color ?? const Color(0xFF94A3B8)) 
+                        : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF34D399) : const Color(0xFF10B981)));
+                final statusBg = isToday 
+                    ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7))
+                    : (isFriday 
+                        ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF1F3F5)) 
+                        : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF065F46) : const Color(0xFFD1FAE5)));
 
                 return InkWell(
                   onTap: isFriday ? null : () => Navigator.push(
@@ -1516,6 +1536,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 final revenue = (log['revenue'] as num).toDouble();
                 final visits = log['visits'] as int;
 
+                final today = DateTime.now();
+                final isCurrentMonth = today.year == year && today.month == month;
+
+                final statusLabel = isCurrentMonth ? 'نشط حالياً' : 'مغلق ومؤكد';
+                final statusColor = isCurrentMonth 
+                    ? const Color(0xFFF59E0B) // Amber
+                    : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF34D399) : const Color(0xFF10B981));
+                final statusBg = isCurrentMonth 
+                    ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7)) 
+                    : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF065F46) : const Color(0xFFD1FAE5));
+
                 final monthStart = DateTime(year, month, 1);
                 final monthEnd = DateTime(year, month + 1, 0);
                 return InkWell(
@@ -1567,15 +1598,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF065F46) : const Color(0xFFD1FAE5),
+                                  color: statusBg,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
-                                  'مغلق ومؤكد',
+                                  statusLabel,
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF34D399) : const Color(0xFF10B981),
+                                    color: statusColor,
                                   ),
                                 ),
                               ),

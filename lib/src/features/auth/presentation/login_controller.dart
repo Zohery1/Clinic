@@ -107,6 +107,19 @@ class LoginController extends StateNotifier<LoginState> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      await _authRepository.signInWithGoogle();
+      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'فشل تسجيل الدخول باستخدام Google: ${e.toString().replaceAll('Exception:', '')}',
+      );
+    }
+  }
+
   // محاولة استعادة الجلسة الحالية تلقائياً عند تشغيل التطبيق
   Future<bool> tryAutoLogin() async {
     final userId = _authRepository.currentUserId;

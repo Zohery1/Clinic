@@ -185,9 +185,11 @@ class ReportsRepository {
   Future<List<Map<String, dynamic>>> getWeeklyRevenue(String clinicId) async {
     try {
       final today = DateTime.now();
-      final weekAgo = today.subtract(const Duration(days: 6));
-      final start = DateTime(weekAgo.year, weekAgo.month, weekAgo.day).toUtc().toIso8601String();
-      final end = DateTime(today.year, today.month, today.day, 23, 59, 59).toUtc().toIso8601String();
+      final diff = today.weekday >= DateTime.saturday ? today.weekday - DateTime.saturday : today.weekday + 7 - DateTime.saturday;
+      final saturday = DateTime(today.year, today.month, today.day).subtract(Duration(days: diff));
+      final start = saturday.toUtc().toIso8601String();
+      final friday = saturday.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
+      final end = friday.toUtc().toIso8601String();
 
       final List<dynamic> response = await _supabase
           .from('appointments')
@@ -199,7 +201,7 @@ class ReportsRepository {
 
       final Map<String, double> revenueMap = {};
       for (int i = 0; i < 7; i++) {
-        final day = weekAgo.add(Duration(days: i));
+        final day = saturday.add(Duration(days: i));
         final dayStr = "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
         revenueMap[dayStr] = 0.0;
       }
@@ -373,6 +375,7 @@ class ReportsRepository {
             id,
             patient_id,
             price_charged,
+            appointment_date,
             appointment_types(name),
             appointment_services(
               price_charged,
@@ -389,6 +392,8 @@ class ReportsRepository {
       double totalAppointmentsRevenue = 0.0;
       double totalServicesRevenue = 0.0;
       final Set<String> patientIds = {};
+      final Map<String, int> peakTimes = {};
+      final bool isDaily = endParsed.difference(DateTime.parse(startDate)).inDays <= 1;
 
       for (var app in appointments) {
         patientIds.add(app['patient_id'] as String);
@@ -402,6 +407,25 @@ class ReportsRepository {
         appointmentsByType[typeName]!['totalCost'] =
             (appointmentsByType[typeName]!['totalCost'] as double) + basePrice;
         totalAppointmentsRevenue += basePrice;
+
+        // Peak times calculation
+        try {
+          final appDate = DateTime.parse(app['appointment_date'] as String).toLocal();
+          if (isDaily) {
+            // Include AM/PM in hour formatting
+            int hour = appDate.hour;
+            String amPm = hour >= 12 ? 'م' : 'ص';
+            int displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+            final timeKey = '$displayHour $amPm';
+            peakTimes[timeKey] = (peakTimes[timeKey] ?? 0) + 1;
+          } else {
+            // Format Day: e.g., '15' or 'الاثنين'
+            final dayKey = '${appDate.day}/${appDate.month}';
+            peakTimes[dayKey] = (peakTimes[dayKey] ?? 0) + 1;
+          }
+        } catch (e) {
+          // Ignore parsing errors for peak times
+        }
 
         // تحسيب إجمالي الخدمات فقط (التجميع التفصيلي في اللوب التاني)
         final servicesList = app['appointment_services'] as List<dynamic>? ?? [];
@@ -445,15 +469,117 @@ class ReportsRepository {
       final int oldPatientsCount =
           patientIds.where((id) => !newPatientIds.contains(id)).length;
 
+      // جلب المواعيد الملغاة
+      final List<dynamic> cancelledAppointmentsResponse = await _supabase
+          .from('appointments')
+          .select('id, status')
+          .eq('clinic_id', clinicId)
+          .gte('appointment_date', start)
+          .lte('appointment_date', end)
+          .inFilter('status', ['cancelled', 'cancelled_by_clinic', 'cancelled_by_patient']);
+
+      int cancelledByClinicCount = 0;
+      int cancelledByPatientCount = 0;
+
+      for (var app in cancelledAppointmentsResponse) {
+        if (app['status'] == 'cancelled_by_patient') {
+          cancelledByPatientCount++;
+        } else {
+          cancelledByClinicCount++;
+        }
+      }
+
+      // جلب الإيرادات للفترة السابقة للمقارنة
+      final startParsed = DateTime.parse(startDate);
+      final int diffDays = endParsed.difference(startParsed).inDays + 1;
+      
+      String comparisonLabel = 'مقارنة بالفترة السابقة';
+      double previousRevenue = 0.0;
+
+      if (diffDays == 1) {
+        // 1. البحث عن أقرب يوم سابق يحتوي على مواعيد مكتملة
+        final List<dynamic> lastActiveAppt = await _supabase
+            .from('appointments')
+            .select('appointment_date')
+            .eq('clinic_id', clinicId)
+            .eq('status', 'completed')
+            .lt('appointment_date', start)
+            .order('appointment_date', ascending: false)
+            .limit(1);
+
+        if (lastActiveAppt.isNotEmpty) {
+          final lastActiveDateStr = lastActiveAppt[0]['appointment_date'] as String;
+          final lastActiveDate = DateTime.parse(lastActiveDateStr).toLocal();
+          
+          final lastActiveStart = DateTime(lastActiveDate.year, lastActiveDate.month, lastActiveDate.day, 0, 0, 0)
+              .toUtc()
+              .toIso8601String();
+          final lastActiveEnd = DateTime(lastActiveDate.year, lastActiveDate.month, lastActiveDate.day, 23, 59, 59)
+              .toUtc()
+              .toIso8601String();
+
+          final List<dynamic> prevAppointments = await _supabase
+              .from('appointments')
+              .select('price_charged, appointment_services(price_charged)')
+              .eq('clinic_id', clinicId)
+              .eq('status', 'completed')
+              .gte('appointment_date', lastActiveStart)
+              .lte('appointment_date', lastActiveEnd);
+
+          for (var app in prevAppointments) {
+            previousRevenue += (app['price_charged'] as num? ?? 0.0).toDouble();
+            final svcs = app['appointment_services'] as List<dynamic>? ?? [];
+            for (var svc in svcs) {
+              previousRevenue += ((svc as Map<String, dynamic>)['price_charged'] as num? ?? 0.0).toDouble();
+            }
+          }
+          
+          comparisonLabel = 'مقارنة بيوم ${lastActiveDate.day}/${lastActiveDate.month}';
+        } else {
+          comparisonLabel = 'مقارنة باليوم السابق';
+          previousRevenue = 0.0;
+        }
+      } else {
+        // للمقارنات متعددة الأيام (مثلا شهر)
+        final previousStart = startParsed.subtract(Duration(days: diffDays)).toUtc().toIso8601String();
+        final previousEnd = startParsed.subtract(Duration(seconds: 1)).toUtc().toIso8601String();
+
+        final List<dynamic> prevAppointments = await _supabase
+            .from('appointments')
+            .select('price_charged, appointment_services(price_charged)')
+            .eq('clinic_id', clinicId)
+            .eq('status', 'completed')
+            .gte('appointment_date', previousStart)
+            .lte('appointment_date', previousEnd);
+
+        for (var app in prevAppointments) {
+          previousRevenue += (app['price_charged'] as num? ?? 0.0).toDouble();
+          final svcs = app['appointment_services'] as List<dynamic>? ?? [];
+          for (var svc in svcs) {
+            previousRevenue += ((svc as Map<String, dynamic>)['price_charged'] as num? ?? 0.0).toDouble();
+          }
+        }
+        comparisonLabel = 'مقارنة بالفترة السابقة';
+      }
+
+      // Sorting peak times
+      final sortedPeakTimes = peakTimes.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+
       return {
         'appointmentsByType': appointmentsByType.values.toList(),
         'servicesByType': servicesByType.values.toList(),
         'totalAppointmentsRevenue': totalAppointmentsRevenue,
         'totalServicesRevenue': totalServicesRevenue,
         'totalRevenue': totalAppointmentsRevenue + totalServicesRevenue,
+        'previousRevenue': previousRevenue,
+        'comparisonLabel': comparisonLabel,
         'totalVisits': appointments.length,
         'newPatientsCount': newPatientsCount,
         'oldPatientsCount': oldPatientsCount,
+        'cancelledAppointmentsCount': cancelledByClinicCount,
+        'cancelledByPatientCount': cancelledByPatientCount,
+        'peakTimes': sortedPeakTimes.map((e) => {'label': e.key, 'count': e.value}).toList(),
       };
     } catch (e, s) {
       print('getDetailedReport ERROR: $e');

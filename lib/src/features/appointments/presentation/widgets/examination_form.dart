@@ -34,112 +34,157 @@ class ExaminationForm extends StatelessWidget {
       color: Theme.of(context).colorScheme.surface,
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 700;
+
+            final reportSection = Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.edit_document, size: 20, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'تقرير الجلسة',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.titleLarge?.color,
-                  ),
+                Row(
+                  children: [
+                    Icon(Icons.edit_document, size: 20, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'تقرير الجلسة',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).textTheme.titleLarge?.color,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildFormField(
+                  context,
+                  label: 'الشكوى الرئيسية',
+                  hint: 'ما الذي يشكو منه المريض؟',
+                  controller: complaintController,
+                  readOnly: !isDoctor,
+                  icon: Icons.record_voice_over_outlined,
+                ),
+                const SizedBox(height: 20),
+                _buildFormField(
+                  context,
+                  label: 'التشخيص الطبي',
+                  hint: 'التشخيص الطبي للحالة...',
+                  controller: diagnosisController,
+                  readOnly: !isDoctor,
+                  icon: Icons.medical_information_outlined,
+                ),
+                const SizedBox(height: 20),
+                _buildFormField(
+                  context,
+                  label: 'تعليمات للمريض',
+                  hint: 'أدوية، نصائح، أو مواعيد المراجعة...',
+                  controller: instructionsController,
+                  readOnly: !isDoctor,
+                  icon: Icons.receipt_long_outlined,
                 ),
               ],
-            ),
-            const SizedBox(height: 24),
-            _buildFormField(
-              context,
-              label: 'الشكوى الرئيسية',
-              hint: 'ما الذي يشكو منه المريض؟',
-              controller: complaintController,
-              readOnly: !isDoctor,
-              icon: Icons.record_voice_over_outlined,
-            ),
-            const SizedBox(height: 20),
-            _buildFormField(
-              context,
-              label: 'التشخيص الطبي',
-              hint: 'التشخيص الطبي للحالة...',
-              controller: diagnosisController,
-              readOnly: !isDoctor,
-              icon: Icons.medical_information_outlined,
-            ),
-            const SizedBox(height: 20),
-            _buildFormField(
-              context,
-              label: 'تعليمات للمريض',
-              hint: 'أدوية، نصائح، أو مواعيد المراجعة...',
-              controller: instructionsController,
-              readOnly: !isDoctor,
-              icon: Icons.receipt_long_outlined,
-            ),
-            const SizedBox(height: 32),
-            const Divider(height: 1),
-            const SizedBox(height: 24),
-            Row(
+            );
+
+            final servicesSection = Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.medical_services_outlined, size: 18, color: Theme.of(context).colorScheme.secondary),
-                const SizedBox(width: 8),
-                Text(
-                  'الخدمات المقدمة',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: Theme.of(context).textTheme.titleMedium?.color,
-                  ),
+                Row(
+                  children: [
+                    Icon(Icons.medical_services_outlined, size: 18, color: Theme.of(context).colorScheme.secondary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'الخدمات المقدمة',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: Theme.of(context).textTheme.titleMedium?.color,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            availableServicesAsync.when(
-              data: (services) {
-                if (services.isEmpty) {
-                  return Text(
-                    'لا توجد خدمات مضافة بعد.',
-                    style: TextStyle(fontSize: 13, color: Theme.of(context).hintColor),
-                  );
-                }
-                return Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: services.map((service) {
-                    final isSelected = selectedServices.any((s) => s.id == service.id);
-                    return FilterChip(
-                      selected: isSelected,
-                      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                      selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-                      checkmarkColor: Theme.of(context).colorScheme.primary,
-                      side: BorderSide(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary.withOpacity(0.5)
-                            : Theme.of(context).dividerColor.withOpacity(0.1),
-                        width: 1.5,
-                      ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      label: Text(
-                        '${service.name} — ${service.price.toStringAsFixed(0)} ج.م',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
-                      ),
-                      onSelected: isDoctor ? (selected) => onServiceToggled(service, selected) : null,
+                const SizedBox(height: 16),
+                availableServicesAsync.when(
+                  data: (services) {
+                    if (services.isEmpty) {
+                      return Text(
+                        'لا توجد خدمات مضافة بعد.',
+                        style: TextStyle(fontSize: 13, color: Theme.of(context).hintColor),
+                      );
+                    }
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: services.map((service) {
+                        final isSelected = selectedServices.any((s) => s.id == service.id);
+                        return FilterChip(
+                          selected: isSelected,
+                          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                          selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                          checkmarkColor: Theme.of(context).colorScheme.primary,
+                          side: BorderSide(
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primary.withOpacity(0.5)
+                                : Theme.of(context).dividerColor.withOpacity(0.1),
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          label: Text(
+                            '${service.name} — ${service.price.toStringAsFixed(0)} ج.م',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                          onSelected: isDoctor ? (selected) => onServiceToggled(service, selected) : null,
+                        );
+                      }).toList(),
                     );
-                  }).toList(),
-                );
-              },
-              loading: () => const SizedBox(height: 40, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
-              error: (err, _) => Text('خطأ: $err', style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ),
-          ],
+                  },
+                  loading: () => const SizedBox(height: 40, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+                  error: (err, _) => Text('خطأ: $err', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                ),
+              ],
+            );
+
+            if (isWide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 13,
+                    child: reportSection,
+                  ),
+                  const SizedBox(width: 32),
+                  Expanded(
+                    flex: 9,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+                      ),
+                      child: servicesSection,
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                reportSection,
+                const SizedBox(height: 32),
+                const Divider(height: 1),
+                const SizedBox(height: 24),
+                servicesSection,
+              ],
+            );
+          },
         ),
       ),
     );

@@ -57,6 +57,8 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
       case 'completed':
         return const Color(0xFF10B981); // Green
       case 'cancelled':
+      case 'cancelled_by_patient':
+      case 'cancelled_by_clinic':
         return const Color(0xFFEF4444); // Red
       default:
         return const Color(0xFFF59E0B);
@@ -166,7 +168,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
                           const SizedBox(width: 8),
                           _buildFilterChip(ref, 'completed', 'منتهي (${widget.appointments.where((a) => a.status == 'completed').length})', selectedFilter),
                           const SizedBox(width: 8),
-                          _buildFilterChip(ref, 'cancelled', 'ملغي (${widget.appointments.where((a) => a.status == 'cancelled').length})', selectedFilter),
+                          _buildFilterChip(ref, 'cancelled', 'ملغي (${widget.appointments.where((a) => a.status.startsWith('cancelled')).length})', selectedFilter),
                         ],
                       ),
                     ),
@@ -524,33 +526,43 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Expanded(
-              child: ElevatedButton(
-                onPressed: () => _updateStatus(context, appt, 'pending'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  elevation: 0,
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.login_rounded, size: 12),
-                    SizedBox(width: 4),
-                    Text('دخول للطبيب', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                  ],
+              child: SizedBox(
+                height: 34,
+                child: ElevatedButton(
+                  onPressed: () => _updateStatus(context, appt, 'pending'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.login_rounded, size: 14),
+                      SizedBox(width: 4),
+                      Text('دخول للطبيب', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: 6),
-            IconButton(
-              onPressed: () => _updateStatus(context, appt, 'cancelled'),
-              icon: const Icon(Icons.cancel_outlined, size: 18),
-              color: const Color(0xFFEF4444),
-              tooltip: 'إلغاء الموعد',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+            SizedBox(
+              height: 34,
+              width: 34,
+              child: Material(
+                color: const Color(0xFFEF4444).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                child: InkWell(
+                  onTap: () => _updateStatus(context, appt, 'cancelled'),
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Center(
+                    child: Icon(Icons.close_rounded, size: 16, color: Color(0xFFEF4444)),
+                  ),
+                ),
+              ),
             ),
           ],
         );
@@ -559,48 +571,61 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ElevatedButton(
-              onPressed: () => _openExamination(context, appt),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                elevation: 0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.medical_information_outlined, size: 12),
-                  const SizedBox(width: 4),
-                  Text(isDoctor ? 'جلسة الفحص' : 'التقرير الطبي', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                ],
+            SizedBox(
+              height: 34,
+              child: ElevatedButton(
+                onPressed: () => _openExamination(context, appt),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.medical_information_outlined, size: 14),
+                    const SizedBox(width: 4),
+                    Text(isDoctor ? 'جلسة الفحص' : 'التقرير الطبي', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _updateStatus(context, appt, 'completed'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      elevation: 0,
+                  child: SizedBox(
+                    height: 34,
+                    child: ElevatedButton(
+                      onPressed: () => _updateStatus(context, appt, 'completed'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                      ),
+                      child: const Text('إنهاء الكشف', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                     ),
-                    child: const Text('إنهاء الكشف', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold)),
                   ),
                 ),
-                const SizedBox(width: 4),
-                IconButton(
-                  onPressed: () => _updateStatus(context, appt, 'cancelled'),
-                  icon: const Icon(Icons.cancel_outlined, size: 16),
-                  color: const Color(0xFFEF4444),
-                  tooltip: 'إلغاء الموعد',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                const SizedBox(width: 6),
+                SizedBox(
+                  height: 34,
+                  width: 34,
+                  child: Material(
+                    color: const Color(0xFFEF4444).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      onTap: () => _updateStatus(context, appt, 'cancelled'),
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Center(
+                        child: Icon(Icons.close_rounded, size: 16, color: Color(0xFFEF4444)),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -616,13 +641,19 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
           ],
         );
       case 'cancelled': // ملغي
-        return TextButton(
-          onPressed: () => _updateStatus(context, appt, 'confirmed'),
-          style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.primary,
-            padding: EdgeInsets.zero,
+        return SizedBox(
+          height: 34,
+          child: TextButton.icon(
+            onPressed: () => _updateStatus(context, appt, 'confirmed'),
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.primary,
+              backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            icon: const Icon(Icons.refresh_rounded, size: 14),
+            label: const Text('إعادة تنشيط', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
           ),
-          child: const Text('إعادة تنشيط', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
         );
       default:
         return const SizedBox();

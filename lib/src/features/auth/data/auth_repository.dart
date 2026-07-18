@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../domain/user_model.dart';
 
 // مزود مستودع المصادقة لجعل كلاس AuthRepository قابلاً للاستخدام في أي مكان
@@ -69,6 +70,18 @@ class AuthRepository {
 
       // جلب بيانات البروفايل الخاص بالمستخدم من جدول public.users للوصول إلى clinic_id والـ role
       return await getUserProfile(response.user!.id);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // تسجيل الدخول باستخدام Google
+  Future<void> signInWithGoogle() async {
+    try {
+      await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? null : 'io.supabase.clinicmanagement://login-callback',
+      );
     } catch (e) {
       rethrow;
     }

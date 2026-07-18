@@ -329,7 +329,7 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       children: [
         // ─── شريط المريض الجانبي ───
         SizedBox(
-          width: 320, // Increased width for better sidebar layout
+          width: 380, // Increased width for better sidebar layout
           child: SingleChildScrollView(
             padding: const EdgeInsets.only(bottom: 24),
             child: PatientMedicalSidebar(
