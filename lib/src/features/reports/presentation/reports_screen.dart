@@ -823,8 +823,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                     icon: const Icon(Icons.download_rounded, size: 14),
                                     label: const Text('تصدير', style: TextStyle(fontSize: 11)),
                                     onPressed: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('جاري تصدير الملف بصيغة PDF...')),
+                                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                                        const SnackBar(duration: const Duration(seconds: 2), content: Text('جاري تصدير الملف بصيغة PDF...')),
                                       );
                                     },
                                   ),
@@ -889,8 +889,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 icon: const Icon(Icons.download_rounded, size: 14),
                                 label: const Text('تصدير التقرير', style: TextStyle(fontSize: 11)),
                                 onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('جاري تصدير الملف بصيغة PDF...')),
+                                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                                    const SnackBar(duration: const Duration(seconds: 2), content: Text('جاري تصدير الملف بصيغة PDF...')),
                                   );
                                 },
                               ),

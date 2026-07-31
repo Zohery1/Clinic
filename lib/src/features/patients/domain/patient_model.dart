@@ -23,23 +23,15 @@ class PatientModel {
   });
 
   factory PatientModel.fromJson(Map<String, dynamic> json) {
-    // دعم legacy: إذا لم يكن العمود medical_history موجوداً بعد، نستخرج من address
     final rawAddress = json['address'] as String?;
-    String? address;
-    String? medicalHistory;
+    String? address = rawAddress;
+    String? medicalHistory = json['medical_history'] as String?;
 
-    if (json.containsKey('medical_history')) {
-      // الحقل الجديد المنفصل (بعد الـ migration)
-      address = rawAddress;
-      medicalHistory = json['medical_history'] as String?;
-    } else if (rawAddress != null && rawAddress.contains('|')) {
-      // legacy: address|medicalHistory
+    // Fallback لـ legacy data المعنونة بـ '|' إذا كان العمود القديم يحوي الداتا المدمجة ولم يُرحّل بعد
+    if (medicalHistory == null && rawAddress != null && rawAddress.contains('|')) {
       final parts = rawAddress.split('|');
       address = parts[0].trim().isEmpty ? null : parts[0].trim();
       medicalHistory = parts.length > 1 && parts[1].trim().isNotEmpty ? parts[1].trim() : null;
-    } else {
-      address = rawAddress;
-      medicalHistory = null;
     }
 
     return PatientModel(

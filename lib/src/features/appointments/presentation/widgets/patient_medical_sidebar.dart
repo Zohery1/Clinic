@@ -9,7 +9,8 @@ import '../../data/visit_note_repository.dart';
 import 'package:intl/intl.dart';
 
 final patientAppointmentsProvider = FutureProvider.family.autoDispose<List<AppointmentModel>, String>((ref, patientId) async {
-  return ref.watch(appointmentRepositoryProvider).getPatientAppointments(patientId);
+  final all = await ref.watch(appointmentRepositoryProvider).getPatientAppointments(patientId);
+  return all.where((app) => app.status == 'completed').toList();
 });
 
 class PatientMedicalSidebar extends ConsumerStatefulWidget {

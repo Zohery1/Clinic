@@ -256,8 +256,8 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
 
   Future<void> _savePatient() async {
     if (_selectedGender == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+        const SnackBar(duration: const Duration(seconds: 2), 
           content: Text('يرجى اختيار الجنس (ذكر أو أنثى)'),
           backgroundColor: Colors.orange,
         ),
@@ -285,8 +285,8 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
       ref.invalidate(patientsListProvider(widget.clinicId));
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text('تم تسجيل المريض بنجاح',
                 style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
             backgroundColor: const Color(0xFF10B981),
@@ -296,8 +296,8 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text('خطأ: $e', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),

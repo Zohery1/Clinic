@@ -46,8 +46,8 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
   void _save(bool hasExisting) async {
     final text = _notesController.text.trim();
     if (text.isEmpty && _selectedServices.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+        SnackBar(duration: const Duration(seconds: 2), 
           content: const Text('يرجى كتابة التقرير الطبي أو اختيار خدمة واحدة على الأقل'),
           backgroundColor: Theme.of(context).brightness == Brightness.dark
               ? const Color(0xFFF59E0B)
@@ -87,8 +87,8 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
       ref.invalidate(monthRevenueProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text(hasExisting ? 'تم تحديث التقرير والخدمات بنجاح' : 'تم حفظ التقرير والخدمات بنجاح'),
             backgroundColor: Theme.of(context).brightness == Brightness.dark
                 ? const Color(0xFF34D399)
@@ -99,8 +99,8 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text('حدث خطأ أثناء الحفظ: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -130,8 +130,8 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
       ref.invalidate(monthRevenueProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: const Text('تم حذف التقرير والخدمات بنجاح'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -140,8 +140,8 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text('حدث خطأ أثناء الحذف: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),

@@ -160,7 +160,22 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            // ─── القسم الثالث: المظهر والنظام ───
+            // ─── القسم الثالث: الربط والأتمتة ───
+            _buildSectionHeader(context, 'الربط والأتمتة'),
+            _buildSettingTile(
+              context: context,
+              icon: Icons.chat_outlined,
+              title: 'إعدادات الواتساب والأتمتة',
+              subtitle: 'ربط رقم العيادة وتعديل قوالب الرسائل التلقائية',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const WhatsAppAutomationPage()),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // ─── القسم الرابع: المظهر والنظام ───
             _buildSectionHeader(context, 'تخصيص النظام'),
             _buildSettingTile(
               context: context,
@@ -469,15 +484,15 @@ class _ClinicDetailsPageState extends ConsumerState<ClinicDetailsPage> {
         ref.read(currentUserProvider.notifier).state = updatedUser;
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم حفظ البيانات بنجاح'), backgroundColor: AppTheme.success),
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+            const SnackBar(duration: const Duration(seconds: 2), content: Text('تم حفظ البيانات بنجاح'), backgroundColor: AppTheme.success),
           );
           Navigator.pop(context);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('خطأ أثناء الحفظ: $e'), backgroundColor: AppTheme.error),
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+            SnackBar(duration: const Duration(seconds: 2), content: Text('خطأ أثناء الحفظ: $e'), backgroundColor: AppTheme.error),
           );
         }
       } finally {
@@ -651,8 +666,8 @@ class StaffPermissionsPage extends ConsumerWidget {
                               label: const Text('نسخ رابط التسجيل السريع', style: TextStyle(fontSize: 12)),
                               onPressed: () {
                                 Clipboard.setData(ClipboardData(text: inviteLink));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                                  const SnackBar(duration: const Duration(seconds: 2), 
                                     content: Text('تم نسخ رابط التسجيل المباشر للسكرتيرة!'),
                                     backgroundColor: AppTheme.success,
                                   ),
@@ -1343,8 +1358,8 @@ class _SaveButtonState extends State<_SaveButton> {
                 await widget.onPressed();
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                    SnackBar(duration: const Duration(seconds: 2), 
                       content: Text('خطأ: $e'),
                       backgroundColor: Theme.of(context).colorScheme.error,
                     ),
@@ -1361,6 +1376,519 @@ class _SaveButtonState extends State<_SaveButton> {
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             )
           : Text(widget.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+// ============================================================================
+// ─── 5. صفحة إعدادات الواتساب والأتمتة ───
+// ============================================================================
+class WhatsAppAutomationPage extends ConsumerStatefulWidget {
+  const WhatsAppAutomationPage({super.key});
+
+  @override
+  ConsumerState<WhatsAppAutomationPage> createState() => _WhatsAppAutomationPageState();
+}
+
+class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage> {
+  final _formKey = GlobalKey<FormState>();
+  
+  final _whatsappPhoneController = TextEditingController();
+  final _whatsappInstanceNameController = TextEditingController();
+  final _bookingTemplateController = TextEditingController();
+  final _reminderTemplateController = TextEditingController();
+  
+  bool _whatsappEnabled = false;
+  bool _sendBookingMessage = true;
+  bool _sendReminderMessage = true;
+  String _whatsappStatus = 'disconnected';
+  
+  bool _isLoading = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  void _loadSettings() async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+
+    try {
+      final res = await Supabase.instance.client
+          .from('clinics')
+          .select()
+          .eq('id', user.clinicId)
+          .single();
+
+      setState(() {
+        _whatsappEnabled = res['whatsapp_enabled'] as bool? ?? false;
+        _whatsappPhoneController.text = res['whatsapp_phone'] as String? ?? '';
+        _whatsappInstanceNameController.text = res['whatsapp_instance_name'] as String? ?? '';
+        _whatsappStatus = res['whatsapp_status'] as String? ?? 'disconnected';
+        _sendBookingMessage = res['send_booking_message'] as bool? ?? true;
+        _sendReminderMessage = res['send_reminder_message'] as bool? ?? true;
+        _bookingTemplateController.text = res['booking_message_template'] as String? ?? '';
+        _reminderTemplateController.text = res['reminder_message_template'] as String? ?? '';
+        _isLoading = false;
+      });
+    } catch (_) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _whatsappPhoneController.dispose();
+    _whatsappInstanceNameController.dispose();
+    _bookingTemplateController.dispose();
+    _reminderTemplateController.dispose();
+    super.dispose();
+  }
+
+  void _save() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isSaving = true);
+      final user = ref.read(currentUserProvider);
+      if (user == null) return;
+
+      try {
+        await Supabase.instance.client
+            .from('clinics')
+            .update({
+              'whatsapp_enabled': _whatsappEnabled,
+              'whatsapp_phone': _whatsappPhoneController.text.trim(),
+              'whatsapp_instance_name': _whatsappInstanceNameController.text.trim(),
+              'whatsapp_status': _whatsappStatus,
+              'send_booking_message': _sendBookingMessage,
+              'send_reminder_message': _sendReminderMessage,
+              'booking_message_template': _bookingTemplateController.text.trim(),
+              'reminder_message_template': _reminderTemplateController.text.trim(),
+            })
+            .eq('id', user.clinicId);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+            const SnackBar(duration: const Duration(seconds: 2), content: Text('تم حفظ إعدادات الأتمتة بنجاح'), backgroundColor: AppTheme.success),
+          );
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+            SnackBar(duration: const Duration(seconds: 2), content: Text('خطأ أثناء الحفظ: $e'), backgroundColor: AppTheme.error),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _insertTag(TextEditingController controller, String tag) {
+    final text = controller.text;
+    final selection = controller.selection;
+    if (selection.start >= 0) {
+      final newText = text.replaceRange(selection.start, selection.end, tag);
+      controller.text = newText;
+      controller.selection = TextSelection.collapsed(offset: selection.start + tag.length);
+    } else {
+      controller.text = text + tag;
+    }
+  }
+
+  void _simulateQrScan() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        final theme = Theme.of(context);
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                title: Text(
+                  'ربط الحساب عبر QR Code',
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'امسح الرمز المربع بواسطة تطبيق WhatsApp بهاتفك (الأجهزة المرتبطة > ربط جهاز)',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.cairo(fontSize: 12, color: theme.hintColor),
+                    ),
+                    const SizedBox(height: 20),
+                    // محاكاة رمز QR الرمز المربع
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: theme.dividerColor.withOpacity(0.3)),
+                      ),
+                      child: Icon(
+                        Icons.qr_code_2_rounded,
+                        size: 180,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'في انتظار مسح الرمز المربع...',
+                          style: GoogleFonts.cairo(fontSize: 12, color: theme.colorScheme.primary),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('إلغاء', style: GoogleFonts.cairo()),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _whatsappStatus = 'connected';
+                        _whatsappEnabled = true;
+                      });
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                        const SnackBar(duration: const Duration(seconds: 2), 
+                          content: Text('تم ربط حساب الواتساب بنجاح'),
+                          backgroundColor: AppTheme.success,
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
+                    child: Text('تأكيد المحاكاة (ربط)', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _disconnectWhatsapp() {
+    showDialog(
+      context: context,
+      builder: (context) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('إلغاء ربط الواتساب'),
+          content: const Text('هل أنت متأكد من رغبتك في إلغاء ربط رقم العيادة وتعطيل الإرسال التلقائي؟'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('تراجع'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
+              onPressed: () {
+                setState(() {
+                  _whatsappStatus = 'disconnected';
+                  _whatsappEnabled = false;
+                  _whatsappPhoneController.clear();
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('نعم، إلغاء الربط'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final user = ref.watch(currentUserProvider);
+    final isDoctor = user?.role == UserRole.doctor;
+
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('إعدادات الواتساب والأتمتة')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final isConnected = _whatsappStatus == 'connected';
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: const Text('إعدادات الواتساب والأتمتة'),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 1. كارت حالة الاتصال
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: AppTheme.cardDecoration(context),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: (isConnected ? AppTheme.success : AppTheme.error).withOpacity(0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.settings_cell_rounded,
+                              color: isConnected ? AppTheme.success : AppTheme.error,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'حالة الاتصال بالبوابة',
+                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: isConnected ? AppTheme.success : AppTheme.error,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      isConnected ? 'متصل ومفعّل' : 'غير متصل',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: isConnected ? AppTheme.success : AppTheme.error,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      if (isDoctor)
+                        ElevatedButton(
+                          onPressed: isConnected ? _disconnectWhatsapp : _simulateQrScan,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isConnected ? theme.colorScheme.error : theme.colorScheme.primary,
+                            minimumSize: const Size(double.infinity, 44),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: Text(
+                            isConnected ? 'إلغاء ربط الواتساب' : 'ربط الواتساب الآن (مسح الرمز)',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 2. إعدادات الأتمتة الأساسية
+                Text(
+                  'أتمتة الرسائل التلقائية',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: theme.colorScheme.primary),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: AppTheme.cardDecorationFlat(context),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        value: _whatsappEnabled,
+                        onChanged: isConnected && isDoctor
+                            ? (val) => setState(() => _whatsappEnabled = val)
+                            : null,
+                        title: const Text('تفعيل خدمة الواتساب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        subtitle: const Text('إرسال تنبيهات المواعيد للمرضى عبر الواتساب', style: TextStyle(fontSize: 11)),
+                      ),
+                      const Divider(height: 1),
+                      SwitchListTile(
+                        value: _sendBookingMessage,
+                        onChanged: _whatsappEnabled && isDoctor
+                            ? (val) => setState(() => _sendBookingMessage = val)
+                            : null,
+                        title: const Text('رسالة تأكيد الحجز', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        subtitle: const Text('إرسال رسالة فورية عند حجز موعد جديد للمريض', style: TextStyle(fontSize: 11)),
+                      ),
+                      const Divider(height: 1),
+                      SwitchListTile(
+                        value: _sendReminderMessage,
+                        onChanged: _whatsappEnabled && isDoctor
+                            ? (val) => setState(() => _sendReminderMessage = val)
+                            : null,
+                        title: const Text('رسالة تذكير بالموعد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        subtitle: const Text('إرسال رسالة تذكير تلقائية قبل موعد الزيارة بـ 24 ساعة', style: TextStyle(fontSize: 11)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 3. بيانات رقم الواتس والتسمية
+                Text(
+                  'بيانات الحساب المرتبط',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: theme.colorScheme.primary),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _whatsappPhoneController,
+                  enabled: isDoctor && !isConnected,
+                  style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'رقم الواتساب المتصل',
+                    prefixIcon: Icon(Icons.phone_android_rounded),
+                    hintText: '+201xxxxxxxxx',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _whatsappInstanceNameController,
+                  enabled: isDoctor,
+                  style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                  decoration: const InputDecoration(
+                    labelText: 'اسم مثيل البوابة (Instance Name)',
+                    prefixIcon: Icon(Icons.label_outline_rounded),
+                    hintText: 'مثال: clinic_main_instance',
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 4. قوالب الرسائل وتخصيصها
+                if (_sendBookingMessage) ...[
+                  Text(
+                    'قالب رسالة تأكيد الحجز',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: theme.colorScheme.primary),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _bookingTemplateController,
+                    enabled: isDoctor,
+                    maxLines: 4,
+                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                    decoration: const InputDecoration(
+                      hintText: 'اكتب نص الرسالة هنا...',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSmartTagsRow(_bookingTemplateController, isDoctor),
+                  const SizedBox(height: 20),
+                ],
+
+                if (_sendReminderMessage) ...[
+                  Text(
+                    'قالب رسالة التذكير بالموعد',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: theme.colorScheme.primary),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _reminderTemplateController,
+                    enabled: isDoctor,
+                    maxLines: 4,
+                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                    decoration: const InputDecoration(
+                      hintText: 'اكتب نص الرسالة هنا...',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSmartTagsRow(_reminderTemplateController, isDoctor),
+                  const SizedBox(height: 20),
+                ],
+
+                const SizedBox(height: 20),
+                // زر حفظ البيانات
+                ElevatedButton(
+                  onPressed: _isSaving ? null : _save,
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('حفظ إعدادات الأتمتة'),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmartTagsRow(TextEditingController controller, bool enabled) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _buildTagBadge(controller, '[patient_name]', 'اسم المريض', enabled),
+        _buildTagBadge(controller, '[date]', 'التاريخ', enabled),
+        _buildTagBadge(controller, '[time]', 'وقت الموعد', enabled),
+      ],
+    );
+  }
+
+  Widget _buildTagBadge(TextEditingController controller, String tag, String label, bool enabled) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: enabled ? () => _insertTag(controller, tag) : null,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+        ),
+        child: Text(
+          '$label $tag',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -14,9 +14,10 @@ import '../../auth/domain/user_model.dart';
 import '../domain/patient_model.dart';
 import '../data/patient_repository.dart';
 
-// مزود لجلب تاريخ مواعيد المريض بالكامل
+// مزود لجلب تاريخ مواعيد المريض بالكامل (منتهية فقط)
 final patientAppointmentsProvider = FutureProvider.family.autoDispose<List<AppointmentModel>, String>((ref, patientId) async {
-  return ref.watch(appointmentRepositoryProvider).getPatientAppointments(patientId);
+  final all = await ref.watch(appointmentRepositoryProvider).getPatientAppointments(patientId);
+  return all.where((app) => app.status == 'completed').toList();
 });
 
 // مزود لجلب الخدمات الطبية الخاصة بالزيارة
@@ -715,13 +716,57 @@ class PatientVisitNoteSection extends ConsumerWidget {
     required this.isDoctor,
   });
 
+  Widget _buildNoteBox(BuildContext context, String title, String content, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: Theme.of(context).colorScheme.primary.withOpacity(0.8)),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            content.isNotEmpty ? content : 'لا يوجد',
+            style: TextStyle(
+              fontSize: 13,
+              color: content.isNotEmpty ? Theme.of(context).textTheme.bodyLarge?.color : Theme.of(context).hintColor,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final noteAsync = ref.watch(visitNoteProvider(appointmentId));
 
     return noteAsync.when(
       data: (note) {
-        final hasNote = note != null && note.notes.isNotEmpty;
+        final rawNotes = note?.notes ?? '';
+        final hasNote = rawNotes.replaceAll('\n---\n', '').trim().isNotEmpty;
+        final parts = rawNotes.split('\n---\n');
+        final complaint = parts.isNotEmpty ? parts[0].trim() : '';
+        final diagnosis = parts.length > 1 ? parts[1].trim() : '';
+        final instructions = parts.length > 2 ? parts[2].trim() : '';
 
         return Container(
           width: double.infinity,
@@ -767,23 +812,53 @@ class PatientVisitNoteSection extends ConsumerWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  hasNote ? note.notes : 'لم يتم تدوين أي تقرير طبي أو تشخيص لهذه الزيارة بعد.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: hasNote ? Theme.of(context).textTheme.bodyLarge?.color : Theme.of(context).hintColor,
-                    height: 1.5,
+              const SizedBox(height: 12),
+              if (!hasNote)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: Text(
+                    'لم يتم تدوين أي تقرير طبي أو تشخيص لهذه الزيارة بعد.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).hintColor,
+                      height: 1.5,
+                    ),
+                  ),
+                )
+              else
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide = constraints.maxWidth > 500;
+                    if (isWide) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _buildNoteBox(context, 'الشكوى الرئيسية', complaint, Icons.record_voice_over_outlined)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildNoteBox(context, 'التشخيص الطبي', diagnosis, Icons.medical_information_outlined)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildNoteBox(context, 'تعليمات للمريض', instructions, Icons.receipt_long_outlined)),
+                        ],
+                      );
+                    } else {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildNoteBox(context, 'الشكوى الرئيسية', complaint, Icons.record_voice_over_outlined),
+                          const SizedBox(height: 12),
+                          _buildNoteBox(context, 'التشخيص الطبي', diagnosis, Icons.medical_information_outlined),
+                          const SizedBox(height: 12),
+                          _buildNoteBox(context, 'تعليمات للمريض', instructions, Icons.receipt_long_outlined),
+                        ],
+                      );
+                    }
+                  },
                 ),
-              ),
             ],
           ),
         );
@@ -813,7 +888,30 @@ class AppointmentServicesSection extends ConsumerWidget {
     return servicesAsync.when(
       data: (services) {
         if (services.isEmpty) {
-          return const SizedBox.shrink();
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.medical_information_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'الخدمات والإجراءات المقدمة:',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'لا توجد خدمات مسجلة لهذه الزيارة.',
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor),
+                ),
+              ],
+            ),
+          );
         }
 
         return Container(
@@ -872,7 +970,10 @@ class AppointmentServicesSection extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: SizedBox(height: 12, width: 12, child: CircularProgressIndicator(strokeWidth: 1.5))),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (err, stack) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Text('خطأ في تحميل الخدمات: $err', style: const TextStyle(color: Colors.red, fontSize: 11)),
+      ),
     );
   }
 }

@@ -13,6 +13,8 @@ import '../../settings/presentation/settings_screen.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/user_model.dart';
+import '../domain/notification_model.dart';
+import 'notifications_controller.dart';
 import 'financial_panel.dart';
 
 /// الداشبورد الرئيسي — مطابق لتصميم Stitch
@@ -338,6 +340,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (_currentIndex == 2) sectionTitle = 'التقرير المالي العام';
     if (_currentIndex == 3) sectionTitle = 'الإعدادات العامة';
 
+    final notificationsState = ref.watch(notificationsProvider);
+    final unreadCount = notificationsState.notifications.where((n) => !n.isRead).length;
+
     return Container(
       height: 70,
       decoration: BoxDecoration(
@@ -368,7 +373,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // Notifications
           _buildHeaderIconButton(
             Icons.notifications_none_rounded,
-            badge: true,
+            badge: unreadCount > 0,
             onTap: () => _showNotificationsDialog(context),
           ),
           const SizedBox(width: 8),
@@ -382,103 +387,206 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  String _formatTimeAgo(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inMinutes < 1) {
+      return 'الآن';
+    } else if (diff.inMinutes < 60) {
+      return 'منذ ${diff.inMinutes} دقيقة';
+    } else if (diff.inHours < 24) {
+      return 'منذ ${diff.inHours} ساعة';
+    } else {
+      return 'منذ ${diff.inDays} يوم';
+    }
+  }
+
   void _showNotificationsDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.notifications_active_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+      builder: (context) => Consumer(
+        builder: (context, ref, child) {
+          final state = ref.watch(notificationsProvider);
+          final notifier = ref.read(notificationsProvider.notifier);
+          final theme = Theme.of(context);
+
+          return Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.notifications_active_rounded,
+                            color: theme.colorScheme.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'التنبيهات والإشعارات',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: theme.textTheme.titleLarge?.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (state.notifications.any((n) => !n.isRead))
+                    TextButton(
+                      onPressed: () {
+                        notifier.markAllAsRead();
+                      },
+                      child: Text(
+                        'قراءة الكل',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Text(
-                'التنبيهات والإشعارات',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  color: Theme.of(context).textTheme.titleLarge?.color,
-                ),
+              content: SizedBox(
+                width: 400,
+                child: state.isLoading
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    : state.notifications.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 32),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.notifications_off_outlined,
+                                      size: 40, color: theme.hintColor),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'لا توجد إشعارات حالياً',
+                                    style: TextStyle(
+                                        color: theme.hintColor,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: state.notifications.length,
+                            separatorBuilder: (_, __) => const Divider(height: 16),
+                            itemBuilder: (context, index) {
+                              final notification = state.notifications[index];
+                              IconData icon = Icons.info_outline_rounded;
+                              Color color = theme.colorScheme.primary;
+                              
+                              if (notification.title == 'حجز جديد') {
+                                icon = Icons.calendar_today_rounded;
+                                color = AppTheme.success;
+                              } else if (notification.title == 'إضافة خدمة طبية') {
+                                icon = Icons.medical_services_outlined;
+                                color = AppTheme.completed;
+                              }
+
+                              return InkWell(
+                                onTap: () {
+                                  if (!notification.isRead) {
+                                    notifier.markAsRead(notification.id);
+                                  }
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Stack(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: color.withOpacity(0.1),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(icon, color: color, size: 18),
+                                          ),
+                                          if (!notification.isRead)
+                                            Positioned(
+                                              top: 0,
+                                              right: 0,
+                                              child: Container(
+                                                width: 8,
+                                                height: 8,
+                                                decoration: BoxDecoration(
+                                                  color: theme.colorScheme.error,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              notification.title,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                                color: theme.textTheme.bodyLarge?.color,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              notification.body,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: theme.textTheme.bodyMedium?.color,
+                                                height: 1.4,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _formatTimeAgo(notification.createdAt),
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: theme.hintColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
               ),
-            ],
-          ),
-          content: SizedBox(
-            width: 400,
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                _buildNotificationTile(
-                  'تم تأكيد موعد جديد',
-                  'قام المريض أحمد محمد بتأكيد موعده اليوم في تمام الساعة 05:00 مساءً.',
-                  Icons.check_circle_outline_rounded,
-                  AppTheme.success,
-                ),
-                const Divider(height: 16),
-                _buildNotificationTile(
-                  'طلب انضمام جديد',
-                  'هناك طلب انضمام معلق كسكريتارية من المستخدم "سارة أحمد".',
-                  Icons.person_add_outlined,
-                  AppTheme.warning,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('إغلاق'),
                 ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('إغلاق'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
-    );
-  }
-
-  Widget _buildNotificationTile(String title, String body, IconData icon, Color color) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color, size: 18),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                body,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 

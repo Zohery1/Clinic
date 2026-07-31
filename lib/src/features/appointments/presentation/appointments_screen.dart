@@ -15,7 +15,10 @@ import '../../patients/data/patient_repository.dart';
 import '../../patients/domain/patient_model.dart';
 import 'widgets/queue_board.dart';
 import 'widgets/queue_card.dart';
+import 'widgets/admission_confirmation_sheet.dart';
 import '../../../core/widgets/clinic_dialog.dart';
+import '../../dashboard/presentation/notifications_controller.dart';
+import '../../dashboard/domain/notification_model.dart';
 
 /// شاشة المواعيد — مطابقة لتصميم Stitch
 /// شريط أيام أفقي + بطاقات مواعيد بتأثير waterfall
@@ -85,11 +88,218 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
       );
     }
 
+    // Watch notifications
+    final notificationsState = ref.watch(notificationsProvider);
+    final unreadCount = notificationsState.notifications.where((n) => !n.isRead).length;
+
     if (isDesktop) {
       return _buildDesktopLayout(context, ref, user, appointmentsAsync, selectedDate);
     } else {
-      return _buildMobileLayout(context, ref, user, appointmentsAsync, selectedDate);
+      return _buildMobileLayout(context, ref, user, appointmentsAsync, selectedDate, unreadCount);
     }
+  }
+
+  String _formatTimeAgo(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inMinutes < 1) {
+      return 'الآن';
+    } else if (diff.inMinutes < 60) {
+      return 'منذ ${diff.inMinutes} دقيقة';
+    } else if (diff.inHours < 24) {
+      return 'منذ ${diff.inHours} ساعة';
+    } else {
+      return 'منذ ${diff.inDays} يوم';
+    }
+  }
+
+  void _showNotificationsDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => Consumer(
+        builder: (context, ref, child) {
+          final state = ref.watch(notificationsProvider);
+          final notifier = ref.read(notificationsProvider.notifier);
+          final theme = Theme.of(context);
+
+          return Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.notifications_active_rounded,
+                            color: theme.colorScheme.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'التنبيهات والإشعارات',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: theme.textTheme.titleLarge?.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (state.notifications.any((n) => !n.isRead))
+                    TextButton(
+                      onPressed: () {
+                        notifier.markAllAsRead();
+                      },
+                      child: Text(
+                        'قراءة الكل',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              content: SizedBox(
+                width: 400,
+                child: state.isLoading
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    : state.notifications.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 32),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.notifications_off_outlined,
+                                      size: 40, color: theme.hintColor),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'لا توجد إشعارات حالياً',
+                                    style: TextStyle(
+                                        color: theme.hintColor,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: state.notifications.length,
+                            separatorBuilder: (_, __) => const Divider(height: 16),
+                            itemBuilder: (context, index) {
+                              final notification = state.notifications[index];
+                              IconData icon = Icons.info_outline_rounded;
+                              Color color = theme.colorScheme.primary;
+                              
+                              if (notification.title == 'حجز جديد') {
+                                icon = Icons.calendar_today_rounded;
+                                color = AppTheme.success;
+                              } else if (notification.title == 'إضافة خدمة طبية') {
+                                icon = Icons.medical_services_outlined;
+                                color = AppTheme.completed;
+                              }
+
+                              return InkWell(
+                                onTap: () {
+                                  if (!notification.isRead) {
+                                    notifier.markAsRead(notification.id);
+                                  }
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Stack(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: color.withOpacity(0.1),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(icon, color: color, size: 18),
+                                          ),
+                                          if (!notification.isRead)
+                                            Positioned(
+                                              top: 0,
+                                              right: 0,
+                                              child: Container(
+                                                width: 8,
+                                                height: 8,
+                                                decoration: BoxDecoration(
+                                                  color: theme.colorScheme.error,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              notification.title,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                                color: theme.textTheme.bodyLarge?.color,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              notification.body,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: theme.textTheme.bodyMedium?.color,
+                                                height: 1.4,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _formatTimeAgo(notification.createdAt),
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: theme.hintColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('إغلاق'),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   // ═══════════════════════════════════════════════
@@ -508,6 +718,7 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
     dynamic user,
     AsyncValue<List<AppointmentModel>> appointmentsAsync,
     DateTime selectedDate,
+    int unreadCount,
   ) {
     final actualTodayFormatted =
         intl.DateFormat('EEEE، d MMMM yyyy', 'ar').format(DateTime.now());
@@ -579,6 +790,47 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
                               ),
                             ],
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Bell notification button for mobile
+                        Stack(
+                          children: [
+                            Material(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                              child: InkWell(
+                                onTap: () => _showNotificationsDialog(context, ref),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.notifications_none_rounded,
+                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8),
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (unreadCount > 0)
+                              Positioned(
+                                top: 6,
+                                right: 6,
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.error,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ],
                     ),
@@ -1305,7 +1557,7 @@ class _StaggeredAppointmentCardState
                         // زر إلغاء الموعد (متاح دائماً طالما لم يكتمل/يلغى)
                         _buildDangerActionButton(
                           label: 'إلغاء الموعد',
-                          onTap: () => _updateStatus('cancelled'),
+                          onTap: () => _showCancelOptionsSheet(context, ref),
                         ),
                       ],
                     ),
@@ -1320,12 +1572,137 @@ class _StaggeredAppointmentCardState
   }
 
   void _updateStatus(String status) async {
-    await ref
-        .read(appointmentRepositoryProvider)
-        .updateAppointmentStatus(widget.appointment.id, status);
-    ref.invalidate(todayAppointmentsProvider);
-    ref.invalidate(todayRevenueProvider);
-    ref.invalidate(monthRevenueProvider);
+    final previousStatus = widget.appointment.status;
+    try {
+      await ref
+          .read(appointmentRepositoryProvider)
+          .updateAppointmentStatus(widget.appointment.id, status);
+      ref.invalidate(todayAppointmentsProvider);
+      ref.invalidate(todayRevenueProvider);
+      ref.invalidate(monthRevenueProvider);
+
+      if (context.mounted) {
+        final label = status == 'pending'
+            ? 'تم نقل المريض للطبيب'
+            : status == 'completed'
+                ? 'تم إنهاء الكشف'
+                : 'تم إلغاء الموعد';
+
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(
+            content: Text(label),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'تراجع',
+              onPressed: () async {
+                await ref.read(appointmentRepositoryProvider).updateAppointmentStatus(widget.appointment.id, previousStatus);
+                ref.invalidate(todayAppointmentsProvider);
+                ref.invalidate(todayRevenueProvider);
+                ref.invalidate(monthRevenueProvider);
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
+            content: Text('حدث خطأ: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showCancelOptionsSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'سبب الإلغاء',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).textTheme.titleMedium?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showAdmissionSheet(context, ref, 'cancelled_by_patient');
+                },
+                icon: const Icon(Icons.person_off_outlined),
+                label: const Text('المريض لم يحضر / اعتذر'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error.withOpacity(0.1),
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showAdmissionSheet(context, ref, 'cancelled_by_clinic');
+                },
+                icon: const Icon(Icons.cancel_outlined),
+                label: const Text('إلغاء من قبل العيادة / الطبيب'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAdmissionSheet(BuildContext context, WidgetRef ref, String targetStatus) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AdmissionConfirmationSheet(
+        appointment: widget.appointment,
+        targetStatus: targetStatus,
+        onConfirm: () => _updateStatus(targetStatus),
+      ),
+    );
   }
 
   Widget _buildPrimaryActionButton({

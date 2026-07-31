@@ -73,8 +73,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     ref.listen<LoginState>(loginControllerProvider, (previous, next) {
       if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text(
               next.errorMessage!,
               style: TextStyle(color: theme.colorScheme.onError),

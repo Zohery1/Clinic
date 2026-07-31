@@ -12,6 +12,8 @@ import '../../../auth/domain/user_model.dart';
 import '../examination_screen.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
 import '../book_appointment_dialog.dart';
+import '../edit_appointment_dialog.dart';
+import 'admission_confirmation_sheet.dart';
 
 /// الحالات المختلفة لمكان المريض في طابور العيادة
 enum QueueLaneType { waiting, withDoctor, completed, cancelled }
@@ -42,6 +44,8 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
       case 'completed':
         return 'منتهي';
       case 'cancelled':
+      case 'cancelled_by_patient':
+      case 'cancelled_by_clinic':
         return 'ملغي';
       default:
         return 'في الانتظار';
@@ -80,7 +84,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
                 ? 'تم إنهاء الكشف'
                 : 'تم تغيير حالة الموعد';
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
           SnackBar(
             content: Text(label),
             behavior: SnackBarBehavior.floating,
@@ -99,8 +103,8 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text('حدث خطأ: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -118,8 +122,12 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
 
     // 1. التصفية
     final filtered = widget.appointments.where((appt) {
-      if (selectedFilter != 'all' && appt.status != selectedFilter) {
-        return false;
+      if (selectedFilter != 'all') {
+        if (selectedFilter == 'cancelled') {
+          if (!appt.status.startsWith('cancelled')) return false;
+        } else if (appt.status != selectedFilter) {
+          return false;
+        }
       }
       return true;
     }).toList();
@@ -278,8 +286,8 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
     final waitingCount = widget.appointments.where((a) => a.status == 'confirmed').length;
 
     if (waitingCount == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+        const SnackBar(duration: const Duration(seconds: 2), 
           content: Text('لا توجد مواعيد في الانتظار لإلغائها'),
           behavior: SnackBarBehavior.floating,
         ),
@@ -303,8 +311,8 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
         ref.invalidate(todayRevenueProvider);
         ref.invalidate(monthRevenueProvider);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+            const SnackBar(duration: const Duration(seconds: 2), 
               content: Text('تم إلغاء مواعيد الانتظار بنجاح'),
               behavior: SnackBarBehavior.floating,
             ),
@@ -520,54 +528,38 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
 
   Widget _buildActionButtonsForRow(BuildContext context, AppointmentModel appt, bool isDoctor) {
     final theme = Theme.of(context);
-    switch (appt.status.toLowerCase()) {
-      case 'confirmed': // قيد الانتظار
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 34,
-                child: ElevatedButton(
-                  onPressed: () => _updateStatus(context, appt, 'pending'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.login_rounded, size: 14),
-                      SizedBox(width: 4),
-                      Text('دخول للطبيب', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ),
+    final status = appt.status.toLowerCase();
+    final isCancelled = status.startsWith('cancelled');
+    
+    Widget mainAction = const SizedBox();
+
+    if (status == 'confirmed') { // قيد الانتظار
+      mainAction = Expanded(
+        child: SizedBox(
+          height: 34,
+          child: ElevatedButton(
+            onPressed: () => _updateStatus(context, appt, 'pending'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
             ),
-            const SizedBox(width: 6),
-            SizedBox(
-              height: 34,
-              width: 34,
-              child: Material(
-                color: const Color(0xFFEF4444).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                child: InkWell(
-                  onTap: () => _updateStatus(context, appt, 'cancelled'),
-                  borderRadius: BorderRadius.circular(8),
-                  child: const Center(
-                    child: Icon(Icons.close_rounded, size: 16, color: Color(0xFFEF4444)),
-                  ),
-                ),
-              ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.login_rounded, size: 14),
+                SizedBox(width: 4),
+                Text('دخول للطبيب', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ],
             ),
-          ],
-        );
-      case 'pending': // مع الطبيب
-        return Column(
+          ),
+        ),
+      );
+    } else if (status == 'pending') { // مع الطبيب
+      mainAction = Expanded(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -593,55 +585,35 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
               ),
             ),
             const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 34,
-                    child: ElevatedButton(
-                      onPressed: () => _updateStatus(context, appt, 'completed'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        elevation: 0,
-                      ),
-                      child: const Text('إنهاء الكشف', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
+            SizedBox(
+              height: 34,
+              child: ElevatedButton(
+                onPressed: () => _updateStatus(context, appt, 'completed'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
                 ),
-                const SizedBox(width: 6),
-                SizedBox(
-                  height: 34,
-                  width: 34,
-                  child: Material(
-                    color: const Color(0xFFEF4444).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    child: InkWell(
-                      onTap: () => _updateStatus(context, appt, 'cancelled'),
-                      borderRadius: BorderRadius.circular(8),
-                      child: const Center(
-                        child: Icon(Icons.close_rounded, size: 16, color: Color(0xFFEF4444)),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                child: const Text('إنهاء الكشف', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
             ),
           ],
-        );
-      case 'completed': // مكتمل
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.check_circle_outline_rounded, color: const Color(0xFF10B981).withOpacity(0.7), size: 16),
-            const SizedBox(width: 4),
-            const Text('منتهي', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
-          ],
-        );
-      case 'cancelled': // ملغي
-        return SizedBox(
+        ),
+      );
+    } else if (status == 'completed') { // مكتمل
+      mainAction = Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.check_circle_outline_rounded, color: const Color(0xFF10B981).withOpacity(0.7), size: 16),
+          const SizedBox(width: 4),
+          const Text('منتهي', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
+        ],
+      );
+    } else if (isCancelled) { // ملغي
+      mainAction = Expanded(
+        child: SizedBox(
           height: 34,
           child: TextButton.icon(
             onPressed: () => _updateStatus(context, appt, 'confirmed'),
@@ -654,11 +626,172 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
             icon: const Icon(Icons.refresh_rounded, size: 14),
             label: const Text('إعادة تنشيط', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
           ),
-        );
-      default:
-        return const SizedBox();
+        ),
+      );
     }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (status == 'confirmed' || isCancelled) mainAction else if (status == 'pending') Expanded(child: mainAction) else mainAction,
+        if (status != 'completed') ...[
+          const SizedBox(width: 4),
+          _buildThreeDotsMenu(context, appt),
+        ],
+      ],
+    );
   }
+
+  Widget _buildThreeDotsMenu(BuildContext context, AppointmentModel appt) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert_rounded, size: 20, color: Colors.grey),
+      tooltip: 'خيارات أخرى',
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onSelected: (value) {
+        if (value == 'edit') {
+          showDialog(
+            context: context,
+            builder: (_) => EditAppointmentDialog(
+              clinicId: appt.clinicId,
+              appointment: appt,
+            ),
+          );
+        } else if (value == 'reactivate') {
+          _updateStatus(context, appt, 'confirmed');
+        } else if (value == 'cancel') {
+          _showCancelOptionsSheet(context, appt);
+        }
+      },
+      itemBuilder: (context) {
+        final status = appt.status.toLowerCase();
+        final isCancelled = status.startsWith('cancelled');
+
+        return [
+          const PopupMenuItem(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(Icons.edit_outlined, size: 18),
+                SizedBox(width: 8),
+                Text('تعديل الحجز'),
+              ],
+            ),
+          ),
+          if (isCancelled)
+            const PopupMenuItem(
+              value: 'reactivate',
+              child: Row(
+                children: [
+                  Icon(Icons.refresh_rounded, size: 18),
+                  SizedBox(width: 8),
+                  Text('إعادة تنشيط'),
+                ],
+              ),
+            ),
+          if (!isCancelled)
+            const PopupMenuItem(
+              value: 'cancel',
+              child: Row(
+                children: [
+                  Icon(Icons.cancel_outlined, size: 18, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('إلغاء الموعد', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+        ];
+      },
+    );
+  }
+
+  void _showCancelOptionsSheet(BuildContext context, AppointmentModel appt) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'سبب الإلغاء',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).textTheme.titleMedium?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showAdmissionSheet(context, appt, 'cancelled_by_patient');
+                },
+                icon: const Icon(Icons.person_off_outlined),
+                label: const Text('المريض لم يحضر / اعتذر'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error.withOpacity(0.1),
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showAdmissionSheet(context, appt, 'cancelled_by_clinic');
+                },
+                icon: const Icon(Icons.cancel_outlined),
+                label: const Text('إلغاء من قبل العيادة / الطبيب'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAdmissionSheet(BuildContext context, AppointmentModel appt, String targetStatus) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AdmissionConfirmationSheet(
+        appointment: appt,
+        targetStatus: targetStatus,
+        onConfirm: () => _updateStatus(context, appt, targetStatus),
+      ),
+    );
+  }
+
 
   void _openExamination(BuildContext context, AppointmentModel appt) {
     Navigator.of(context).push(

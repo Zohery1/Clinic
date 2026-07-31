@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../core/theme/app_theme.dart';
 import 'login_controller.dart';
 import 'login_screen.dart';
@@ -77,12 +76,105 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     super.dispose();
   }
 
+  void _showEmailVerificationDialog(String email) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        final theme = Theme.of(context);
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            icon: Icon(
+              Icons.mark_email_read_outlined,
+              size: 52,
+              color: theme.colorScheme.primary,
+            ),
+            title: Text(
+              'تأكيد البريد الإلكتروني',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'لقد أرسلنا رسالة تأكيد إلى:',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cairo(
+                    fontSize: 14,
+                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    email,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.cairo(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'يرجى الانتقال لعلبة الوارد في بريدك والضغط على رابط التحقق لتتمكن من تسجيل الدخول وإكمال إعداد حسابك.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cairo(
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // إغلاق الحوار
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  ); // التوجه لشاشة تسجيل الدخول
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'حسنًا، فهمت',
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _submit() async {
     if (_formKey.currentState!.validate()) {
       FocusScope.of(context).unfocus();
 
+      final email = _emailController.text.trim();
+
       await ref.read(loginControllerProvider.notifier).register(
-            email: _emailController.text,
+            email: email,
             password: _passwordController.text,
             fullName: _fullNameController.text,
             role: _selectedRole,
@@ -92,9 +184,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
       final loginState = ref.read(loginControllerProvider);
       if (loginState.isSuccess && mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const DashboardScreen()),
-        );
+        if (loginState.isEmailVerificationRequired) {
+          _showEmailVerificationDialog(email);
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          );
+        }
       }
     }
   }
@@ -108,8 +204,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
     ref.listen<LoginState>(loginControllerProvider, (previous, next) {
       if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text(
               next.errorMessage!,
               style: TextStyle(color: theme.colorScheme.onError),

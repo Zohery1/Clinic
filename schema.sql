@@ -19,6 +19,8 @@ DROP FUNCTION IF EXISTS public.update_updated_at_column();
 DROP FUNCTION IF EXISTS public.is_my_user_active();
 
 DROP VIEW IF EXISTS public.clinic_financial_reports;
+DROP TABLE IF EXISTS public.audit_logs;
+DROP TABLE IF EXISTS public.notifications;
 DROP TABLE IF EXISTS public.appointment_services;
 DROP TABLE IF EXISTS public.visit_notes;
 DROP TABLE IF EXISTS public.appointments;
@@ -39,6 +41,14 @@ CREATE TABLE public.clinics (
     invite_code text UNIQUE NOT NULL DEFAULT substring(md5(random()::text) from 1 for 6), -- كود دعوة عشوائي مكون من 6 رموز
     subscription_end_date timestamptz NOT NULL DEFAULT (now() + interval '30 days'), -- 30-day default trial
     is_active boolean NOT NULL DEFAULT true,
+    whatsapp_enabled boolean NOT NULL DEFAULT false,
+    whatsapp_phone text,
+    whatsapp_instance_name text,
+    whatsapp_status text NOT NULL DEFAULT 'disconnected',
+    send_booking_message boolean NOT NULL DEFAULT true,
+    send_reminder_message boolean NOT NULL DEFAULT true,
+    booking_message_template text NOT NULL DEFAULT 'عزيزي المريض [patient_name]، تم تسجيل حجزك في العيادة بتاريخ [date] في تمام الساعة [time]. نتمنى لكم دوام الصحة والعافية.',
+    reminder_message_template text NOT NULL DEFAULT 'تذكير: عزيزي المريض [patient_name]، موعد كشفك القادم في العيادة هو غداً [date] في تمام الساعة [time]. يرجى الحضور في الموعد المحدد.',
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -85,6 +95,7 @@ CREATE TABLE public.patients (
     gender text CHECK (gender IN ('male', 'female')),
     birth_date date,
     address text,
+    medical_history text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -96,7 +107,7 @@ CREATE TABLE public.appointments (
     patient_id uuid NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
     appointment_type_id uuid REFERENCES public.appointment_types(id) ON DELETE SET NULL,
     appointment_date timestamptz NOT NULL,
-    status text NOT NULL CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed')) DEFAULT 'pending',
+    status text NOT NULL CHECK (status IN ('pending', 'confirmed', 'cancelled', 'cancelled_by_clinic', 'cancelled_by_patient', 'completed')) DEFAULT 'pending',
     price_charged numeric(10, 2) CHECK (price_charged >= 0),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
@@ -425,3 +436,148 @@ WHERE (
     WHERE id = auth.uid() AND is_active = true
 )
 GROUP BY clinic_id, transaction_date::date, date_trunc('month', transaction_date)::date;
+
+-- ==========================================
+-- 10. Notifications Table & Automated Triggers
+-- ==========================================
+
+CREATE TABLE public.notifications (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+    title text NOT NULL,
+    body text NOT NULL,
+    is_read boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view notifications in their clinic" ON public.notifications
+    FOR SELECT TO authenticated
+    USING (clinic_id = public.get_my_clinic_id() AND public.is_my_user_active());
+
+CREATE POLICY "Users can update notifications in their clinic" ON public.notifications
+    FOR UPDATE TO authenticated
+    USING (clinic_id = public.get_my_clinic_id() AND public.is_my_user_active())
+    WITH CHECK (clinic_id = public.get_my_clinic_id());
+
+CREATE POLICY "Users can insert notifications" ON public.notifications
+    FOR INSERT TO authenticated
+    WITH CHECK (clinic_id = public.get_my_clinic_id());
+
+-- Trigger function for new appointments
+CREATE OR REPLACE FUNCTION public.on_appointment_created_notify()
+RETURNS trigger AS $$
+DECLARE
+  v_patient_name text;
+BEGIN
+  SELECT full_name INTO v_patient_name FROM public.patients WHERE id = new.patient_id;
+  
+  INSERT INTO public.notifications (clinic_id, title, body)
+  VALUES (
+    new.clinic_id,
+    'حجز جديد',
+    'تم تسجيل حجز جديد للمريض (' || coalesce(v_patient_name, 'مريض غير معروف') || ') بتاريخ ' || to_char(new.appointment_date AT TIME ZONE 'UTC' AT TIME ZONE 'Africa/Cairo', 'YYYY-MM-DD HH24:MI')
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trigger_appointment_created_notify
+  AFTER INSERT ON public.appointments
+  FOR EACH ROW EXECUTE FUNCTION public.on_appointment_created_notify();
+
+-- Trigger function for new appointment services
+CREATE OR REPLACE FUNCTION public.on_appointment_service_created_notify()
+RETURNS trigger AS $$
+DECLARE
+  v_patient_name text;
+  v_service_name text;
+BEGIN
+  -- Find patient name from appointment
+  SELECT p.full_name INTO v_patient_name
+  FROM public.appointments a
+  JOIN public.patients p ON a.patient_id = p.id
+  WHERE a.id = new.appointment_id;
+
+  -- Find service name
+  SELECT name INTO v_service_name FROM public.services WHERE id = new.service_id;
+
+  INSERT INTO public.notifications (clinic_id, title, body)
+  VALUES (
+    new.clinic_id,
+    'إضافة خدمة طبية',
+    'تم إضافة خدمة (' || coalesce(v_service_name, 'خدمة إضافية') || ') للمريض (' || coalesce(v_patient_name, 'مريض') || ')'
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trigger_appointment_service_created_notify
+  AFTER INSERT ON public.appointment_services
+  FOR EACH ROW EXECUTE FUNCTION public.on_appointment_service_created_notify();
+
+-- ==========================================
+-- 11. Audit Logs Table & Security Triggers
+-- ==========================================
+
+CREATE TABLE public.audit_logs (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+    actor_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+    action text NOT NULL,
+    target_table text NOT NULL,
+    target_id uuid,
+    details jsonb,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- Only Doctors or users with can_view_reports can view audit logs
+CREATE POLICY "Doctors and authorized users can view audit logs" ON public.audit_logs
+    FOR SELECT TO authenticated
+    USING (
+        clinic_id = public.get_my_clinic_id() 
+        AND public.is_my_user_active()
+        AND (
+            public.get_my_role() = 'doctor' 
+            OR (SELECT can_view_reports FROM public.users WHERE id = auth.uid())
+        )
+    );
+
+-- Trigger function for audit logging sensitive operations (DELETE / UPDATE on appointments & patients)
+CREATE OR REPLACE FUNCTION public.log_sensitive_action()
+RETURNS trigger AS $$
+DECLARE
+  v_clinic_id uuid;
+  v_actor_id uuid;
+  v_target_id uuid;
+BEGIN
+  v_actor_id := auth.uid();
+  IF TG_OP = 'DELETE' THEN
+    v_clinic_id := OLD.clinic_id;
+    v_target_id := OLD.id;
+    INSERT INTO public.audit_logs (clinic_id, actor_id, action, target_table, target_id, details)
+    VALUES (v_clinic_id, v_actor_id, 'DELETE', TG_TABLE_NAME, v_target_id, to_jsonb(OLD));
+    RETURN OLD;
+  ELSIF TG_OP = 'UPDATE' THEN
+    v_clinic_id := NEW.clinic_id;
+    v_target_id := NEW.id;
+    INSERT INTO public.audit_logs (clinic_id, actor_id, action, target_table, target_id, details)
+    VALUES (v_clinic_id, v_actor_id, 'UPDATE', TG_TABLE_NAME, v_target_id, jsonb_build_object('old', to_jsonb(OLD), 'new', to_jsonb(NEW)));
+    RETURN NEW;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER audit_appointments_changes
+  AFTER UPDATE OR DELETE ON public.appointments
+  FOR EACH ROW EXECUTE FUNCTION public.log_sensitive_action();
+
+CREATE TRIGGER audit_patients_changes
+  AFTER UPDATE OR DELETE ON public.patients
+  FOR EACH ROW EXECUTE FUNCTION public.log_sensitive_action();
+
+

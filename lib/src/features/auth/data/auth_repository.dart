@@ -8,6 +8,17 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(Supabase.instance.client);
 });
 
+// نتيجة عملية إنشاء الحساب
+class SignUpResult {
+  final UserModel? user;
+  final bool isEmailVerificationRequired;
+
+  SignUpResult({
+    required this.user,
+    required this.isEmailVerificationRequired,
+  });
+}
+
 // مستودع عمليات المصادقة والتعامل مع الجلسات
 class AuthRepository {
   final SupabaseClient _supabase;
@@ -21,7 +32,7 @@ class AuthRepository {
   String? get currentUserId => _supabase.auth.currentUser?.id;
 
   // تسجيل حساب جديد (طبيب أو سكرتيرة)
-  Future<UserModel> signUp({
+  Future<SignUpResult> signUp({
     required String email,
     required String password,
     required String fullName,
@@ -45,8 +56,20 @@ class AuthRepository {
         throw Exception('فشل إنشاء الحساب.');
       }
 
-      // جلب بيانات البروفايل الذي أنشأه التريجر تلقائياً في جدول users
-      return await getUserProfile(response.user!.id);
+      // إذا كانت ميزة التحقق من البريد الإلكتروني مفعلة في Supabase، لن نحصل على جلسة (session) مباشرة
+      if (response.session == null) {
+        return SignUpResult(
+          user: null,
+          isEmailVerificationRequired: true,
+        );
+      }
+
+      // إذا حصلنا على جلسة مباشرة، فهذا يعني أن التحقق غير مطلوب وتم تسجيل الدخول تلقائياً
+      final userProfile = await getUserProfile(response.user!.id);
+      return SignUpResult(
+        user: userProfile,
+        isEmailVerificationRequired: false,
+      );
     } catch (e) {
       rethrow;
     }

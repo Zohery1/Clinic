@@ -10,22 +10,26 @@ class LoginState {
   final bool isLoading;
   final String? errorMessage;
   final bool isSuccess;
+  final bool isEmailVerificationRequired;
 
   LoginState({
     this.isLoading = false,
     this.errorMessage,
     this.isSuccess = false,
+    this.isEmailVerificationRequired = false,
   });
 
   LoginState copyWith({
     bool? isLoading,
     String? errorMessage,
     bool? isSuccess,
+    bool? isEmailVerificationRequired,
   }) {
     return LoginState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
       isSuccess: isSuccess ?? this.isSuccess,
+      isEmailVerificationRequired: isEmailVerificationRequired ?? this.isEmailVerificationRequired,
     );
   }
 }
@@ -85,10 +89,10 @@ class LoginController extends StateNotifier<LoginState> {
       return;
     }
 
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, errorMessage: null, isEmailVerificationRequired: false);
 
     try {
-      final userModel = await _authRepository.signUp(
+      final signUpResult = await _authRepository.signUp(
         email: email.trim(),
         password: password,
         fullName: fullName.trim(),
@@ -97,8 +101,21 @@ class LoginController extends StateNotifier<LoginState> {
         inviteCode: inviteCode?.trim(),
       );
 
-      _currentUserNotifier.state = userModel;
-      state = state.copyWith(isLoading: false, isSuccess: true);
+      if (signUpResult.isEmailVerificationRequired) {
+        _currentUserNotifier.state = null;
+        state = state.copyWith(
+          isLoading: false,
+          isSuccess: true,
+          isEmailVerificationRequired: true,
+        );
+      } else {
+        _currentUserNotifier.state = signUpResult.user;
+        state = state.copyWith(
+          isLoading: false,
+          isSuccess: true,
+          isEmailVerificationRequired: false,
+        );
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,

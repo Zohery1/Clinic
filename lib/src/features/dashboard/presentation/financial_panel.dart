@@ -276,13 +276,14 @@ class FinancialPanel extends ConsumerWidget {
           Expanded(
             child: appointmentsAsync.when(
               data: (appointments) {
-                final withPrice = appointments.where((a) => a.totalPaid > 0).toList();
-                if (withPrice.isEmpty) {
+                final list = List<AppointmentModel>.from(appointments);
+                list.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+                if (list.isEmpty) {
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        'لا توجد عمليات مالية مسددة اليوم',
+                        'لا توجد حجوزات اليوم',
                         style: GoogleFonts.cairo(
                           color: theme.hintColor,
                           fontSize: 12,
@@ -293,11 +294,11 @@ class FinancialPanel extends ConsumerWidget {
                 }
                 return ListView.separated(
                   padding: EdgeInsets.zero,
-                  itemCount: withPrice.length,
+                  itemCount: list.length,
                   separatorBuilder: (_, __) =>
                       const SizedBox(height: 4),
                   itemBuilder: (context, index) {
-                    final appt = withPrice[index];
+                    final appt = list[index];
                     return _buildTransactionRow(context, appt);
                   },
                 );
@@ -327,8 +328,18 @@ class FinancialPanel extends ConsumerWidget {
     final warningColor = isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
 
     final isCompleted = appt.status == 'completed';
-    final statusText = isCompleted ? 'مكتمل' : 'بالانتظار';
-    final statusColor = isCompleted ? successColor : warningColor;
+    final isCancelled = appt.status.startsWith('cancelled');
+    
+    String statusText = 'بالانتظار';
+    Color statusColor = warningColor;
+    
+    if (isCompleted) {
+      statusText = 'مكتمل';
+      statusColor = successColor;
+    } else if (isCancelled) {
+      statusText = 'ملغي';
+      statusColor = theme.colorScheme.error;
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),

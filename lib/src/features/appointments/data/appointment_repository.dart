@@ -213,4 +213,37 @@ class AppointmentRepository {
       rethrow;
     }
   }
+
+  // تحديث بيانات حجز موجود
+  Future<void> updateAppointment({
+    required String clinicId,
+    required String appointmentId,
+    required String patientId,
+    required String? appointmentTypeId,
+    required DateTime appointmentDate,
+    required double priceCharged,
+    required List<ServiceModel> selectedServices,
+  }) async {
+    try {
+      // تحديث البيانات الأساسية
+      await _supabase
+          .from('appointments')
+          .update({
+            'patient_id': patientId,
+            'appointment_type_id': appointmentTypeId,
+            'appointment_date': appointmentDate.toUtc().toIso8601String(),
+            'price_charged': priceCharged,
+          })
+          .eq('id', appointmentId);
+
+      // تحديث الخدمات المرافقة
+      await updateAppointmentServices(
+        clinicId: clinicId,
+        appointmentId: appointmentId,
+        selectedServices: selectedServices,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

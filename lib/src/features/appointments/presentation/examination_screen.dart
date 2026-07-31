@@ -83,8 +83,8 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
         _selectedServices.isNotEmpty;
 
     if (!hasContent) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+        SnackBar(duration: const Duration(seconds: 2), 
           content: const Text('يرجى كتابة محتوى أو اختيار خدمة على الأقل'),
           backgroundColor: const Color(0xFFD97706),
           behavior: SnackBarBehavior.floating,
@@ -128,8 +128,8 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       ref.invalidate(monthRevenueProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text(andComplete ? 'تم إنهاء الكشف وحفظ التقرير بنجاح' : 'تم حفظ التقرير بنجاح'),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
@@ -139,8 +139,8 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text('خطأ في الحفظ: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
@@ -188,8 +188,8 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       ref.invalidate(monthRevenueProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: const Text('تم حذف الجلسة'),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
@@ -199,8 +199,8 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text('خطأ في الحذف: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),

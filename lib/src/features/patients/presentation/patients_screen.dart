@@ -1442,8 +1442,9 @@ class _TimelineAppointmentCardState extends ConsumerState<_TimelineAppointmentCa
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Divider(height: 1),
+                      AppointmentServicesSection(appointmentId: widget.app.id),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.start,

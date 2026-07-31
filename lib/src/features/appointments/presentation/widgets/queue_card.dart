@@ -11,6 +11,7 @@ import '../../../reports/presentation/reports_controller.dart';
 import '../../presentation/examination_screen.dart';
 import 'queue_board.dart';
 import 'admission_confirmation_sheet.dart';
+import '../edit_appointment_dialog.dart';
 
 /// بطاقة مريض مبسطة ومخصصة حسب حالته في الطابور
 class QueueCard extends ConsumerWidget {
@@ -164,7 +165,76 @@ class QueueCard extends ConsumerWidget {
             ],
           ),
         ),
+        if (laneType != QueueLaneType.completed) ...[
+          const SizedBox(width: 4),
+          _buildThreeDotsMenu(context),
+        ],
       ],
+    );
+  }
+
+  Widget _buildThreeDotsMenu(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, child) {
+        return PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert_rounded, size: 20, color: Colors.grey),
+          tooltip: 'خيارات أخرى',
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          onSelected: (value) {
+            if (value == 'edit') {
+              showDialog(
+                context: context,
+                builder: (_) => EditAppointmentDialog(
+                  clinicId: appointment.clinicId,
+                  appointment: appointment,
+                ),
+              );
+            } else if (value == 'reactivate') {
+              _showAdmissionSheet(context, ref, 'confirmed');
+            } else if (value == 'cancel') {
+              _showCancelOptionsSheet(context, ref);
+            }
+          },
+          itemBuilder: (context) {
+            final isCancelled = laneType == QueueLaneType.cancelled;
+
+            return [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('تعديل الحجز'),
+                  ],
+                ),
+              ),
+              if (isCancelled)
+                const PopupMenuItem(
+                  value: 'reactivate',
+                  child: Row(
+                    children: [
+                      Icon(Icons.refresh_rounded, size: 18),
+                      SizedBox(width: 8),
+                      Text('إعادة تنشيط'),
+                    ],
+                  ),
+                ),
+              if (!isCancelled)
+                const PopupMenuItem(
+                  value: 'cancel',
+                  child: Row(
+                    children: [
+                      Icon(Icons.cancel_outlined, size: 18, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('إلغاء الموعد', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+            ];
+          },
+        );
+      },
     );
   }
 
@@ -358,8 +428,8 @@ class QueueCard extends ConsumerWidget {
   void _showAdmissionSheet(BuildContext context, WidgetRef ref, String targetStatus) {
     // التحقق: لا يمكن إدخال مريض للطبيب إذا كان هناك مريض آخر مع الطبيب
     if (targetStatus == 'pending' && withDoctorCount >= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+        SnackBar(duration: const Duration(seconds: 2), 
           content: const Text('لا يمكن إدخال مريض جديد قبل إنهاء الكشف الحالي'),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
@@ -395,7 +465,7 @@ class QueueCard extends ConsumerWidget {
                 ? 'تم إنهاء الكشف'
                 : 'تم إلغاء الموعد';
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
           SnackBar(
             content: Text(label),
             behavior: SnackBarBehavior.floating,
@@ -414,8 +484,8 @@ class QueueCard extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text('حدث خطأ: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),

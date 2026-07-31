@@ -145,8 +145,8 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
 
     try {
       if (_selectedPatientId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          const SnackBar(duration: const Duration(seconds: 2), 
             content: Text('يرجى اختيار مريض من القائمة'),
             backgroundColor: AppTheme.error,
           ),
@@ -190,8 +190,8 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
       ref.invalidate(dailyStatsProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          const SnackBar(duration: const Duration(seconds: 2), 
             content: Text('تم حجز وتأكيد الموعد بنجاح'),
             backgroundColor: AppTheme.success,
           ),
@@ -200,8 +200,8 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(duration: const Duration(seconds: 2), 
             content: Text('خطأ أثناء الحجز: $e'),
             backgroundColor: AppTheme.error,
           ),
@@ -428,8 +428,8 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                 });
 
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                    const SnackBar(duration: const Duration(seconds: 2), 
                       content: Text('تم تسجيل المريض وتحديده بنجاح'),
                       backgroundColor: AppTheme.success,
                     ),
@@ -438,8 +438,8 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('خطأ: $e'), backgroundColor: AppTheme.error),
+                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                    SnackBar(duration: const Duration(seconds: 2), content: Text('خطأ: $e'), backgroundColor: AppTheme.error),
                   );
                 }
               }
