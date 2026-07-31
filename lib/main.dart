@@ -7,6 +7,7 @@ import 'src/core/theme/app_theme.dart';
 import 'src/core/theme/theme_provider.dart';
 import 'src/features/auth/presentation/login_screen.dart';
 import 'src/features/auth/presentation/login_controller.dart';
+import 'src/features/auth/presentation/subscription_gate_screen.dart';
 import 'src/features/dashboard/presentation/dashboard_screen.dart';
 
 import 'package:intl/date_symbol_data_local.dart';
@@ -46,7 +47,7 @@ class MyApp extends ConsumerWidget {
   }
 }
 
-/// بوابة المصادقة — توجيه تلقائي حسب حالة الجلسة
+/// بوابة المصادقة — توجيه تلقائي حسب حالة الجلسة والاشتراك
 class AuthGate extends ConsumerStatefulWidget {
   const AuthGate({super.key});
 
@@ -57,6 +58,11 @@ class AuthGate extends ConsumerStatefulWidget {
 class _AuthGateState extends ConsumerState<AuthGate> {
   bool _isInitializing = true;
   bool _isLoggedIn = false;
+  bool _isSubscribed = true;
+  String _clinicName = '';
+  DateTime? _subscriptionEndDate;
+  bool _isClinicActive = true;
+
   late final StreamSubscription<AuthState> _authSubscription;
 
   @override
@@ -67,6 +73,9 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       final session = data.session;
       if (session != null) {
         final success = await ref.read(loginControllerProvider.notifier).tryAutoLogin();
+        if (success) {
+          await _verifySubscription();
+        }
         if (mounted) {
           setState(() {
             _isLoggedIn = success;
@@ -90,9 +99,37 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     super.dispose();
   }
 
+  Future<void> _verifySubscription() async {
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        final res = await Supabase.instance.client
+            .from('clinics')
+            .select('name, is_active, subscription_end_date')
+            .eq('id', user.clinicId)
+            .single();
+
+        final isActive = res['is_active'] as bool? ?? true;
+        final endDateStr = res['subscription_end_date'] as String?;
+        final endDate = endDateStr != null ? DateTime.tryParse(endDateStr) : null;
+        final isExpired = endDate != null && endDate.isBefore(DateTime.now());
+
+        _clinicName = res['name'] as String? ?? 'العيادة';
+        _isClinicActive = isActive;
+        _subscriptionEndDate = endDate;
+        _isSubscribed = isActive && !isExpired;
+      }
+    } catch (_) {
+      // وفي حالة وجود خطأ نعتمد الحالة الافتراضية
+    }
+  }
+
   Future<void> _checkInitialSession() async {
     try {
       final success = await ref.read(loginControllerProvider.notifier).tryAutoLogin();
+      if (success) {
+        await _verifySubscription();
+      }
       setState(() {
         _isLoggedIn = success;
         _isInitializing = false;
@@ -141,9 +178,21 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (_isLoggedIn) {
+      if (!_isSubscribed) {
+        return SubscriptionGateScreen(
+          clinicName: _clinicName,
+          subscriptionEndDate: _subscriptionEndDate,
+          isActive: _isClinicActive,
+          onRefresh: () async {
+            setState(() => _isInitializing = true);
+            await _checkInitialSession();
+          },
+        );
+      }
       return const DashboardScreen();
     } else {
       return const LoginScreen();
     }
   }
 }
+
