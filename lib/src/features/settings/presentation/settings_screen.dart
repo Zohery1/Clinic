@@ -1505,6 +1505,8 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
       barrierDismissible: false,
       builder: (context) {
         final theme = Theme.of(context);
+        int selectedMethodTab = 0; // 0 for QR, 1 for Pairing Code
+
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Directionality(
@@ -1512,50 +1514,134 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
               child: AlertDialog(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 title: Text(
-                  'ربط الحساب عبر QR Code',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+                  'ربط حساب الواتساب الخاص بالعيادة',
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
                   textAlign: TextAlign.center,
                 ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'امسح الرمز المربع بواسطة تطبيق WhatsApp بهاتفك (الأجهزة المرتبطة > ربط جهاز)',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.cairo(fontSize: 12, color: theme.hintColor),
-                    ),
-                    const SizedBox(height: 20),
-                    // محاكاة رمز QR الرمز المربع
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: theme.dividerColor.withOpacity(0.3)),
-                      ),
-                      child: Icon(
-                        Icons.qr_code_2_rounded,
-                        size: 180,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Segmented control for choosing linking method
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceDim,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(width: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setDialogState(() => selectedMethodTab = 0),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: selectedMethodTab == 0 ? theme.colorScheme.primary : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    'رمز QR (كمبيوتر)',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: selectedMethodTab == 0 ? Colors.white : theme.textTheme.bodyMedium?.color,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setDialogState(() => selectedMethodTab = 1),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: selectedMethodTab == 1 ? theme.colorScheme.primary : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    'كود رقمي (نفس الموبايل)',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: selectedMethodTab == 1 ? Colors.white : theme.textTheme.bodyMedium?.color,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      if (selectedMethodTab == 0) ...[
                         Text(
-                          'في انتظار مسح الرمز المربع...',
-                          style: GoogleFonts.cairo(fontSize: 12, color: theme.colorScheme.primary),
+                          'امسح الرمز المربع من تطبيق WhatsApp بهاتفك (الأجهزة المرتبطة > ربط جهاز)',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.cairo(fontSize: 12, color: theme.hintColor),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
+                          ),
+                          child: Icon(
+                            Icons.qr_code_2_rounded,
+                            size: 160,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                      ] else ...[
+                        Text(
+                          'افتخ تطبيق WhatsApp من هاتفك (الأجهزة المرتبطة > الربط برقم الهاتف) وادخل الكود التالي:',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.cairo(fontSize: 12, color: theme.hintColor),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            '7B8K - 92ML',
+                            style: GoogleFonts.cairo(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                  ],
+
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            selectedMethodTab == 0 ? 'في انتظار مسح الرمز المربع...' : 'في انتظار إدخال الكود بالهاتف...',
+                            style: GoogleFonts.cairo(fontSize: 12, color: theme.colorScheme.primary),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
                 actions: [
                   TextButton(
@@ -1564,20 +1650,25 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                   ),
                   ElevatedButton(
                     onPressed: () {
+                      final user = ref.read(currentUserProvider);
                       setState(() {
                         _whatsappStatus = 'connected';
                         _whatsappEnabled = true;
+                        if (user != null) {
+                          _whatsappInstanceNameController.text = 'clinic_${user.clinicId.substring(0, 8)}';
+                        }
                       });
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                        const SnackBar(duration: const Duration(seconds: 2), 
-                          content: Text('تم ربط حساب الواتساب بنجاح'),
+                        const SnackBar(
+                          duration: Duration(seconds: 2), 
+                          content: Text('تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
                           backgroundColor: AppTheme.success,
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
-                    child: Text('تأكيد المحاكاة (ربط)', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                    child: Text('تأكيد التفعيل (اختبار)', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
