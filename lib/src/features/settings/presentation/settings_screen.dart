@@ -1855,35 +1855,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                 ),
                 const SizedBox(height: 20),
 
-                // 3. بيانات رقم الواتس والتسمية
-                Text(
-                  'بيانات الحساب المرتبط',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: theme.colorScheme.primary),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _whatsappPhoneController,
-                  enabled: isDoctor && !isConnected,
-                  style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'رقم الواتساب المتصل',
-                    prefixIcon: Icon(Icons.phone_android_rounded),
-                    hintText: '+201xxxxxxxxx',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _whatsappInstanceNameController,
-                  enabled: isDoctor,
-                  style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                  decoration: const InputDecoration(
-                    labelText: 'اسم مثيل البوابة (Instance Name)',
-                    prefixIcon: Icon(Icons.label_outline_rounded),
-                    hintText: 'مثال: clinic_main_instance',
-                  ),
-                ),
-                const SizedBox(height: 20),
+
 
                 // 4. قوالب الرسائل وتخصيصها
                 if (_sendBookingMessage) ...[
