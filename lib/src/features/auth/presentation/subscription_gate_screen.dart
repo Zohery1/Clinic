@@ -67,7 +67,7 @@ class _SubscriptionGateScreenState extends ConsumerState<SubscriptionGateScreen>
               constraints: const BoxConstraints(maxWidth: 460),
               padding: const EdgeInsets.all(32.0),
               decoration: BoxDecoration(
-                color: isDark ? AppTheme.surfaceDark : Colors.white,
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
