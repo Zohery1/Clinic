@@ -14,6 +14,7 @@ import '../../reports/data/reports_repository.dart';
 import '../../appointments/domain/appointment_type_model.dart';
 import '../../appointments/domain/service_model.dart';
 import '../../../core/widgets/clinic_dialog.dart';
+import '../../../core/widgets/clinic_toast.dart';
 
 // مزود كود الدعوة
 final inviteCodeProvider = FutureProvider.autoDispose<String>((ref) async {
@@ -43,15 +44,18 @@ class SettingsScreen extends ConsumerWidget {
 
     final isDoctor = user.role == UserRole.doctor;
     final currentTheme = ref.watch(themeModeProvider);
+    final isDesktop = MediaQuery.of(context).size.width >= 900;
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          title: const Text('الإعدادات العامة'),
-          elevation: 0,
-        ),
+        appBar: isDesktop
+            ? null
+            : AppBar(
+                title: const Text('الإعدادات العامة'),
+                elevation: 0,
+              ),
         body: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
@@ -65,7 +69,7 @@ class SettingsScreen extends ConsumerWidget {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Center(
@@ -219,7 +223,7 @@ class SettingsScreen extends ConsumerWidget {
                 'عيادتي — الإصدار 1.1.0',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                  color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
                 ),
               ),
             ),
@@ -251,20 +255,22 @@ class SettingsScreen extends ConsumerWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: AppTheme.cardDecorationFlat(context),
-      child: ListTile(
-        onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(8),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: onTap,
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 18, color: AppTheme.primary),
           ),
-          child: Icon(icon, size: 18, color: AppTheme.primary),
-        ),
         title: Text(
           title,
           style: TextStyle(
@@ -277,10 +283,11 @@ class SettingsScreen extends ConsumerWidget {
           subtitle,
           style: TextStyle(
             fontSize: 11,
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
           ),
         ),
         trailing: Icon(Icons.chevron_left_rounded, color: Theme.of(context).hintColor),
+      ),
       ),
     );
   }
@@ -292,15 +299,16 @@ class SettingsScreen extends ConsumerWidget {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: AppTheme.cardDecorationFlat(context),
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
         onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, size: 18, color: color),
@@ -485,7 +493,7 @@ class _ClinicDetailsPageState extends ConsumerState<ClinicDetailsPage> {
 
         if (mounted) {
           ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-            const SnackBar(duration: const Duration(seconds: 2), content: Text('تم حفظ البيانات بنجاح'), backgroundColor: AppTheme.success),
+            const SnackBar(duration: Duration(seconds: 2), content: Text('تم حفظ البيانات بنجاح'), backgroundColor: AppTheme.success),
           );
           Navigator.pop(context);
         }
@@ -569,27 +577,27 @@ class _ClinicDetailsPageState extends ConsumerState<ClinicDetailsPage> {
 class StaffPermissionsPage extends ConsumerWidget {
   const StaffPermissionsPage({super.key});
 
-  Widget _buildPermissionTile(String title, bool value, ValueChanged<bool?>? onChanged) {
+  Widget _buildPermissionTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool value,
+    required ValueChanged<bool>? onChanged,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: Checkbox(
-              value: value,
-              onChanged: onChanged,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 13),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: SwitchListTile(
+          dense: true,
+          secondary: Icon(icon, size: 20),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
+          value: value,
+          onChanged: onChanged,
+        ),
       ),
     );
   }
@@ -621,7 +629,7 @@ class StaffPermissionsPage extends ConsumerWidget {
                   const SizedBox(height: 6),
                   Text(
                     'انسخ الرابط وأرسله للسكرتيرة لتسجيل حسابها والدخول للعيادة تلقائياً',
-                    style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                    style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                   ),
                   const SizedBox(height: 16),
                   Container(
@@ -667,7 +675,7 @@ class StaffPermissionsPage extends ConsumerWidget {
                               onPressed: () {
                                 Clipboard.setData(ClipboardData(text: inviteLink));
                                 ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                                  const SnackBar(duration: const Duration(seconds: 2), 
+                                  const SnackBar(duration: Duration(seconds: 2), 
                                     content: Text('تم نسخ رابط التسجيل المباشر للسكرتيرة!'),
                                     backgroundColor: AppTheme.success,
                                   ),
@@ -689,7 +697,7 @@ class StaffPermissionsPage extends ConsumerWidget {
             // إدارة صلاحيات الفريق
             Text(
               'صلاحيات المساعدين المسجلين بالعيادة',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
             ),
             const SizedBox(height: 8),
 
@@ -729,9 +737,18 @@ class StaffPermissionsPage extends ConsumerWidget {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  Text(
-                                    staff.fullName,
-                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        staff.fullName,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                      ),
+                                      Text(
+                                        staff.isActive ? 'الحساب نشط' : 'الحساب محظور',
+                                        style: TextStyle(fontSize: 11, color: staff.isActive ? AppTheme.success : AppTheme.error),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -743,45 +760,139 @@ class StaffPermissionsPage extends ConsumerWidget {
                                         isActive: val,
                                         canDeleteAppointments: staff.canDeleteAppointments,
                                         canViewReports: staff.canViewReports,
+                                        canEditServices: staff.canEditServices,
+                                        canViewMedicalHistory: staff.canViewMedicalHistory,
+                                        canCancelAppointments: staff.canCancelAppointments,
                                       );
                                   ref.invalidate(staffListProvider);
                                 },
                               ),
                             ],
                           ),
+                          const SizedBox(height: 16),
+                          const Divider(height: 1),
                           const SizedBox(height: 12),
+
+                          // Category 1: المواعيد والحجوزات
+                          Text(
+                            '🗓️ إدارة المواعيد والحجوزات',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                          ),
+                          const SizedBox(height: 6),
                           _buildPermissionTile(
-                            'السماح بحذف المواعيد والحجوزات',
-                            staff.canDeleteAppointments,
-                            !staff.isActive
+                            title: 'إلغاء المواعيد والاعتذار للمرضى',
+                            subtitle: 'تغيير حالة الموعد إلى ملغي وإرسال رسالة الاعتذار',
+                            icon: Icons.event_busy_rounded,
+                            value: staff.canCancelAppointments,
+                            onChanged: !staff.isActive
                                 ? null
                                 : (val) async {
-                                    if (val != null) {
+                                      await ref.read(authRepositoryProvider).updateUserPermissions(
+                                            userId: staff.id,
+                                            isActive: staff.isActive,
+                                            canDeleteAppointments: staff.canDeleteAppointments,
+                                            canViewReports: staff.canViewReports,
+                                            canEditServices: staff.canEditServices,
+                                            canViewMedicalHistory: staff.canViewMedicalHistory,
+                                            canCancelAppointments: val,
+                                          );
+                                      ref.invalidate(staffListProvider);
+                                  },
+                          ),
+                          _buildPermissionTile(
+                            title: 'حذف المواعيد نهائياً من النظام',
+                            subtitle: 'حذف سجل الحجز تماماً من قاعدة البيانات',
+                            icon: Icons.delete_forever_rounded,
+                            value: staff.canDeleteAppointments,
+                            onChanged: !staff.isActive
+                                ? null
+                                : (val) async {
                                       await ref.read(authRepositoryProvider).updateUserPermissions(
                                             userId: staff.id,
                                             isActive: staff.isActive,
                                             canDeleteAppointments: val,
                                             canViewReports: staff.canViewReports,
+                                            canEditServices: staff.canEditServices,
+                                            canViewMedicalHistory: staff.canViewMedicalHistory,
+                                            canCancelAppointments: staff.canCancelAppointments,
                                           );
                                       ref.invalidate(staffListProvider);
-                                    }
+                                  },
+                          ),
+
+                          const SizedBox(height: 12),
+                          // Category 2: الخدمات والملفات الطبية
+                          Text(
+                            '🩺 الخدمات والملفات الطبية',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                          ),
+                          const SizedBox(height: 6),
+                          _buildPermissionTile(
+                            title: 'إضافة وتعديل الخدمات والأسعار',
+                            subtitle: 'إنشاء خدمات جديدة وتغيير تسعيرة الكشوفات والخدمات',
+                            icon: Icons.medical_services_outlined,
+                            value: staff.canEditServices,
+                            onChanged: !staff.isActive
+                                ? null
+                                : (val) async {
+                                      await ref.read(authRepositoryProvider).updateUserPermissions(
+                                            userId: staff.id,
+                                            isActive: staff.isActive,
+                                            canDeleteAppointments: staff.canDeleteAppointments,
+                                            canViewReports: staff.canViewReports,
+                                            canEditServices: val,
+                                            canViewMedicalHistory: staff.canViewMedicalHistory,
+                                            canCancelAppointments: staff.canCancelAppointments,
+                                          );
+                                      ref.invalidate(staffListProvider);
                                   },
                           ),
                           _buildPermissionTile(
-                            'السماح برؤية التقارير المالية والتحليلات',
-                            staff.canViewReports,
-                            !staff.isActive
+                            title: 'الاطلاع على الروشتات والتاريخ الطبي',
+                            subtitle: 'عرض التقرير الطبي والتشخيص والروشتات السابقة للمريض',
+                            icon: Icons.description_outlined,
+                            value: staff.canViewMedicalHistory,
+                            onChanged: !staff.isActive
                                 ? null
                                 : (val) async {
-                                    if (val != null) {
+                                      await ref.read(authRepositoryProvider).updateUserPermissions(
+                                            userId: staff.id,
+                                            isActive: staff.isActive,
+                                            canDeleteAppointments: staff.canDeleteAppointments,
+                                            canViewReports: staff.canViewReports,
+                                            canEditServices: staff.canEditServices,
+                                            canViewMedicalHistory: val,
+                                            canCancelAppointments: staff.canCancelAppointments,
+                                          );
+                                      ref.invalidate(staffListProvider);
+                                  },
+                          ),
+
+                          const SizedBox(height: 12),
+                          // Category 3: المالية والتقارير
+                          Text(
+                            '📊 المالية والتقارير',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                          ),
+                          const SizedBox(height: 6),
+                          _buildPermissionTile(
+                            title: 'رؤية التقارير المالية والإيرادات',
+                            subtitle: 'الاطلاع على إجمالي دخل العيادة اليومي والشهري',
+                            icon: Icons.insights_rounded,
+                            value: staff.canViewReports,
+                            onChanged: !staff.isActive
+                                ? null
+                                : (val) async {
                                       await ref.read(authRepositoryProvider).updateUserPermissions(
                                             userId: staff.id,
                                             isActive: staff.isActive,
                                             canDeleteAppointments: staff.canDeleteAppointments,
                                             canViewReports: val,
+                                            canEditServices: staff.canEditServices,
+                                            canViewMedicalHistory: staff.canViewMedicalHistory,
+                                            canCancelAppointments: staff.canCancelAppointments,
                                           );
                                       ref.invalidate(staffListProvider);
-                                    }
                                   },
                           ),
                         ],
@@ -856,28 +967,28 @@ class ThemeSettingsPage extends ConsumerWidget {
     required IconData icon,
     required bool isSelected,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        onTap: () {
-          ref.read(themeModeProvider.notifier).state = mode;
-        },
-        leading: Icon(icon, color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).iconTheme.color),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-            color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).textTheme.bodyLarge?.color,
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: () {
+            ref.read(themeModeProvider.notifier).state = mode;
+          },
+          leading: Icon(icon, color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).iconTheme.color),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+              color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).textTheme.bodyLarge?.color,
+            ),
           ),
+          trailing: isSelected
+              ? const Icon(Icons.check_circle_rounded, color: AppTheme.primary)
+              : null,
         ),
-        trailing: isSelected
-            ? const Icon(Icons.check_circle_rounded, color: AppTheme.primary)
-            : null,
       ),
     );
   }
@@ -915,6 +1026,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
     if (user == null) return const Scaffold(body: Center(child: Text('يرجى تسجيل الدخول')));
 
     final isDoctor = user.role == UserRole.doctor;
+    final canManageServices = isDoctor || user.canEditServices;
     final appointmentTypesAsync = ref.watch(appointmentTypesProvider);
     final servicesAsync = ref.watch(servicesProvider);
 
@@ -939,7 +1051,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
             _buildServicesTab(servicesAsync, isDoctor),
           ],
         ),
-        floatingActionButton: isDoctor
+        floatingActionButton: canManageServices
             ? FloatingActionButton(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
@@ -958,7 +1070,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
   }
 
   // الكشوفات
-  Widget _buildAppointmentTypesTab(AsyncValue<List<AppointmentTypeModel>> asyncData, bool isDoctor) {
+  Widget _buildAppointmentTypesTab(AsyncValue<List<AppointmentTypeModel>> asyncData, bool canManageServices) {
     return asyncData.when(
       data: (list) {
         if (list.isEmpty) {
@@ -984,7 +1096,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
                       Text('${type.price.toStringAsFixed(0)} ج.م', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
                     ],
                   ),
-                  if (isDoctor)
+                  if (canManageServices)
                     Row(
                       children: [
                         IconButton(
@@ -1009,7 +1121,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
   }
 
   // الخدمات
-  Widget _buildServicesTab(AsyncValue<List<ServiceModel>> asyncData, bool isDoctor) {
+  Widget _buildServicesTab(AsyncValue<List<ServiceModel>> asyncData, bool canManageServices) {
     return asyncData.when(
       data: (list) {
         if (list.isEmpty) {
@@ -1035,7 +1147,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
                       Text('${service.price.toStringAsFixed(0)} ج.م', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
                     ],
                   ),
-                  if (isDoctor)
+                  if (canManageServices)
                     Row(
                       children: [
                         IconButton(
@@ -1190,6 +1302,17 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
   }
 
   void _showAddServiceDialog(BuildContext context, String clinicId) {
+    final currentUser = ref.read(currentUserProvider);
+    if (currentUser != null && currentUser.role == UserRole.secretary && !currentUser.canEditServices) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ليس لديك صلاحية لإضافة أو تعديل الخدمات والأسعار. يرجى مراجعة الطبيب.'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+      return;
+    }
+
     final nameCtrl = TextEditingController();
     final priceCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
@@ -1357,13 +1480,8 @@ class _SaveButtonState extends State<_SaveButton> {
               try {
                 await widget.onPressed();
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                    SnackBar(duration: const Duration(seconds: 2), 
-                      content: Text('خطأ: $e'),
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                    ),
-                  );
+                if (context.mounted) {
+                  ClinicToast.showError(context, 'خطأ: $e');
                 }
               } finally {
                 if (mounted) setState(() => _loading = false);
@@ -1397,10 +1515,12 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
   final _whatsappInstanceNameController = TextEditingController();
   final _bookingTemplateController = TextEditingController();
   final _reminderTemplateController = TextEditingController();
+  final _cancellationTemplateController = TextEditingController();
   
   bool _whatsappEnabled = false;
   bool _sendBookingMessage = true;
   bool _sendReminderMessage = true;
+  bool _sendCancellationMessage = true;
   String _whatsappStatus = 'disconnected';
   
   bool _isLoading = true;
@@ -1430,8 +1550,11 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
         _whatsappStatus = res['whatsapp_status'] as String? ?? 'disconnected';
         _sendBookingMessage = res['send_booking_message'] as bool? ?? true;
         _sendReminderMessage = res['send_reminder_message'] as bool? ?? true;
+        _sendCancellationMessage = res['send_cancellation_message'] as bool? ?? true;
         _bookingTemplateController.text = res['booking_message_template'] as String? ?? '';
         _reminderTemplateController.text = res['reminder_message_template'] as String? ?? '';
+        _cancellationTemplateController.text = res['cancellation_message_template'] as String? ??
+            'عزيزي المريض [patient_name]، نعتذر عن إلغاء موعدك في العيادة بتاريخ [date] لظروف طارئة بالعيادة. نتمنى لكم دوام الصحة والعافية.';
         _isLoading = false;
       });
     } catch (_) {
@@ -1445,6 +1568,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
     _whatsappInstanceNameController.dispose();
     _bookingTemplateController.dispose();
     _reminderTemplateController.dispose();
+    _cancellationTemplateController.dispose();
     super.dispose();
   }
 
@@ -1464,14 +1588,16 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
               'whatsapp_status': _whatsappStatus,
               'send_booking_message': _sendBookingMessage,
               'send_reminder_message': _sendReminderMessage,
+              'send_cancellation_message': _sendCancellationMessage,
               'booking_message_template': _bookingTemplateController.text.trim(),
               'reminder_message_template': _reminderTemplateController.text.trim(),
+              'cancellation_message_template': _cancellationTemplateController.text.trim(),
             })
             .eq('id', user.clinicId);
 
         if (mounted) {
           ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-            const SnackBar(duration: const Duration(seconds: 2), content: Text('تم حفظ إعدادات الأتمتة بنجاح'), backgroundColor: AppTheme.success),
+            const SnackBar(duration: Duration(seconds: 2), content: Text('تم حفظ إعدادات الأتمتة بنجاح'), backgroundColor: AppTheme.success),
           );
           Navigator.pop(context);
         }
@@ -1649,23 +1775,36 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                     child: Text('إلغاء', style: GoogleFonts.cairo()),
                   ),
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       final user = ref.read(currentUserProvider);
+                      final instanceName = user != null ? 'clinic_${user.clinicId.substring(0, 8)}' : '';
                       setState(() {
                         _whatsappStatus = 'connected';
                         _whatsappEnabled = true;
-                        if (user != null) {
-                          _whatsappInstanceNameController.text = 'clinic_${user.clinicId.substring(0, 8)}';
-                        }
+                        _whatsappInstanceNameController.text = instanceName;
                       });
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                        const SnackBar(
-                          duration: Duration(seconds: 2), 
-                          content: Text('تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
-                          backgroundColor: AppTheme.success,
-                        ),
-                      );
+
+                      if (user != null) {
+                        await Supabase.instance.client
+                            .from('clinics')
+                            .update({
+                              'whatsapp_status': 'connected',
+                              'whatsapp_enabled': true,
+                              'whatsapp_instance_name': instanceName,
+                            })
+                            .eq('id', user.clinicId);
+                      }
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                          const SnackBar(
+                            duration: Duration(seconds: 2), 
+                            content: Text('تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
+                            backgroundColor: AppTheme.success,
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
                     child: Text('تأكيد التفعيل (اختبار)', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
@@ -1694,13 +1833,34 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
-              onPressed: () {
+              onPressed: () async {
+                final user = ref.read(currentUserProvider);
                 setState(() {
                   _whatsappStatus = 'disconnected';
                   _whatsappEnabled = false;
                   _whatsappPhoneController.clear();
                 });
-                Navigator.pop(context);
+
+                if (user != null) {
+                  await Supabase.instance.client
+                      .from('clinics')
+                      .update({
+                        'whatsapp_status': 'disconnected',
+                        'whatsapp_enabled': false,
+                      })
+                      .eq('id', user.clinicId);
+                }
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                    const SnackBar(
+                      duration: Duration(seconds: 2), 
+                      content: Text('تم إلغاء ربط الواتساب بنجاح'),
+                      backgroundColor: AppTheme.error,
+                    ),
+                  );
+                }
               },
               child: const Text('نعم، إلغاء الربط'),
             ),
@@ -1750,7 +1910,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: (isConnected ? AppTheme.success : AppTheme.error).withOpacity(0.12),
+                              color: (isConnected ? AppTheme.success : AppTheme.error).withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -1820,8 +1980,10 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: theme.colorScheme.primary),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  decoration: AppTheme.cardDecorationFlat(context),
+                Material(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
                       SwitchListTile(
@@ -1849,6 +2011,15 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                             : null,
                         title: const Text('رسالة تذكير بالموعد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                         subtitle: const Text('إرسال رسالة تذكير تلقائية قبل موعد الزيارة بـ 24 ساعة', style: TextStyle(fontSize: 11)),
+                      ),
+                      const Divider(height: 1),
+                      SwitchListTile(
+                        value: _sendCancellationMessage,
+                        onChanged: _whatsappEnabled && isDoctor
+                            ? (val) => setState(() => _sendCancellationMessage = val)
+                            : null,
+                        title: const Text('رسالة اعتذار عند إلغاء الموعد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        subtitle: const Text('إرسال رسالة اعتذار تلقائية للمريض عند إلغاء موعده من قِبل العيادة', style: TextStyle(fontSize: 11)),
                       ),
                     ],
                   ),
@@ -1898,6 +2069,26 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                   const SizedBox(height: 20),
                 ],
 
+                if (_sendCancellationMessage) ...[
+                  Text(
+                    'قالب رسالة الاعتذار عن إلغاء الموعد',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: theme.colorScheme.primary),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _cancellationTemplateController,
+                    enabled: isDoctor,
+                    maxLines: 4,
+                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                    decoration: const InputDecoration(
+                      hintText: 'اكتب نص الرسالة هنا...',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSmartTagsRow(_cancellationTemplateController, isDoctor),
+                  const SizedBox(height: 20),
+                ],
+
                 const SizedBox(height: 20),
                 // زر حفظ البيانات
                 ElevatedButton(
@@ -1939,9 +2130,9 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withOpacity(0.08),
+          color: theme.colorScheme.primary.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
         ),
         child: Text(
           '$label $tag',

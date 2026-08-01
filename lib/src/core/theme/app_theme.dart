@@ -34,7 +34,7 @@ class AppTheme {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 20,
             spreadRadius: 0,
             offset: const Offset(0, 4),
@@ -251,7 +251,7 @@ class AppTheme {
         }),
         todayForegroundColor: WidgetStateProperty.all(primary),
       ),
-      timePickerTheme: TimePickerThemeData(
+      timePickerTheme: const TimePickerThemeData(
         backgroundColor: Colors.white,
         hourMinuteTextColor: textPrimary,
         hourMinuteColor: surfaceDim,
@@ -388,7 +388,7 @@ class AppTheme {
         backgroundColor: const Color(0xFF1E293B),
         headerBackgroundColor: const Color(0xFF3B82F6),
         headerForegroundColor: Colors.white,
-        rangeSelectionBackgroundColor: const Color(0xFF3B82F6).withOpacity(0.2),
+        rangeSelectionBackgroundColor: const Color(0xFF3B82F6).withValues(alpha: 0.2),
         dayForegroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return Colors.white;
           return Colors.white;
@@ -399,16 +399,16 @@ class AppTheme {
         }),
         todayForegroundColor: WidgetStateProperty.all(const Color(0xFF3B82F6)),
       ),
-      timePickerTheme: TimePickerThemeData(
-        backgroundColor: const Color(0xFF1E293B),
+      timePickerTheme: const TimePickerThemeData(
+        backgroundColor: Color(0xFF1E293B),
         hourMinuteTextColor: Colors.white,
-        hourMinuteColor: const Color(0xFF0F172A),
+        hourMinuteColor: Color(0xFF0F172A),
         dayPeriodTextColor: Colors.white,
-        dayPeriodColor: const Color(0xFF0F172A),
-        dialHandColor: const Color(0xFF3B82F6),
+        dayPeriodColor: Color(0xFF0F172A),
+        dialHandColor: Color(0xFF3B82F6),
         dialTextColor: Colors.white,
-        dialBackgroundColor: const Color(0xFF0F172A),
-        entryModeIconColor: const Color(0xFF3B82F6),
+        dialBackgroundColor: Color(0xFF0F172A),
+        entryModeIconColor: Color(0xFF3B82F6),
       ),
     );
   }

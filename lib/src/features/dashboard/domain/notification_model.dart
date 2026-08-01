@@ -4,6 +4,7 @@ class NotificationModel {
   final String title;
   final String body;
   final bool isRead;
+  final String? targetRole;
   final DateTime createdAt;
 
   NotificationModel({
@@ -12,6 +13,7 @@ class NotificationModel {
     required this.title,
     required this.body,
     required this.isRead,
+    this.targetRole,
     required this.createdAt,
   });
 
@@ -21,7 +23,8 @@ class NotificationModel {
       clinicId: json['clinic_id'] as String,
       title: json['title'] as String,
       body: json['body'] as String,
-      isRead: json['is_read'] as bool,
+      isRead: json['is_read'] as bool? ?? false,
+      targetRole: json['target_role'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -33,6 +36,7 @@ class NotificationModel {
       'title': title,
       'body': body,
       'is_read': isRead,
+      'target_role': targetRole,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -43,6 +47,7 @@ class NotificationModel {
     String? title,
     String? body,
     bool? isRead,
+    String? targetRole,
     DateTime? createdAt,
   }) {
     return NotificationModel(
@@ -51,6 +56,7 @@ class NotificationModel {
       title: title ?? this.title,
       body: body ?? this.body,
       isRead: isRead ?? this.isRead,
+      targetRole: targetRole ?? this.targetRole,
       createdAt: createdAt ?? this.createdAt,
     );
   }

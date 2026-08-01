@@ -31,7 +31,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
   Color get _textColor => Theme.of(context).textTheme.bodyLarge?.color ?? (_isDark ? Colors.white : const Color(0xFF1E293B));
   Color get _textSecColor => Theme.of(context).textTheme.bodySmall?.color ?? (_isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B));
   Color get _borderCol => Colors.transparent;
-  Color get _inputFillCol => Theme.of(context).colorScheme.primary.withOpacity(0.12);
+  Color get _inputFillCol => Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
   Color get _surfaceCol => Theme.of(context).colorScheme.surface;
   Color get _primaryColor => Theme.of(context).colorScheme.primary;
   Color get _errorColor => Theme.of(context).colorScheme.error;
@@ -41,6 +41,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
   String? _selectedAppointmentTypeId;
   double _priceCharged = 0.0;
   final List<ServiceModel> _selectedServices = [];
+  bool _isSaving = false;
 
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0); // Default to 6:00 PM
@@ -133,6 +134,8 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
 
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isSaving = true);
 
     try {
 
@@ -168,14 +171,18 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
           );
 
       ref.invalidate(todayAppointmentsProvider);
+      ref.invalidate(appointmentsForDateProvider);
       ref.invalidate(todayRevenueProvider);
       ref.invalidate(monthRevenueProvider);
       ref.invalidate(weeklyRevenueProvider);
+      ref.invalidate(sixWeeksRevenueProvider);
+      ref.invalidate(monthlyStatsProvider);
       ref.invalidate(dailyStatsProvider);
+      ref.invalidate(detailedReportProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          const SnackBar(duration: const Duration(seconds: 2), 
+          const SnackBar(duration: Duration(seconds: 2), 
             content: Text('تم تعديل بيانات الحجز بنجاح'),
             backgroundColor: AppTheme.success,
           ),
@@ -186,10 +193,14 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2), 
-            content: Text('خطأ أثناء التعديل: $e'),
+            content: Text('حدث خطأ أثناء التعديل: $e'),
             backgroundColor: AppTheme.error,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
       }
     }
   }
@@ -495,7 +506,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: _primaryColor.withOpacity(0.15),
+                  color: _primaryColor.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
@@ -540,7 +551,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _primaryColor.withOpacity(0.1),
+                  color: _primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -710,7 +721,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
                     ),
 
                   const SizedBox(height: 16),
-                  Divider(height: 1, color: _borderCol.withOpacity(0.5)),
+                  Divider(height: 1, color: _borderCol.withValues(alpha: 0.5)),
                   const SizedBox(height: 16),
 
                   // Evening
@@ -925,35 +936,44 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: _submit,
+                  onTap: _isSaving ? null : _submit,
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     decoration: BoxDecoration(
-                      color: _primaryColor,
+                      color: _isSaving ? Colors.grey : _primaryColor,
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
+                      boxShadow: _isSaving ? null : [
                         BoxShadow(
-                          color: _primaryColor.withOpacity(0.3),
+                          color: _primaryColor.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.save_rounded, size: 18, color: Colors.white),
-                        SizedBox(width: 6),
-                        Text(
-                          'حفظ التعديلات',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.save_rounded, size: 18, color: Colors.white),
+                                SizedBox(width: 6),
+                                Text(
+                                  'حفظ التعديلات',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ),

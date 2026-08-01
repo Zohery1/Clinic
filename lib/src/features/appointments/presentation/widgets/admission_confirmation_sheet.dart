@@ -97,8 +97,8 @@ class AdmissionConfirmationSheet extends StatelessWidget {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: _isDangerous
-                        ? Theme.of(context).colorScheme.error.withOpacity(0.1)
-                        : Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        ? Theme.of(context).colorScheme.error.withValues(alpha: 0.1)
+                        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -142,7 +142,7 @@ class AdmissionConfirmationSheet extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: _isDangerous
-                    ? Theme.of(context).colorScheme.error.withOpacity(0.05)
+                    ? Theme.of(context).colorScheme.error.withValues(alpha: 0.05)
                     : Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(10),
                 // removed border
@@ -151,7 +151,7 @@ class AdmissionConfirmationSheet extends StatelessWidget {
                 _actionDescription,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8),
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                   height: 1.5,
                 ),
               ),

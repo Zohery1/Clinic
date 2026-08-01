@@ -279,7 +279,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         value: '${totalRev.toStringAsFixed(0)} ج.م',
         icon: Icons.account_balance_wallet_outlined,
         accentColor: Theme.of(context).colorScheme.primary,
-        bgColor: Theme.of(context).colorScheme.primary.withOpacity(0.10),
+        bgColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
         mono: true,
         trendText: trendText,
         trendIsPositive: trendIsPositive,
@@ -290,7 +290,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         icon: Icons.medical_services_outlined,
         accentColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1A73E8),
         bgColor: isDark
-            ? const Color(0xFF60A5FA).withOpacity(0.10)
+            ? const Color(0xFF60A5FA).withValues(alpha: 0.10)
             : const Color(0xFFE8F0FE),
         mono: true,
       ),
@@ -300,7 +300,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         icon: Icons.build_outlined,
         accentColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
         bgColor: isDark
-            ? const Color(0xFF34D399).withOpacity(0.10)
+            ? const Color(0xFF34D399).withValues(alpha: 0.10)
             : const Color(0xFFECFDF5),
         mono: true,
       ),
@@ -310,7 +310,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         icon: Icons.people_alt_outlined,
         accentColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED),
         bgColor: isDark
-            ? const Color(0xFFC084FC).withOpacity(0.10)
+            ? const Color(0xFFC084FC).withValues(alpha: 0.10)
             : const Color(0xFFF5F3FF),
         mono: false,
       ),
@@ -320,7 +320,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         icon: Icons.event_busy_outlined,
         accentColor: isDark ? const Color(0xFFF87171) : const Color(0xFFEF4444),
         bgColor: isDark
-            ? const Color(0xFFF87171).withOpacity(0.10)
+            ? const Color(0xFFF87171).withValues(alpha: 0.10)
             : const Color(0xFFFEF2F2),
         mono: false,
       ),
@@ -330,7 +330,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         icon: Icons.person_off_outlined,
         accentColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B),
         bgColor: isDark
-            ? const Color(0xFFFBBF24).withOpacity(0.10)
+            ? const Color(0xFFFBBF24).withValues(alpha: 0.10)
             : const Color(0xFFFFFBEB),
         mono: false,
       ),
@@ -393,7 +393,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   ),
                 ),
               ),
@@ -471,7 +471,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
               Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: appColor.withOpacity(0.10),
+                  color: appColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(Icons.pie_chart_outline_rounded, size: 16, color: appColor),
@@ -640,7 +640,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.10),
+            color: color.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
@@ -671,7 +671,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
               Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: newColor.withOpacity(0.10),
+                  color: newColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(Icons.people_alt_outlined, size: 16, color: newColor),
@@ -706,7 +706,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: newPts / total,
-                backgroundColor: oldColor.withOpacity(0.25),
+                backgroundColor: oldColor.withValues(alpha: 0.25),
                 color: newColor,
                 minHeight: 8,
               ),
@@ -736,7 +736,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -789,7 +789,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                 Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.10),
+                    color: accentColor.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, size: 16, color: accentColor),
@@ -807,7 +807,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.10),
+                    color: accentColor.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -837,7 +837,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       )),
                 ),
                 Expanded(
@@ -846,7 +846,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       textAlign: TextAlign.center),
                 ),
@@ -856,7 +856,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       textAlign: TextAlign.center),
                 ),
@@ -866,7 +866,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       textAlign: TextAlign.end),
                 ),
@@ -952,7 +952,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: accentColor.withOpacity(0.08),
+                              color: accentColor.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             alignment: Alignment.center,
@@ -974,7 +974,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                       borderRadius: BorderRadius.circular(3),
                       child: LinearProgressIndicator(
                         value: totalRevenue > 0 ? (cost / totalRevenue) : 0,
-                        backgroundColor: accentColor.withOpacity(0.10),
+                        backgroundColor: accentColor.withValues(alpha: 0.10),
                         color: accentColor,
                         minHeight: 4,
                       ),
@@ -1085,8 +1085,8 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                       },
                     ),
                   ),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
                 gridData: FlGridData(
                   show: true,
@@ -1130,7 +1130,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.07),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.07),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.insert_chart_outlined_rounded,

@@ -47,8 +47,10 @@ CREATE TABLE public.clinics (
     whatsapp_status text NOT NULL DEFAULT 'disconnected',
     send_booking_message boolean NOT NULL DEFAULT true,
     send_reminder_message boolean NOT NULL DEFAULT true,
+    send_cancellation_message boolean NOT NULL DEFAULT true,
     booking_message_template text NOT NULL DEFAULT 'عزيزي المريض [patient_name]، تم تسجيل حجزك في العيادة بتاريخ [date] في تمام الساعة [time]. نتمنى لكم دوام الصحة والعافية.',
     reminder_message_template text NOT NULL DEFAULT 'تذكير: عزيزي المريض [patient_name]، موعد كشفك القادم في العيادة هو غداً [date] في تمام الساعة [time]. يرجى الحضور في الموعد المحدد.',
+    cancellation_message_template text NOT NULL DEFAULT 'عزيزي المريض [patient_name]، نعتذر عن إلغاء موعدك في العيادة بتاريخ [date] لظروف طارئة بالعيادة. نتمنى لكم دوام الصحة والعافية.',
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -82,6 +84,9 @@ CREATE TABLE public.users (
     is_active boolean NOT NULL DEFAULT true,                     -- هل الحساب نشط؟ (للحظر)
     can_delete_appointments boolean NOT NULL DEFAULT false,       -- صلاحية حذف المواعيد للسكرتيرة
     can_view_reports boolean NOT NULL DEFAULT false,              -- صلاحية رؤية التقارير المالية للسكرتيرة
+    can_edit_services boolean NOT NULL DEFAULT false,             -- صلاحية تعديل الخدمات والأسعار
+    can_view_medical_history boolean NOT NULL DEFAULT false,       -- صلاحية رؤية الروشتة والتاريخ الطبي
+    can_cancel_appointments boolean NOT NULL DEFAULT true,        -- صلاحية إلغاء المواعيد
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -447,6 +452,7 @@ CREATE TABLE public.notifications (
     title text NOT NULL,
     body text NOT NULL,
     is_read boolean NOT NULL DEFAULT false,
+    target_role text, -- 'doctor' or 'secretary'
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -465,7 +471,11 @@ CREATE POLICY "Users can insert notifications" ON public.notifications
     FOR INSERT TO authenticated
     WITH CHECK (clinic_id = public.get_my_clinic_id());
 
--- Trigger function for new appointments
+CREATE POLICY "Users can delete notifications" ON public.notifications
+    FOR DELETE TO authenticated
+    USING (clinic_id = public.get_my_clinic_id() AND public.is_my_user_active());
+
+-- Trigger function for new appointments (Notifies Doctor when Secretary books)
 CREATE OR REPLACE FUNCTION public.on_appointment_created_notify()
 RETURNS trigger AS $$
 DECLARE
@@ -473,11 +483,12 @@ DECLARE
 BEGIN
   SELECT full_name INTO v_patient_name FROM public.patients WHERE id = new.patient_id;
   
-  INSERT INTO public.notifications (clinic_id, title, body)
+  INSERT INTO public.notifications (clinic_id, title, body, target_role)
   VALUES (
     new.clinic_id,
     'حجز جديد',
-    'تم تسجيل حجز جديد للمريض (' || coalesce(v_patient_name, 'مريض غير معروف') || ') بتاريخ ' || to_char(new.appointment_date AT TIME ZONE 'UTC' AT TIME ZONE 'Africa/Cairo', 'YYYY-MM-DD HH24:MI')
+    'تم تسجيل حجز جديد للمريض (' || coalesce(v_patient_name, 'مريض غير معروف') || ') بتاريخ ' || to_char(new.appointment_date AT TIME ZONE 'UTC' AT TIME ZONE 'Africa/Cairo', 'YYYY-MM-DD HH24:MI'),
+    'doctor'
   );
   RETURN new;
 END;
@@ -487,27 +498,26 @@ CREATE TRIGGER trigger_appointment_created_notify
   AFTER INSERT ON public.appointments
   FOR EACH ROW EXECUTE FUNCTION public.on_appointment_created_notify();
 
--- Trigger function for new appointment services
+-- Trigger function for new appointment services (Notifies Secretary when Doctor adds services)
 CREATE OR REPLACE FUNCTION public.on_appointment_service_created_notify()
 RETURNS trigger AS $$
 DECLARE
   v_patient_name text;
   v_service_name text;
 BEGIN
-  -- Find patient name from appointment
   SELECT p.full_name INTO v_patient_name
   FROM public.appointments a
   JOIN public.patients p ON a.patient_id = p.id
   WHERE a.id = new.appointment_id;
 
-  -- Find service name
   SELECT name INTO v_service_name FROM public.services WHERE id = new.service_id;
 
-  INSERT INTO public.notifications (clinic_id, title, body)
+  INSERT INTO public.notifications (clinic_id, title, body, target_role)
   VALUES (
     new.clinic_id,
     'إضافة خدمة طبية',
-    'تم إضافة خدمة (' || coalesce(v_service_name, 'خدمة إضافية') || ') للمريض (' || coalesce(v_patient_name, 'مريض') || ')'
+    'قام الدكتور بإضافة خدمة (' || coalesce(v_service_name, 'خدمة إضافية') || ') للمريض (' || coalesce(v_patient_name, 'مريض') || ')',
+    'secretary'
   );
   RETURN new;
 END;
@@ -516,6 +526,43 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER trigger_appointment_service_created_notify
   AFTER INSERT ON public.appointment_services
   FOR EACH ROW EXECUTE FUNCTION public.on_appointment_service_created_notify();
+
+-- Trigger function for appointment status changes (Pending -> Doctor, Completed -> Secretary)
+CREATE OR REPLACE FUNCTION public.on_appointment_status_changed_notify()
+RETURNS trigger AS $$
+DECLARE
+  v_patient_name text;
+BEGIN
+  IF old.status IS DISTINCT FROM new.status THEN
+    SELECT full_name INTO v_patient_name FROM public.patients WHERE id = new.patient_id;
+
+    -- When Secretary moves patient to 'pending' (مع الطبيب), notify Doctor
+    IF new.status = 'pending' THEN
+      INSERT INTO public.notifications (clinic_id, title, body, target_role)
+      VALUES (
+        new.clinic_id,
+        'دخول مريض للفحص',
+        'المريض (' || coalesce(v_patient_name, 'مريض') || ') في انتظارك الآن بغرفة الكشف',
+        'doctor'
+      );
+    -- When Doctor completes examination ('completed'), notify Secretary
+    ELSIF new.status = 'completed' THEN
+      INSERT INTO public.notifications (clinic_id, title, body, target_role)
+      VALUES (
+        new.clinic_id,
+        'إتمام كشف مريض',
+        'أنهى الدكتور كشف المريض (' || coalesce(v_patient_name, 'مريض') || ')',
+        'secretary'
+      );
+    END IF;
+  END IF;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trigger_appointment_status_changed_notify
+  AFTER UPDATE ON public.appointments
+  FOR EACH ROW EXECUTE FUNCTION public.on_appointment_status_changed_notify();
 
 -- ==========================================
 -- 11. Audit Logs Table & Security Triggers

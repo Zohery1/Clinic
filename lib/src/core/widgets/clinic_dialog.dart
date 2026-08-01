@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../theme/app_theme.dart';
 
 // ══════════════════════════════════════════════════════════
 // ClinicDialog — نظام حوارات موحد للتطبيق
@@ -88,8 +87,7 @@ class ClinicDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final iconBg = (iconColor ?? Theme.of(context).colorScheme.primary).withOpacity(0.12);
+    final iconBg = (iconColor ?? Theme.of(context).colorScheme.primary).withValues(alpha: 0.12);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -137,7 +135,7 @@ class ClinicDialog extends StatelessWidget {
                             subtitle!,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.8),
+                              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.8),
                             ),
                           ),
                       ],
@@ -153,7 +151,7 @@ class ClinicDialog extends StatelessWidget {
                       decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.02),
+                            color: Colors.black.withValues(alpha: 0.02),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           )
@@ -264,7 +262,7 @@ class _ConfirmDialogState extends State<_ConfirmDialog> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: _actionColor.withOpacity(0.1),
+                        color: _actionColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(widget.icon, color: _actionColor, size: 22),
@@ -288,7 +286,7 @@ class _ConfirmDialogState extends State<_ConfirmDialog> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: widget.isDangerous
-                        ? _actionColor.withOpacity(0.05)
+                        ? _actionColor.withValues(alpha: 0.05)
                         : Theme.of(context).scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -327,7 +325,7 @@ class _ConfirmDialogState extends State<_ConfirmDialog> {
                                   setState(() => _loading = true);
                                   try {
                                     await widget.onConfirm!();
-                                    if (mounted) Navigator.pop(context, true);
+                                    if (context.mounted) Navigator.pop(context, true);
                                   } catch (_) {
                                     if (mounted) setState(() => _loading = false);
                                     rethrow;
@@ -445,7 +443,7 @@ class ClinicFormField extends StatelessWidget {
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon,
                     size: 18,
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.6))
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6))
                 : null,
             prefixIconConstraints: const BoxConstraints(minWidth: 40),
           ),
@@ -515,7 +513,7 @@ class ClinicDropdownField<T> extends StatelessWidget {
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon,
                     size: 18,
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.6))
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6))
                 : null,
             prefixIconConstraints: const BoxConstraints(minWidth: 40),
           ),
@@ -540,7 +538,7 @@ class ClinicFormSection extends StatelessWidget {
         children: [
           if (icon != null) ...[
             Icon(icon, size: 14,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.7)),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7)),
             const SizedBox(width: 6),
           ],
           Text(
@@ -548,7 +546,7 @@ class ClinicFormSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
               letterSpacing: 0.5,
             ),
           ),

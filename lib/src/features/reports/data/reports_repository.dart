@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import '../../appointments/domain/appointment_type_model.dart';
 import '../../appointments/domain/service_model.dart';
 
@@ -289,8 +290,8 @@ class ReportsRepository {
       }
       return results;
     } catch (e, s) {
-      print('getDailyStats ERROR: $e');
-      print('Stacktrace: $s');
+      debugPrint('getDailyStats ERROR: $e');
+      debugPrint('Stacktrace: $s');
       rethrow;
     }
   }
@@ -347,8 +348,8 @@ class ReportsRepository {
       }
       return results;
     } catch (e, s) {
-      print('getMonthlyStats ERROR: $e');
-      print('Stacktrace: $s');
+      debugPrint('getMonthlyStats ERROR: $e');
+      debugPrint('Stacktrace: $s');
       rethrow;
     }
   }
@@ -453,13 +454,29 @@ class ReportsRepository {
         }
       }
 
-      // جلب المرضى الجدد (created_at في نفس الفترة الزمنية)
-      final List<dynamic> newPatientsResponse = await _supabase
+      // --- Run remaining queries in parallel ---
+      final newPatientsFuture = _supabase
           .from('patients')
           .select('id')
           .eq('clinic_id', clinicId)
           .gte('created_at', start)
           .lte('created_at', end);
+
+      final cancelledFuture = _supabase
+          .from('appointments')
+          .select('id, status')
+          .eq('clinic_id', clinicId)
+          .gte('appointment_date', start)
+          .lte('appointment_date', end)
+          .inFilter('status', ['cancelled', 'cancelled_by_clinic', 'cancelled_by_patient']);
+
+      final results = await Future.wait([
+        newPatientsFuture,
+        cancelledFuture,
+      ]);
+
+      final List<dynamic> newPatientsResponse = results[0];
+      final List<dynamic> cancelledAppointmentsResponse = results[1];
 
       final int newPatientsCount = newPatientsResponse.length;
 
@@ -468,15 +485,6 @@ class ReportsRepository {
           (newPatientsResponse).map((p) => p['id'] as String).toSet();
       final int oldPatientsCount =
           patientIds.where((id) => !newPatientIds.contains(id)).length;
-
-      // جلب المواعيد الملغاة
-      final List<dynamic> cancelledAppointmentsResponse = await _supabase
-          .from('appointments')
-          .select('id, status')
-          .eq('clinic_id', clinicId)
-          .gte('appointment_date', start)
-          .lte('appointment_date', end)
-          .inFilter('status', ['cancelled', 'cancelled_by_clinic', 'cancelled_by_patient']);
 
       int cancelledByClinicCount = 0;
       int cancelledByPatientCount = 0;
@@ -542,7 +550,7 @@ class ReportsRepository {
       } else {
         // للمقارنات متعددة الأيام (مثلا شهر)
         final previousStart = startParsed.subtract(Duration(days: diffDays)).toUtc().toIso8601String();
-        final previousEnd = startParsed.subtract(Duration(seconds: 1)).toUtc().toIso8601String();
+        final previousEnd = startParsed.subtract(const Duration(seconds: 1)).toUtc().toIso8601String();
 
         final List<dynamic> prevAppointments = await _supabase
             .from('appointments')
@@ -582,8 +590,8 @@ class ReportsRepository {
         'peakTimes': sortedPeakTimes.map((e) => {'label': e.key, 'count': e.value}).toList(),
       };
     } catch (e, s) {
-      print('getDetailedReport ERROR: $e');
-      print('Stacktrace: $s');
+      debugPrint('getDetailedReport ERROR: $e');
+      debugPrint('Stacktrace: $s');
       rethrow;
     }
   }

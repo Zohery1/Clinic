@@ -6,21 +6,21 @@ import '../../appointments/domain/appointment_type_model.dart';
 import '../../appointments/domain/service_model.dart';
 
 // مزود لقائمة أنواع المواعيد
-final appointmentTypesProvider = FutureProvider.autoDispose<List<AppointmentTypeModel>>((ref) async {
+final appointmentTypesProvider = FutureProvider<List<AppointmentTypeModel>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return ref.watch(reportsRepositoryProvider).getAppointmentTypes(user.clinicId);
 });
 
 // مزود لقائمة الخدمات الإضافية
-final servicesProvider = FutureProvider.autoDispose<List<ServiceModel>>((ref) async {
+final servicesProvider = FutureProvider<List<ServiceModel>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return ref.watch(reportsRepositoryProvider).getServices(user.clinicId);
 });
 
 // مزود دخل اليوم المختار
-final todayRevenueProvider = FutureProvider.autoDispose<double>((ref) async {
+final todayRevenueProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
   final selectedDate = ref.watch(selectedDateProvider);
@@ -28,21 +28,21 @@ final todayRevenueProvider = FutureProvider.autoDispose<double>((ref) async {
 });
 
 // مزود دخل الشهر الحالي
-final monthRevenueProvider = FutureProvider.autoDispose<double>((ref) async {
+final monthRevenueProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
   return ref.watch(reportsRepositoryProvider).getMonthRevenue(user.clinicId);
 });
 
 // مزود دخل آخر 7 أيام للرسم البياني
-final weeklyRevenueProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+final weeklyRevenueProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return ref.watch(reportsRepositoryProvider).getWeeklyRevenue(user.clinicId);
 });
 
 // مزود دخل آخر 6 أسابيع للرسم البياني الأسبوعي
-final sixWeeksRevenueProvider = FutureProvider.autoDispose<List<double>>((ref) async {
+final sixWeeksRevenueProvider = FutureProvider<List<double>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
 
@@ -101,7 +101,7 @@ final dailyStatsProvider = FutureProvider.autoDispose.family<List<Map<String, dy
 });
 
 // مزود إحصائيات الشهور التراكمية
-final monthlyStatsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+final monthlyStatsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return ref.watch(reportsRepositoryProvider).getMonthlyStats(user.clinicId);

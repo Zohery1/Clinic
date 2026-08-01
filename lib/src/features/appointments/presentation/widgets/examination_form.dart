@@ -29,7 +29,7 @@ class ExaminationForm extends StatelessWidget {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.1)),
+        side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
       ),
       color: Theme.of(context).colorScheme.surface,
       child: Padding(
@@ -119,12 +119,12 @@ class ExaminationForm extends StatelessWidget {
                         return FilterChip(
                           selected: isSelected,
                           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                          selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                          selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                           checkmarkColor: Theme.of(context).colorScheme.primary,
                           side: BorderSide(
                             color: isSelected
-                                ? Theme.of(context).colorScheme.primary.withOpacity(0.5)
-                                : Theme.of(context).dividerColor.withOpacity(0.1),
+                                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)
+                                : Theme.of(context).dividerColor.withValues(alpha: 0.1),
                             width: 1.5,
                           ),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -163,9 +163,9 @@ class ExaminationForm extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.5),
+                        color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+                        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
                       ),
                       child: servicesSection,
                     ),
@@ -234,14 +234,14 @@ class ExaminationForm extends StatelessWidget {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Theme.of(context).dividerColor.withOpacity(0.15),
+                color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
                 width: 1,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Theme.of(context).dividerColor.withOpacity(0.15),
+                color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
                 width: 1,
               ),
             ),

@@ -48,7 +48,7 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.1)),
+        side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
       ),
       color: Theme.of(context).colorScheme.surface,
       child: Padding(
@@ -63,7 +63,7 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -108,7 +108,7 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                                        color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
@@ -164,7 +164,7 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                     Icon(
                       _isHistoryExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                       size: 20,
-                      color: Theme.of(context).hintColor.withOpacity(0.5),
+                      color: Theme.of(context).hintColor.withValues(alpha: 0.5),
                     ),
                   ],
                 ),
@@ -199,9 +199,9 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                                 children: historyItems.map((mh) => Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.error.withOpacity(0.1),
+                                        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Theme.of(context).colorScheme.error.withOpacity(0.3)),
+                                        border: Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3)),
                                       ),
                                       child: Text(
                                         mh,
@@ -267,7 +267,7 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                     Icon(
                       _isVisitsExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                       size: 20,
-                      color: Theme.of(context).hintColor.withOpacity(0.5),
+                      color: Theme.of(context).hintColor.withValues(alpha: 0.5),
                     ),
                   ],
                 ),
@@ -385,7 +385,7 @@ class _VisitHistoryItemState extends State<_VisitHistoryItem> {
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
       ),
       child: InkWell(
         onTap: () {
@@ -405,7 +405,7 @@ class _VisitHistoryItemState extends State<_VisitHistoryItem> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Icon(Icons.history_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
@@ -436,7 +436,7 @@ class _VisitHistoryItemState extends State<_VisitHistoryItem> {
                   Icon(
                     _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                     size: 20,
-                    color: Theme.of(context).hintColor.withOpacity(0.5)
+                    color: Theme.of(context).hintColor.withValues(alpha: 0.5)
                   ),
                 ],
               ),
@@ -450,7 +450,7 @@ class _VisitHistoryItemState extends State<_VisitHistoryItem> {
                         margin: const EdgeInsets.only(top: 12),
                         padding: const EdgeInsets.only(top: 12, right: 8, left: 8),
                         decoration: BoxDecoration(
-                          border: Border(top: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.1))),
+                          border: Border(top: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.1))),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -479,7 +479,7 @@ class _VisitHistoryItemState extends State<_VisitHistoryItem> {
                               Text(widget.instructions!, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.5)),
                             ],
                             if (!hasDetails) ...[
-                              Text('لا توجد بيانات مسجلة.', style: TextStyle(fontSize: 13, color: Theme.of(context).hintColor.withOpacity(0.7), fontStyle: FontStyle.italic)),
+                              Text('لا توجد بيانات مسجلة.', style: TextStyle(fontSize: 13, color: Theme.of(context).hintColor.withValues(alpha: 0.7), fontStyle: FontStyle.italic)),
                             ],
                           ],
                         ),

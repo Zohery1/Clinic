@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../data/patient_repository.dart';
 import '../../domain/patient_model.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
+import '../../../../core/widgets/clinic_toast.dart';
 
 class EditPatientDialog extends ConsumerStatefulWidget {
   final String clinicId;
@@ -80,7 +81,7 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                   height: 48,
                   decoration: BoxDecoration(
                     color: _selectedGender == 'male'
-                        ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
                         : Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(10),
                     // removed border
@@ -120,7 +121,7 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                   height: 48,
                   decoration: BoxDecoration(
                     color: _selectedGender == 'female'
-                        ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
                         : Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(10),
                     // removed border
@@ -279,12 +280,7 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
 
   Future<void> _updatePatient() async {
     if (_selectedGender == null) {
-      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        const SnackBar(duration: const Duration(seconds: 2), 
-          content: Text('يرجى تحديد الجنس'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      ClinicToast.showWarning(context, 'يرجى تحديد الجنس');
       return;
     }
     if (!_formKey.currentState!.validate()) return;
@@ -308,23 +304,12 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
       ref.invalidate(patientsListProvider(widget.clinicId));
 
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(seconds: 2), 
-            content: Text('تم تحديث البيانات بنجاح',
-                style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-            backgroundColor: const Color(0xFF10B981),
-          ),
-        );
+        ClinicToast.showSuccess(context, 'تم تحديث البيانات بنجاح');
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(seconds: 2), 
-            content: Text('خطأ: $e', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        ClinicToast.showError(context, 'خطأ: $e');
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

@@ -32,7 +32,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
   Color get _textColor => Theme.of(context).textTheme.bodyLarge?.color ?? (_isDark ? Colors.white : const Color(0xFF1E293B));
   Color get _textSecColor => Theme.of(context).textTheme.bodySmall?.color ?? (_isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B));
   Color get _borderCol => Colors.transparent;
-  Color get _inputFillCol => Theme.of(context).colorScheme.primary.withOpacity(0.12);
+  Color get _inputFillCol => Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
   Color get _surfaceCol => Theme.of(context).colorScheme.surface;
   Color get _primaryColor => Theme.of(context).colorScheme.primary;
   Color get _errorColor => Theme.of(context).colorScheme.error;
@@ -43,6 +43,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
   String? _selectedAppointmentTypeId;
   double _priceCharged = 0.0;
   final List<ServiceModel> _selectedServices = [];
+  bool _isSaving = false;
 
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0); // Default to 6:00 PM
@@ -118,39 +119,20 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
     return '${hour.toString().padLeft(2, '0')}:$minute $period';
   }
 
-  TimeOfDay? _parseCustomTime(String text) {
-    try {
-      final clean = text.trim().toUpperCase();
-      final parts = clean.split(' ');
-      if (parts.length != 2) return null;
-      final timeParts = parts[0].split(':');
-      if (timeParts.length != 2) return null;
-      int hour = int.parse(timeParts[0]);
-      final minute = int.parse(timeParts[1]);
-      final isPm = parts[1] == 'PM';
-      final isAm = parts[1] == 'AM';
-      if (!isPm && !isAm) return null;
-      if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return null;
-      
-      if (isPm && hour != 12) hour += 12;
-      if (!isPm && hour == 12) hour = 0;
-      return TimeOfDay(hour: hour, minute: minute);
-    } catch (_) {
-      return null;
-    }
-  }
-
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isSaving = true);
 
     try {
       if (_selectedPatientId == null) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          const SnackBar(duration: const Duration(seconds: 2), 
+          const SnackBar(duration: Duration(seconds: 2), 
             content: Text('يرجى اختيار مريض من القائمة'),
             backgroundColor: AppTheme.error,
           ),
         );
+        setState(() => _isSaving = false);
         return;
       }
 
@@ -184,14 +166,18 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
           );
 
       ref.invalidate(todayAppointmentsProvider);
+      ref.invalidate(appointmentsForDateProvider);
       ref.invalidate(todayRevenueProvider);
       ref.invalidate(monthRevenueProvider);
       ref.invalidate(weeklyRevenueProvider);
+      ref.invalidate(sixWeeksRevenueProvider);
+      ref.invalidate(monthlyStatsProvider);
       ref.invalidate(dailyStatsProvider);
+      ref.invalidate(detailedReportProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          const SnackBar(duration: const Duration(seconds: 2), 
+          const SnackBar(duration: Duration(seconds: 2), 
             content: Text('تم حجز وتأكيد الموعد بنجاح'),
             backgroundColor: AppTheme.success,
           ),
@@ -202,10 +188,14 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
           SnackBar(duration: const Duration(seconds: 2), 
-            content: Text('خطأ أثناء الحجز: $e'),
+            content: Text('حدث خطأ أثناء حجز الموعد: $e'),
             backgroundColor: AppTheme.error,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
       }
     }
   }
@@ -299,7 +289,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                                     height: 48,
                                     decoration: BoxDecoration(
                                       color: selectedGender == 'male'
-                                          ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
+                                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
                                           : Theme.of(context).colorScheme.surface,
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -338,7 +328,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                                     height: 48,
                                     decoration: BoxDecoration(
                                       color: selectedGender == 'female'
-                                          ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
+                                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
                                           : Theme.of(context).colorScheme.surface,
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -422,14 +412,14 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                 ref.invalidate(patientsListProvider(widget.clinicId));
                 
                 // Select the newly added patient
-                this.setState(() {
+                setState(() {
                   _selectedPatientId = newPatient.id;
                   autocompleteController.text = newPatient.fullName;
                 });
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                    const SnackBar(duration: const Duration(seconds: 2), 
+                    const SnackBar(duration: Duration(seconds: 2), 
                       content: Text('تم تسجيل المريض وتحديده بنجاح'),
                       backgroundColor: AppTheme.success,
                     ),
@@ -798,7 +788,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                   child: Material(
                     elevation: 8,
                     color: _surfaceCol,
-                    shadowColor: Colors.black.withOpacity(0.1),
+                    shadowColor: Colors.black.withValues(alpha: 0.1),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(color: _borderCol),
@@ -824,7 +814,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: _primaryColor.withOpacity(0.1),
+                                  color: _primaryColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Icon(Icons.person_add_alt_1_rounded, color: _primaryColor),
@@ -1059,7 +1049,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                     ),
 
                   const SizedBox(height: 16),
-                  Divider(height: 1, color: _borderCol.withOpacity(0.5)),
+                  Divider(height: 1, color: _borderCol.withValues(alpha: 0.5)),
                   const SizedBox(height: 16),
 
                   // Evening
@@ -1274,35 +1264,44 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: _submit,
+                  onTap: _isSaving ? null : _submit,
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     decoration: BoxDecoration(
-                      color: _primaryColor,
+                      color: _isSaving ? Colors.grey : _primaryColor,
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
+                      boxShadow: _isSaving ? null : [
                         BoxShadow(
-                          color: _primaryColor.withOpacity(0.3),
+                          color: _primaryColor.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.save_rounded, size: 18, color: Colors.white),
-                        SizedBox(width: 6),
-                        Text(
-                          'تأكيد وحفظ الحجز',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.save_rounded, size: 18, color: Colors.white),
+                                SizedBox(width: 6),
+                                Text(
+                                  'تأكيد وحفظ الحجز',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ),

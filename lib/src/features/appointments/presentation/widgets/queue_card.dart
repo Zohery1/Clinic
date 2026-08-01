@@ -7,11 +7,11 @@ import '../../presentation/appointments_controller.dart';
 import '../../data/appointment_repository.dart';
 import '../../../auth/presentation/login_controller.dart';
 import '../../../auth/domain/user_model.dart';
-import '../../../reports/presentation/reports_controller.dart';
 import '../../presentation/examination_screen.dart';
 import 'queue_board.dart';
 import 'admission_confirmation_sheet.dart';
 import '../edit_appointment_dialog.dart';
+import '../../../../core/widgets/clinic_toast.dart';
 
 /// بطاقة مريض مبسطة ومخصصة حسب حالته في الطابور
 class QueueCard extends ConsumerWidget {
@@ -45,14 +45,14 @@ class QueueCard extends ConsumerWidget {
         child: Container(
           decoration: BoxDecoration(
             color: laneType == QueueLaneType.withDoctor 
-                ? const Color(0xFF3B82F6).withOpacity(0.04) 
+                ? const Color(0xFF3B82F6).withValues(alpha: 0.04) 
                 : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
                 color: laneType == QueueLaneType.withDoctor 
-                    ? const Color(0xFF3B82F6).withOpacity(0.12) 
-                    : Colors.black.withOpacity(0.02),
+                    ? const Color(0xFF3B82F6).withValues(alpha: 0.12) 
+                    : Colors.black.withValues(alpha: 0.02),
                 blurRadius: 20,
                 spreadRadius: 0,
                 offset: const Offset(0, 4),
@@ -78,19 +78,6 @@ class QueueCard extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Color _getLaneBorderColor(BuildContext context) {
-    switch (laneType) {
-      case QueueLaneType.waiting:
-        return const Color(0xFFF59E0B).withOpacity(0.2);
-      case QueueLaneType.withDoctor:
-        return const Color(0xFF3B82F6).withOpacity(0.35);
-      case QueueLaneType.completed:
-        return Theme.of(context).dividerColor;
-      case QueueLaneType.cancelled:
-        return Theme.of(context).dividerColor;
-    }
   }
 
   Widget _buildTopRow(BuildContext context, String formattedTime) {
@@ -243,7 +230,7 @@ class QueueCard extends ConsumerWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: const Color(0xFFF59E0B).withOpacity(0.12),
+        color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Center(
@@ -280,7 +267,7 @@ class QueueCard extends ConsumerWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, size: 18, color: color),
@@ -288,6 +275,9 @@ class QueueCard extends ConsumerWidget {
   }
 
   Widget _buildActionButtons(BuildContext context, WidgetRef ref, bool isDoctor) {
+    final currentUser = ref.read(currentUserProvider);
+    final canViewMedicalHistory = currentUser?.canViewMedicalHistory ?? false;
+
     if (laneType == QueueLaneType.waiting) {
       return Row(
         children: [
@@ -310,12 +300,14 @@ class QueueCard extends ConsumerWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _PrimaryButton(
-            label: isDoctor ? 'فتح جلسة الفحص' : 'التقرير الطبي',
-            icon: Icons.medical_information_outlined,
-            onTap: () => _openExamination(context),
-          ),
-          const SizedBox(height: 6),
+          if (isDoctor || canViewMedicalHistory)
+            _PrimaryButton(
+              label: isDoctor ? 'فتح جلسة الفحص' : 'التقرير الطبي',
+              icon: Icons.medical_information_outlined,
+              onTap: () => _openExamination(context),
+            ),
+          if (isDoctor || canViewMedicalHistory)
+            const SizedBox(height: 6),
           Row(
             children: [
               Expanded(
@@ -376,13 +368,23 @@ class QueueCard extends ConsumerWidget {
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 onPressed: () {
+                  final currentUser = ref.read(currentUserProvider);
+                  if (currentUser != null && currentUser.role == UserRole.secretary && !currentUser.canCancelAppointments) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('ليس لديك صلاحية لإلغاء الموعد أو الاعتذار للمرضى. يرجى مراجعة الطبيب.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
                   Navigator.pop(context);
                   _showAdmissionSheet(context, ref, 'cancelled_by_patient');
                 },
                 icon: const Icon(Icons.person_off_outlined),
                 label: const Text('المريض لم يحضر / اعتذر'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error.withOpacity(0.1),
+                  backgroundColor: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
                   foregroundColor: Theme.of(context).colorScheme.error,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -392,6 +394,16 @@ class QueueCard extends ConsumerWidget {
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () {
+                  final currentUser = ref.read(currentUserProvider);
+                  if (currentUser != null && currentUser.role == UserRole.secretary && !currentUser.canCancelAppointments) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('ليس لديك صلاحية لإلغاء الموعد أو الاعتذار للمرضى. يرجى مراجعة الطبيب.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
                   Navigator.pop(context);
                   _showAdmissionSheet(context, ref, 'cancelled_by_clinic');
                 },
@@ -428,13 +440,7 @@ class QueueCard extends ConsumerWidget {
   void _showAdmissionSheet(BuildContext context, WidgetRef ref, String targetStatus) {
     // التحقق: لا يمكن إدخال مريض للطبيب إذا كان هناك مريض آخر مع الطبيب
     if (targetStatus == 'pending' && withDoctorCount >= 1) {
-      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        SnackBar(duration: const Duration(seconds: 2), 
-          content: const Text('لا يمكن إدخال مريض جديد قبل إنهاء الكشف الحالي'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ClinicToast.showError(context, 'لا يمكن إدخال مريض جديد قبل إنهاء الكشف الحالي');
       return;
     }
 
@@ -451,12 +457,9 @@ class QueueCard extends ConsumerWidget {
   }
 
   void _updateStatus(BuildContext context, WidgetRef ref, String status) async {
-    final previousStatus = appointment.status;
     try {
       await ref.read(appointmentRepositoryProvider).updateAppointmentStatus(appointment.id, status);
-      ref.invalidate(todayAppointmentsProvider);
-      ref.invalidate(todayRevenueProvider);
-      ref.invalidate(monthRevenueProvider);
+      invalidateAppointmentsAndReports(ref);
 
       if (context.mounted) {
         final label = status == 'pending'
@@ -465,31 +468,28 @@ class QueueCard extends ConsumerWidget {
                 ? 'تم إنهاء الكشف'
                 : 'تم إلغاء الموعد';
 
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(
-            content: Text(label),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'تراجع',
-              onPressed: () async {
-                await ref.read(appointmentRepositoryProvider).updateAppointmentStatus(appointment.id, previousStatus);
-                ref.invalidate(todayAppointmentsProvider);
-                ref.invalidate(todayRevenueProvider);
-                ref.invalidate(monthRevenueProvider);
-              },
-            ),
-          ),
-        );
+        final IconData iconData;
+        final Color bgColor;
+        
+        if (status == 'pending') {
+          iconData = Icons.person_search_rounded;
+          bgColor = const Color(0xFF1A73E8);
+        } else if (status == 'completed') {
+          iconData = Icons.check_circle_rounded;
+          bgColor = const Color(0xFF10B981);
+        } else if (status == 'confirmed') {
+          iconData = Icons.hourglass_empty_rounded;
+          bgColor = const Color(0xFFF59E0B);
+        } else {
+          iconData = Icons.info_outline_rounded;
+          bgColor = const Color(0xFF1E293B);
+        }
+
+        ClinicToast.show(context, message: label, icon: iconData, color: bgColor);
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(seconds: 2), 
-            content: Text('حدث خطأ: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        ClinicToast.showError(context, 'حدث خطأ: $e');
       }
     }
   }

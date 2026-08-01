@@ -114,7 +114,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           child: Container(
                             padding: const EdgeInsets.all(18),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withOpacity(0.12),
+                              color: theme.colorScheme.primary.withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -216,7 +216,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            Expanded(child: Divider(color: theme.dividerColor.withOpacity(0.2))),
+                            Expanded(child: Divider(color: theme.dividerColor.withValues(alpha: 0.2))),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               child: Text(
@@ -224,7 +224,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 style: TextStyle(fontSize: 12, color: theme.hintColor),
                               ),
                             ),
-                            Expanded(child: Divider(color: theme.dividerColor.withOpacity(0.2))),
+                            Expanded(child: Divider(color: theme.dividerColor.withValues(alpha: 0.2))),
                           ],
                         ),
                         const SizedBox(height: 20),
@@ -237,7 +237,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.4)),
+                            side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -249,7 +249,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             Text(
                               'ليس لديك حساب؟',
                               style: TextStyle(
-                                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                                 fontSize: 13,
                               ),
                             ),

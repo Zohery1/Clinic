@@ -109,14 +109,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                   textAlign: TextAlign.center,
                   style: GoogleFonts.cairo(
                     fontSize: 14,
-                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.08),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -245,7 +245,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           child: Container(
                             padding: const EdgeInsets.all(18),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withOpacity(0.12),
+                              color: theme.colorScheme.primary.withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -440,7 +440,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            Expanded(child: Divider(color: theme.dividerColor.withOpacity(0.2))),
+                            Expanded(child: Divider(color: theme.dividerColor.withValues(alpha: 0.2))),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               child: Text(
@@ -448,7 +448,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                 style: TextStyle(fontSize: 12, color: theme.hintColor),
                               ),
                             ),
-                            Expanded(child: Divider(color: theme.dividerColor.withOpacity(0.2))),
+                            Expanded(child: Divider(color: theme.dividerColor.withValues(alpha: 0.2))),
                           ],
                         ),
                         const SizedBox(height: 20),
@@ -461,7 +461,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.4)),
+                            side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -475,7 +475,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                             Text(
                               'لديك حساب بالفعل؟',
                               style: TextStyle(
-                                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                                 fontSize: 13,
                               ),
                             ),
@@ -523,7 +523,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
             color: isSelected
-                ? theme.colorScheme.primary.withOpacity(0.15)
+                ? theme.colorScheme.primary.withValues(alpha: 0.15)
                 : theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(10),
           ),
@@ -533,7 +533,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                 icon,
                 color: isSelected
                     ? theme.colorScheme.primary
-                    : theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 size: 22,
               ),
               const SizedBox(height: 8),

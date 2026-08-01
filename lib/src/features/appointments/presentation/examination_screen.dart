@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart' as intl;
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
-import '../../patients/data/patient_repository.dart';
 import '../data/visit_note_repository.dart';
 import '../data/appointment_repository.dart';
 import '../domain/service_model.dart';
-import '../domain/appointment_model.dart';
 import '../presentation/appointments_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import 'widgets/patient_medical_sidebar.dart';
@@ -84,9 +80,9 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
 
     if (!hasContent) {
       ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        SnackBar(duration: const Duration(seconds: 2), 
-          content: const Text('يرجى كتابة محتوى أو اختيار خدمة على الأقل'),
-          backgroundColor: const Color(0xFFD97706),
+        const SnackBar(duration: Duration(seconds: 2), 
+          content: Text('يرجى كتابة محتوى أو اختيار خدمة على الأقل'),
+          backgroundColor: Color(0xFFD97706),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -125,7 +121,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       ref.invalidate(appointmentServicesProvider(widget.appointmentId));
       ref.invalidate(todayAppointmentsProvider);
       ref.invalidate(todayRevenueProvider);
-      ref.invalidate(monthRevenueProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
@@ -185,7 +180,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       ref.invalidate(appointmentServicesProvider(widget.appointmentId));
       ref.invalidate(todayAppointmentsProvider);
       ref.invalidate(todayRevenueProvider);
-      ref.invalidate(monthRevenueProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
@@ -287,9 +281,9 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
               ),
             const SizedBox(width: 8),
           ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(1),
-            child: const SizedBox(height: 1),
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: SizedBox(height: 1),
           ),
         ),
         body: noteAsync.when(
@@ -420,7 +414,7 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
         color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

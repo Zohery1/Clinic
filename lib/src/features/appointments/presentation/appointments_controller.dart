@@ -3,6 +3,7 @@ import '../../auth/presentation/login_controller.dart';
 import '../data/appointment_repository.dart';
 import '../domain/appointment_model.dart';
 import '../domain/appointment_service_model.dart';
+import '../../reports/presentation/reports_controller.dart';
 
 // مزود لجلب الخدمات المقدمة لحجز معين
 final appointmentServicesProvider = FutureProvider.autoDispose.family<List<AppointmentServiceModel>, String>((ref, appointmentId) async {
@@ -17,7 +18,7 @@ final selectedDateProvider = StateProvider<DateTime>((ref) {
 });
 
 // مزود لجلب المواعيد للتاريخ المحدد تلقائياً
-final todayAppointmentsProvider = FutureProvider.autoDispose<List<AppointmentModel>>((ref) async {
+final todayAppointmentsProvider = FutureProvider<List<AppointmentModel>>((ref) async {
   // مراقبة المستخدم الحالي لجلب معرف العيادة الخاصة به تلقائياً
   final user = ref.watch(currentUserProvider);
   if (user == null) {
@@ -39,3 +40,15 @@ final appointmentsForDateProvider = FutureProvider.autoDispose.family<List<Appoi
  
 // مزود لتخزين فلتر قائمة المرضى المحدد حالياً
 final dashboardFilterProvider = StateProvider<String>((ref) => 'confirmed');
+
+void invalidateAppointmentsAndReports(WidgetRef ref) {
+  ref.invalidate(todayAppointmentsProvider);
+  ref.invalidate(appointmentsForDateProvider);
+  ref.invalidate(todayRevenueProvider);
+  ref.invalidate(monthRevenueProvider);
+  ref.invalidate(weeklyRevenueProvider);
+  ref.invalidate(sixWeeksRevenueProvider);
+  ref.invalidate(monthlyStatsProvider);
+  ref.invalidate(dailyStatsProvider);
+  ref.invalidate(detailedReportProvider);
+}

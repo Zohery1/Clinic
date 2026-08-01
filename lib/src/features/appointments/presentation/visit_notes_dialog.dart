@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/clinic_dialog.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
@@ -84,7 +82,6 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
       ref.invalidate(appointmentServicesProvider(widget.appointmentId));
       ref.invalidate(todayAppointmentsProvider);
       ref.invalidate(todayRevenueProvider);
-      ref.invalidate(monthRevenueProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
@@ -127,7 +124,6 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
       ref.invalidate(appointmentServicesProvider(widget.appointmentId));
       ref.invalidate(todayAppointmentsProvider);
       ref.invalidate(todayRevenueProvider);
-      ref.invalidate(monthRevenueProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
@@ -163,9 +159,9 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
     final isDoctor = currentUser?.role == UserRole.doctor;
 
     final textPrimaryColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final textSecondaryColor = Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7) ?? Theme.of(context).hintColor;
+    final textSecondaryColor = Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7) ?? Theme.of(context).hintColor;
     final borderLightColor = Theme.of(context).dividerColor;
-    final badgeBgColor = Theme.of(context).colorScheme.primary.withOpacity(0.12);
+    final badgeBgColor = Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
 
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < 750;
@@ -392,7 +388,7 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
                                     borderRadius: BorderRadius.circular(8),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.02),
+                                        color: Colors.black.withValues(alpha: 0.02),
                                         blurRadius: 10,
                                         offset: const Offset(0, 2),
                                       )

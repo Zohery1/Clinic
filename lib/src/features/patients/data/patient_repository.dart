@@ -8,7 +8,7 @@ final patientRepositoryProvider = Provider<PatientRepository>((ref) {
 });
 
 // مزود لجلب قائمة جميع المرضى في العيادة الحالية تلقائياً
-final patientsListProvider = FutureProvider.family.autoDispose<List<PatientModel>, String>((ref, clinicId) async {
+final patientsListProvider = FutureProvider.family<List<PatientModel>, String>((ref, clinicId) async {
   return ref.watch(patientRepositoryProvider).getPatients(clinicId);
 });
 

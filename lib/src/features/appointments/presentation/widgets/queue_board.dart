@@ -5,12 +5,12 @@ import 'package:intl/intl.dart' as intl;
 import '../../domain/appointment_model.dart';
 import '../../data/appointment_repository.dart';
 import '../../presentation/appointments_controller.dart';
-import '../../../reports/presentation/reports_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/login_controller.dart';
 import '../../../auth/domain/user_model.dart';
 import '../examination_screen.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
+import '../../../../core/widgets/clinic_toast.dart';
 import '../book_appointment_dialog.dart';
 import '../edit_appointment_dialog.dart';
 import 'admission_confirmation_sheet.dart';
@@ -70,12 +70,9 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
   }
 
   void _updateStatus(BuildContext context, AppointmentModel appt, String status) async {
-    final previousStatus = appt.status;
     try {
       await ref.read(appointmentRepositoryProvider).updateAppointmentStatus(appt.id, status);
-      ref.invalidate(todayAppointmentsProvider);
-      ref.invalidate(todayRevenueProvider);
-      ref.invalidate(monthRevenueProvider);
+      invalidateAppointmentsAndReports(ref);
 
       if (context.mounted) {
         final label = status == 'pending'
@@ -84,31 +81,28 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
                 ? 'تم إنهاء الكشف'
                 : 'تم تغيير حالة الموعد';
 
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(
-            content: Text(label),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'تراجع',
-              onPressed: () async {
-                await ref.read(appointmentRepositoryProvider).updateAppointmentStatus(appt.id, previousStatus);
-                ref.invalidate(todayAppointmentsProvider);
-                ref.invalidate(todayRevenueProvider);
-                ref.invalidate(monthRevenueProvider);
-              },
-            ),
-          ),
-        );
+        final IconData iconData;
+        final Color bgColor;
+        
+        if (status == 'pending') {
+          iconData = Icons.person_search_rounded;
+          bgColor = const Color(0xFF1A73E8);
+        } else if (status == 'completed') {
+          iconData = Icons.check_circle_rounded;
+          bgColor = const Color(0xFF10B981);
+        } else if (status == 'confirmed') {
+          iconData = Icons.hourglass_empty_rounded;
+          bgColor = const Color(0xFFF59E0B);
+        } else {
+          iconData = Icons.info_outline_rounded;
+          bgColor = const Color(0xFF1E293B);
+        }
+
+        ClinicToast.show(context, message: label, icon: iconData, color: bgColor);
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(seconds: 2), 
-            content: Text('حدث خطأ: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        ClinicToast.showError(context, 'حدث خطأ: $e');
       }
     }
   }
@@ -191,7 +185,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Theme.of(context).colorScheme.error,
                     side: BorderSide.none,
-                    backgroundColor: Theme.of(context).colorScheme.error.withOpacity(0.1),
+                    backgroundColor: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -203,16 +197,16 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
 
           // ─── عناوين الجدول ───
           Container(
-            color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.4),
+            color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.4),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
+            child: const Row(
               children: [
-                const SizedBox(width: 80, child: Text('الوقت', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
-                const Expanded(flex: 3, child: Text('المريض وبياناته', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
-                const Expanded(flex: 2, child: Text('نوع الزيارة', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
-                const Expanded(flex: 2, child: Text('الدفعة المالية', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
-                const Expanded(flex: 2, child: Text('حالة الكشف', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
-                const SizedBox(width: 150, child: Center(child: Text('الإجراءات', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)))),
+                SizedBox(width: 80, child: Text('الوقت', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+                Expanded(flex: 3, child: Text('المريض وبياناته', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+                Expanded(flex: 2, child: Text('نوع الزيارة', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+                Expanded(flex: 2, child: Text('الدفعة المالية', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+                Expanded(flex: 2, child: Text('حالة الكشف', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+                SizedBox(width: 150, child: Center(child: Text('الإجراءات', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)))),
               ],
             ),
           ),
@@ -272,9 +266,9 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
         color: isSelected ? chipColor : theme.textTheme.bodyMedium?.color,
       ),
-      selectedColor: chipColor.withOpacity(0.1),
+      selectedColor: chipColor.withValues(alpha: 0.1),
       backgroundColor: theme.colorScheme.surface,
-      side: BorderSide(color: chipColor.withOpacity(isSelected ? 1.0 : 0.5), width: 1.5),
+      side: BorderSide(color: chipColor.withValues(alpha: isSelected ? 1.0 : 0.5), width: 1.5),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),
@@ -286,12 +280,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
     final waitingCount = widget.appointments.where((a) => a.status == 'confirmed').length;
 
     if (waitingCount == 0) {
-      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        const SnackBar(duration: const Duration(seconds: 2), 
-          content: Text('لا توجد مواعيد في الانتظار لإلغائها'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      ClinicToast.showWarning(context, 'لا توجد مواعيد في الانتظار لإلغائها');
       return;
     }
 
@@ -308,15 +297,8 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
               selectedDate,
             );
         ref.invalidate(todayAppointmentsProvider);
-        ref.invalidate(todayRevenueProvider);
-        ref.invalidate(monthRevenueProvider);
         if (context.mounted) {
-          ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-            const SnackBar(duration: const Duration(seconds: 2), 
-              content: Text('تم إلغاء مواعيد الانتظار بنجاح'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          ClinicToast.showSuccess(context, 'تم إلغاء مواعيد الانتظار بنجاح');
         }
       },
     );
@@ -331,7 +313,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
         color: appt.status == 'pending'
-            ? theme.colorScheme.primary.withOpacity(0.02) // تمييز المريض الحالي مع الطبيب
+            ? theme.colorScheme.primary.withValues(alpha: 0.02) // تمييز المريض الحالي مع الطبيب
             : null,
       ),
       child: Row(
@@ -373,7 +355,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
               children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                   child: Text(
                     appt.patient.fullName.trim().substring(0, 1),
                     style: TextStyle(
@@ -414,7 +396,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.08),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -440,14 +422,14 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: theme.hintColor.withOpacity(0.5),
+                        color: theme.hintColor.withValues(alpha: 0.5),
                       ),
                     )
                   : appt.totalPaid > 0
                       ? Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.1),
+                            color: const Color(0xFF10B981).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Row(
@@ -469,15 +451,15 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
                       : Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEF4444).withOpacity(0.1),
+                            color: const Color(0xFFEF4444).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Row(
+                          child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 12),
-                              const SizedBox(width: 4),
-                              const Text(
+                              Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 12),
+                              SizedBox(width: 4),
+                              Text(
                                 'غير مسدد',
                                 style: TextStyle(
                                   fontSize: 11,
@@ -499,7 +481,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
+                  color: statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -606,7 +588,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
       mainAction = Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.check_circle_outline_rounded, color: const Color(0xFF10B981).withOpacity(0.7), size: 16),
+          Icon(Icons.check_circle_outline_rounded, color: const Color(0xFF10B981).withValues(alpha: 0.7), size: 16),
           const SizedBox(width: 4),
           const Text('منتهي', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
         ],
@@ -619,7 +601,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
             onPressed: () => _updateStatus(context, appt, 'confirmed'),
             style: TextButton.styleFrom(
               foregroundColor: theme.colorScheme.primary,
-              backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
               padding: EdgeInsets.zero,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -633,7 +615,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (status == 'confirmed' || isCancelled) mainAction else if (status == 'pending') Expanded(child: mainAction) else mainAction,
+        mainAction,
         if (status != 'completed') ...[
           const SizedBox(width: 4),
           _buildThreeDotsMenu(context, appt),
@@ -749,7 +731,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
                 icon: const Icon(Icons.person_off_outlined),
                 label: const Text('المريض لم يحضر / اعتذر'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error.withOpacity(0.1),
+                  backgroundColor: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
                   foregroundColor: Theme.of(context).colorScheme.error,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -811,13 +793,13 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inbox_rounded, size: 48, color: Theme.of(context).hintColor.withOpacity(0.4)),
+          Icon(Icons.inbox_rounded, size: 48, color: Theme.of(context).hintColor.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
           Text(
             'لا توجد مواعيد تطابق الفلتر المختار',
             style: TextStyle(
               fontSize: 14,
-              color: Theme.of(context).hintColor.withOpacity(0.7),
+              color: Theme.of(context).hintColor.withValues(alpha: 0.7),
               fontWeight: FontWeight.w600,
             ),
           ),

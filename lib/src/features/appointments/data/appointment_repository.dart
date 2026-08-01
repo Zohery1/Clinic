@@ -171,7 +171,7 @@ class AppointmentRepository {
 
       await _supabase
           .from('appointments')
-          .update({'status': 'cancelled'})
+          .update({'status': 'cancelled_by_clinic'})
           .eq('clinic_id', clinicId)
           .eq('status', 'confirmed') // فقط اللي في الانتظار، لا يمس المبدوءة
           .gte('appointment_date', start)

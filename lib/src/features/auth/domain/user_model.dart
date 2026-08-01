@@ -17,7 +17,6 @@ enum UserRole {
   }
 }
 
-// نموذج بيانات المستخدم (طبيب أو سكرتير) محتوياً على حقول الصلاحيات والنشاط
 class UserModel {
   final String id;
   final String clinicId;
@@ -26,6 +25,9 @@ class UserModel {
   final bool isActive;                     // حالة نشاط الحساب (مفعل/محظور)
   final bool canDeleteAppointments;       // صلاحية حذف المواعيد
   final bool canViewReports;              // صلاحية رؤية التقارير المالية
+  final bool canEditServices;             // صلاحية إدخال وتعديل الخدمات والأسعار
+  final bool canViewMedicalHistory;       // صلاحية رؤية التقرير الطبي والروشتة
+  final bool canCancelAppointments;       // صلاحية إلغاء المواعيد والاعتذار
   final DateTime createdAt;
 
   UserModel({
@@ -36,6 +38,9 @@ class UserModel {
     required this.isActive,
     required this.canDeleteAppointments,
     required this.canViewReports,
+    this.canEditServices = false,
+    this.canViewMedicalHistory = false,
+    this.canCancelAppointments = true,
     required this.createdAt,
   });
 
@@ -49,6 +54,9 @@ class UserModel {
       isActive: json['is_active'] as bool? ?? true,
       canDeleteAppointments: json['can_delete_appointments'] as bool? ?? false,
       canViewReports: json['can_view_reports'] as bool? ?? false,
+      canEditServices: json['can_edit_services'] as bool? ?? false,
+      canViewMedicalHistory: json['can_view_medical_history'] as bool? ?? false,
+      canCancelAppointments: json['can_cancel_appointments'] as bool? ?? true,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -63,6 +71,9 @@ class UserModel {
       'is_active': isActive,
       'can_delete_appointments': canDeleteAppointments,
       'can_view_reports': canViewReports,
+      'can_edit_services': canEditServices,
+      'can_view_medical_history': canViewMedicalHistory,
+      'can_cancel_appointments': canCancelAppointments,
       'created_at': createdAt.toIso8601String(),
     };
   }

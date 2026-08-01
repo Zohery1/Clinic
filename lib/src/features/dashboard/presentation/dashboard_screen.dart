@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../appointments/presentation/book_appointment_dialog.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../appointments/presentation/appointments_screen.dart';
 import '../../appointments/presentation/appointments_controller.dart';
@@ -13,7 +12,6 @@ import '../../settings/presentation/settings_screen.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/user_model.dart';
-import '../domain/notification_model.dart';
 import 'notifications_controller.dart';
 import 'financial_panel.dart';
 
@@ -85,7 +83,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   color: Theme.of(context).colorScheme.surface,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 10,
                       offset: const Offset(0, -2),
                     )
@@ -99,7 +97,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         children: [
                           _buildNavItem(0, Icons.calendar_today_rounded, 'الرئيسية'),
                           _buildNavItem(1, Icons.people_outline_rounded, 'المرضى'),
-                          _buildNavItem(2, Icons.bar_chart_rounded, 'التقارير'),
+                          if (user?.role == UserRole.doctor || (user?.canViewReports ?? false))
+                            _buildNavItem(2, Icons.bar_chart_rounded, 'التقارير'),
                           _buildNavItem(3, Icons.settings_outlined, 'الإعدادات'),
                         ],
                       ),
@@ -121,7 +120,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(-2, 0),
           )
@@ -167,7 +166,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         style: GoogleFonts.cairo(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                          color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -179,7 +178,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // Navigation Items
           _buildSidebarItem(0, Icons.grid_view_rounded, 'الرئيسية', true),
           _buildSidebarItem(1, Icons.people_alt_outlined, 'المرضى', false),
-          _buildSidebarItem(2, Icons.trending_up_rounded, 'التقارير المالية', false),
+          if (user?.role == UserRole.doctor || (user?.canViewReports ?? false))
+            _buildSidebarItem(2, Icons.trending_up_rounded, 'التقارير المالية', false),
           _buildSidebarItem(3, Icons.settings_suggest_outlined, 'الإعدادات العامة', false),
           
           const Spacer(),
@@ -210,7 +210,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
               color: isSelected
-                  ? primaryColor.withOpacity(0.08)
+                  ? primaryColor.withValues(alpha: 0.08)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
             ),
@@ -233,7 +233,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   icon,
                   color: isSelected
                       ? primaryColor
-                      : theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                      : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   size: 18,
                 ),
                 const SizedBox(width: 10),
@@ -244,7 +244,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                     color: isSelected
                         ? primaryColor
-                        : theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                        : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -268,7 +268,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.015),
+            color: Colors.black.withValues(alpha: 0.015),
             blurRadius: 10,
             offset: const Offset(0, 2),
           )
@@ -279,7 +279,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // Letter avatar (Initials based)
           CircleAvatar(
             radius: 18,
-            backgroundColor: primaryColor.withOpacity(0.12),
+            backgroundColor: primaryColor.withValues(alpha: 0.12),
             child: Text(
               user.fullName.trim().isEmpty ? 'ع' : user.fullName.trim().substring(0, 1),
               style: TextStyle(
@@ -308,7 +308,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   isDoctor ? 'طبيب' : 'سكرتارية',
                   style: GoogleFonts.cairo(
                     fontSize: 10.5,
-                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -320,7 +320,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ref.read(currentUserProvider.notifier).state = null;
             },
             icon: const Icon(Icons.logout_rounded, size: 18),
-            color: theme.colorScheme.error.withOpacity(0.8),
+            color: theme.colorScheme.error.withValues(alpha: 0.8),
             tooltip: 'تسجيل الخروج',
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
@@ -349,7 +349,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -420,7 +420,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withOpacity(0.12),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(Icons.notifications_active_rounded,
@@ -437,13 +437,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                     ],
                   ),
-                  if (state.notifications.any((n) => !n.isRead))
+                  if (state.notifications.isNotEmpty)
                     TextButton(
                       onPressed: () {
                         notifier.markAllAsRead();
                       },
                       child: Text(
-                        'قراءة الكل',
+                        'مسح الكل',
                         style: TextStyle(
                           fontSize: 12,
                           color: theme.colorScheme.primary,
@@ -502,9 +502,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                               return InkWell(
                                 onTap: () {
-                                  if (!notification.isRead) {
-                                    notifier.markAsRead(notification.id);
-                                  }
+                                  notifier.markAsRead(notification.id);
                                 },
                                 borderRadius: BorderRadius.circular(8),
                                 child: Padding(
@@ -517,7 +515,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                           Container(
                                             padding: const EdgeInsets.all(8),
                                             decoration: BoxDecoration(
-                                              color: color.withOpacity(0.1),
+                                              color: color.withValues(alpha: 0.1),
                                               shape: BoxShape.circle,
                                             ),
                                             child: Icon(icon, color: color, size: 18),
@@ -605,10 +603,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               height: 38,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.05),
+                color: theme.colorScheme.primary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: theme.textTheme.bodyMedium?.color?.withOpacity(0.8), size: 19),
+              child: Icon(icon, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8), size: 19),
             ),
           ),
         ),
@@ -734,7 +732,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 20,
             spreadRadius: 0,
             offset: const Offset(0, 4),
@@ -752,7 +750,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 style: GoogleFonts.cairo(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: 8),
@@ -762,7 +760,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -797,7 +795,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
+                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),

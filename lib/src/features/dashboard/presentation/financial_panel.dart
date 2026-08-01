@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
-import '../../../core/theme/app_theme.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../../appointments/presentation/appointments_controller.dart';
 import '../../appointments/domain/appointment_model.dart';
@@ -59,7 +58,7 @@ class FinancialPanel extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -136,7 +135,7 @@ class FinancialPanel extends ConsumerWidget {
                                       decoration: BoxDecoration(
                                         color: revenue > 0
                                             ? primaryColor
-                                            : theme.dividerColor.withOpacity(0.5),
+                                            : theme.dividerColor.withValues(alpha: 0.5),
                                         borderRadius: const BorderRadius.vertical(
                                           top: Radius.circular(3),
                                         ),
@@ -152,7 +151,7 @@ class FinancialPanel extends ConsumerWidget {
                               style: GoogleFonts.cairo(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -194,7 +193,7 @@ class FinancialPanel extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -231,7 +230,7 @@ class FinancialPanel extends ConsumerWidget {
           const SizedBox(height: 8),
           // Table header
           Container(
-            color: theme.scaffoldBackgroundColor.withOpacity(0.4),
+            color: theme.scaffoldBackgroundColor.withValues(alpha: 0.4),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Row(
               children: [
@@ -242,7 +241,7 @@ class FinancialPanel extends ConsumerWidget {
                     style: GoogleFonts.cairo(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -252,7 +251,7 @@ class FinancialPanel extends ConsumerWidget {
                     style: GoogleFonts.cairo(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -263,7 +262,7 @@ class FinancialPanel extends ConsumerWidget {
                       style: GoogleFonts.cairo(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -372,7 +371,7 @@ class FinancialPanel extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.08),
+                  color: statusColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(

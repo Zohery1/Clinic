@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
@@ -11,6 +12,7 @@ import '../../appointments/presentation/book_appointment_dialog.dart';
 import 'patient_details_dialog.dart';
 import 'widgets/add_patient_dialog.dart';
 import 'widgets/edit_patient_dialog.dart';
+import '../../../core/widgets/clinic_toast.dart';
 import '../../appointments/presentation/visit_notes_dialog.dart';
 import '../../appointments/data/visit_note_repository.dart';
 import '../../appointments/domain/appointment_model.dart';
@@ -28,15 +30,19 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
   List<PatientModel>? _searchResults;
   bool _isSearching = false;
   bool _searchByFileOnly = false;
+  Timer? _debounceTimer;
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
   }
 
-  void _onSearchChanged(String query, String clinicId) async {
+  void _onSearchChanged(String query, String clinicId) {
+    _debounceTimer?.cancel();
+    
     if (query.trim().isEmpty) {
       setState(() {
         _searchResults = null;
@@ -47,46 +53,54 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
 
     setState(() => _isSearching = true);
 
-    try {
-      final allPatients = await ref.read(patientRepositoryProvider).getPatients(clinicId);
-      final sortedFullPatients = List<PatientModel>.from(allPatients)
-        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      try {
+        final allPatients = await ref.read(patientRepositoryProvider).getPatients(clinicId);
+        final sortedFullPatients = List<PatientModel>.from(allPatients)
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-      final Map<String, int> fileNumbers = {};
-      for (int i = 0; i < sortedFullPatients.length; i++) {
-        fileNumbers[sortedFullPatients[i].id] = i + 1;
-      }
+        final Map<String, int> fileNumbers = {};
+        for (int i = 0; i < sortedFullPatients.length; i++) {
+          fileNumbers[sortedFullPatients[i].id] = i + 1;
+        }
 
-      if (_searchByFileOnly) {
-        final filtered = sortedFullPatients.where((p) {
-          final fileNo = fileNumbers[p.id] ?? 0;
-          return fileNo.toString() == query.trim() || fileNo.toString().contains(query.trim());
-        }).toList();
-        setState(() {
-          _searchResults = filtered;
-          _isSearching = false;
-        });
-      } else {
-        final results = await ref.read(patientRepositoryProvider).searchPatients(clinicId, query);
-        final byFile = sortedFullPatients.where((p) {
-          final fileNo = fileNumbers[p.id] ?? 0;
-          return fileNo.toString() == query.trim() || fileNo.toString().contains(query.trim());
-        }).toList();
-        
-        final merged = [...results];
-        for (var p in byFile) {
-          if (!merged.any((existing) => existing.id == p.id)) {
-            merged.add(p);
+        if (_searchByFileOnly) {
+          final filtered = sortedFullPatients.where((p) {
+            final fileNo = fileNumbers[p.id] ?? 0;
+            return fileNo.toString() == query.trim() || fileNo.toString().contains(query.trim());
+          }).toList();
+          if (mounted) {
+            setState(() {
+              _searchResults = filtered;
+              _isSearching = false;
+            });
+          }
+        } else {
+          final results = await ref.read(patientRepositoryProvider).searchPatients(clinicId, query);
+          final byFile = sortedFullPatients.where((p) {
+            final fileNo = fileNumbers[p.id] ?? 0;
+            return fileNo.toString() == query.trim() || fileNo.toString().contains(query.trim());
+          }).toList();
+          
+          final merged = [...results];
+          for (var p in byFile) {
+            if (!merged.any((existing) => existing.id == p.id)) {
+              merged.add(p);
+            }
+          }
+          if (mounted) {
+            setState(() {
+              _searchResults = merged;
+              _isSearching = false;
+            });
           }
         }
-        setState(() {
-          _searchResults = merged;
-          _isSearching = false;
-        });
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isSearching = false);
+        }
       }
-    } catch (e) {
-      setState(() => _isSearching = false);
-    }
+    });
   }
 
   void _showAddPatientDialog(BuildContext context, String clinicId) {
@@ -119,7 +133,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.error.withOpacity(0.08),
+                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(Icons.warning_amber_rounded, color: Theme.of(context).colorScheme.error, size: 20),
@@ -158,22 +172,12 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                     _onSearchChanged(_searchController.text, clinicId);
                   }
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('تم حذف المريض بنجاح'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                    );
+                    ClinicToast.showSuccess(context, 'تم حذف المريض بنجاح');
                     Navigator.pop(context);
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('خطأ: $e'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                    );
+                    ClinicToast.showError(context, 'خطأ: $e');
                   }
                 }
               },
@@ -303,7 +307,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             final isDesktopWidth = constraints.maxWidth >= 900;
 
             if (isDesktopWidth) {
-              final listWidth = 360.0;
+              const listWidth = 360.0;
               final profileWidth = constraints.maxWidth - listWidth;
 
               return Row(
@@ -317,7 +321,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                         color: Theme.of(context).colorScheme.surface,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.02),
+                            color: Colors.black.withValues(alpha: 0.02),
                             blurRadius: 10,
                             offset: const Offset(-2, 0),
                           )
@@ -356,7 +360,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                     IconButton(
                                       icon: Icon(Icons.person_add_alt_1_rounded, color: Theme.of(context).colorScheme.primary),
                                       style: IconButton.styleFrom(
-                                        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                                        backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                                         padding: const EdgeInsets.all(12),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),
@@ -385,11 +389,11 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                             decoration: BoxDecoration(
                                               color: _searchByFileOnly
                                                   ? Theme.of(context).colorScheme.primary
-                                                  : Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                                                  : Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                                               borderRadius: BorderRadius.circular(8),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withOpacity(0.02),
+                                                  color: Colors.black.withValues(alpha: 0.02),
                                                   blurRadius: 4,
                                                   offset: const Offset(0, 2),
                                                 ),
@@ -455,7 +459,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                 const SizedBox(height: 4),
                                  Text(
                                   'لعرض وتعديل ملفه الطبي وسجل زياراته وتفاصيل الحالات',
-                                  style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7), fontSize: 13),
+                                  style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 13),
                                 ),
                               ],
                             ),
@@ -514,7 +518,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                 decoration: BoxDecoration(
                                   color: _searchByFileOnly
                                       ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -603,11 +607,11 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
           margin: const EdgeInsets.only(bottom: 8),
           decoration: isSelected
               ? BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     )
@@ -631,8 +635,8 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
-                          : Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
+                          : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -672,7 +676,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                           Text(
                             patient.phone!,
                             style: TextStyle(
-                              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                               fontSize: 11,
                             ),
                           ),
@@ -765,7 +769,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -773,8 +777,8 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                 CircleAvatar(
                   radius: 30,
                   backgroundColor: patient.gender == 'female'
-                      ? const Color(0xFFEC4899).withOpacity(0.12)
-                      : Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                      ? const Color(0xFFEC4899).withValues(alpha: 0.12)
+                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                   child: Icon(
                     patient.gender == 'female' ? Icons.woman_rounded : Icons.man_rounded,
                     color: patient.gender == 'female' ? const Color(0xFFEC4899) : Theme.of(context).colorScheme.primary,
@@ -808,7 +812,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                 borderRadius: BorderRadius.circular(6),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.02),
+                                    color: Colors.black.withValues(alpha: 0.02),
                                     blurRadius: 10,
                                     offset: const Offset(0, 2),
                                   )
@@ -835,20 +839,20 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.phone_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                                Icon(Icons.phone_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                                 const SizedBox(width: 6),
-                                Text(patient.phone!, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7))),
+                                Text(patient.phone!, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
                               ],
                             ),
                           if (displayAddress.isNotEmpty)
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.location_on_outlined, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                                Icon(Icons.location_on_outlined, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                                 const SizedBox(width: 6),
                                 Text(
                                   displayAddress,
-                                  style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                                  style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                                 ),
                               ],
                             ),
@@ -964,17 +968,17 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.05),
+              color: Colors.red.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(Icons.description_outlined, color: Colors.red, size: 16),
-                    const SizedBox(width: 6),
-                    const Text(
+                    Icon(Icons.description_outlined, color: Colors.red, size: 16),
+                    SizedBox(width: 6),
+                    Text(
                       'السجل المرضي للمريض',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
@@ -1020,7 +1024,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
     final content = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -1028,7 +1032,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 16),
@@ -1040,7 +1044,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                  style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -1068,7 +1072,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
           return Center(
             child: Text(
               'لا توجد زيارات سابقة مسجلة للمريض',
-              style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7), fontSize: 13),
+              style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 13),
             ),
           );
         }
@@ -1139,7 +1143,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.people_outline_rounded, size: 40, color: Theme.of(context).hintColor),
@@ -1148,7 +1152,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             Text(
               'لا توجد سجلات مطابقة',
               style: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -1227,7 +1231,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
@@ -1249,7 +1253,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                     const SizedBox(width: 4),
                                     Text(
                                       patient.phone!,
-                                      style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7), fontSize: 12),
+                                      style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 12),
                                     ),
                                   ],
                                   if (patient.address != null && patient.address!.isNotEmpty) ...[
@@ -1266,7 +1270,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                       child: Text(
                                         patient.address!,
                                          style:
-                                             TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7), fontSize: 12),
+                                             TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 12),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -1395,13 +1399,13 @@ class _TimelineAppointmentCardState extends ConsumerState<_TimelineAppointmentCa
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.calendar_today_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                      Icon(Icons.calendar_today_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                       const SizedBox(width: 6),
                       Text(widget.date, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).textTheme.bodyLarge?.color)),
                       const SizedBox(width: 12),
-                      Icon(Icons.access_time_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                      Icon(Icons.access_time_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                       const SizedBox(width: 6),
-                      Text(widget.time, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7))),
+                      Text(widget.time, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
                     ],
                   ),
                   Row(
@@ -1409,7 +1413,7 @@ class _TimelineAppointmentCardState extends ConsumerState<_TimelineAppointmentCa
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: widget.getStatusColor(widget.app.status).withOpacity(0.1),
+                          color: widget.getStatusColor(widget.app.status).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -1425,7 +1429,7 @@ class _TimelineAppointmentCardState extends ConsumerState<_TimelineAppointmentCa
                       Icon(
                         _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                         size: 20,
-                        color: Theme.of(context).hintColor.withOpacity(0.5),
+                        color: Theme.of(context).hintColor.withValues(alpha: 0.5),
                       ),
                     ],
                   ),
@@ -1461,7 +1465,7 @@ class _TimelineAppointmentCardState extends ConsumerState<_TimelineAppointmentCa
                             IconButton(
                               icon: Icon(Icons.edit_note_rounded, color: Theme.of(context).colorScheme.primary),
                               style: IconButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                                backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
                               onPressed: () {
