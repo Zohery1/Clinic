@@ -324,9 +324,7 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
         // ─── Queue Board ───
         Expanded(
           child: appointmentsAsync.when(
-            data: (appointments) => appointments.isEmpty
-                ? _buildEmptyState(context)
-                : QueueBoard(appointments: appointments, clinicId: user.clinicId),
+            data: (appointments) => QueueBoard(appointments: appointments, clinicId: user.clinicId),
             loading: () => ListView.builder(
               padding: const EdgeInsets.only(bottom: 32),
               itemCount: 4,
@@ -491,7 +489,7 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, {String? clinicId}) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -521,6 +519,24 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
           Text(
             'اضغط على "حجز جديد" لإضافة موعد',
             style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              final user = ref.read(currentUserProvider);
+              showDialog(
+                context: context,
+                builder: (_) => BookAppointmentDialog(clinicId: user?.clinicId ?? clinicId ?? ''),
+              );
+            },
+            icon: const Icon(Icons.add_rounded, size: 20),
+            label: const Text('حجز جديد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
           ),
         ],
       ),
