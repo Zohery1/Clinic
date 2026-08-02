@@ -446,6 +446,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
     final slotTime = _parseSlotTime(slot);
     final isSelected = _selectedTime.hour == slotTime.hour &&
         _selectedTime.minute == slotTime.minute;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
       onTap: isBooked
@@ -456,40 +457,38 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                 _customTimeController.text = slot;
               });
             },
+      borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
               ? _primaryColor
               : isBooked
-                  ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2C1E1A) : Colors.orange.shade50)
+                  ? (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade100)
                   : _surfaceCol,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected
+                ? _primaryColor
+                : isBooked
+                    ? Colors.transparent
+                    : _borderCol.withValues(alpha: 0.5),
+            width: isSelected ? 1.5 : 1,
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              slot,
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : isBooked
-                        ? Colors.orange.shade700
-                        : _textColor,
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-            if (isBooked) ...[
-              const SizedBox(width: 3),
-              Icon(
-                Icons.people_rounded,
-                size: 11,
-                color: isSelected ? Colors.white70 : Colors.orange.shade600,
-              ),
-            ],
-          ],
+        child: Text(
+          slot,
+          style: TextStyle(
+            color: isSelected
+                ? Colors.white
+                : isBooked
+                    ? (isDark ? Colors.white24 : Colors.grey.shade400)
+                    : _textColor,
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            decoration: isBooked ? TextDecoration.lineThrough : null,
+            decorationColor: isDark ? Colors.white24 : Colors.grey.shade400,
+          ),
         ),
       ),
     );
