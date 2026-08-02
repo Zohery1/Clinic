@@ -693,24 +693,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                                     onPressed: _selectDateRange,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 8),
-                                      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                                      foregroundColor: Theme.of(context).colorScheme.primary,
-                                      elevation: 0,
-                                    ),
-                                    icon: const Icon(Icons.download_rounded, size: 14),
-                                    label: const Text('تصدير', style: TextStyle(fontSize: 11)),
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                                        const SnackBar(duration: Duration(seconds: 2), content: Text('جاري تصدير الملف بصيغة PDF...')),
-                                      );
-                                    },
-                                  ),
-                                ),
+
                               ],
                             ),
                           ],
@@ -759,23 +742,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                                 label: Text('عرض أيام مخصصة', style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color)),
                                 onPressed: _selectDateRange,
                               ),
-                              const SizedBox(width: 8),
-                              ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  minimumSize: Size.zero,
-                                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                                  foregroundColor: Theme.of(context).colorScheme.primary,
-                                  elevation: 0,
-                                ),
-                                icon: const Icon(Icons.download_rounded, size: 14),
-                                label: const Text('تصدير التقرير', style: TextStyle(fontSize: 11)),
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                                    const SnackBar(duration: Duration(seconds: 2), content: Text('جاري تصدير الملف بصيغة PDF...')),
-                                  );
-                                },
-                              ),
+
                             ],
                           ),
                         ],
