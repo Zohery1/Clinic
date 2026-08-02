@@ -27,6 +27,7 @@ class TopUpSubscriptionScreen extends ConsumerStatefulWidget {
 
 class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScreen> {
   int _selectedPlanIndex = 1;
+  int _selectedPaymentMethod = 0;
   bool _isSubmitting = false;
 
   static const _plans = [
@@ -294,27 +295,52 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
             Row(children: [
               const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.primary, size: 18),
               const SizedBox(width: 8),
-              const Text('تفاصيل وسائل الدفع والتحويل:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, fontFamilyFallback: ['sans-serif'])),
+              const Text('اختر وسيلة الدفع للتحويل:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, fontFamilyFallback: ['sans-serif'])),
             ]),
             const SizedBox(height: 12),
-            _paymentCard(
-              icon: Icons.flash_on_rounded, iconColor: Colors.purple,
-              title: '1- Instapay (إنستاباي)',
-              items: [
-                {'number': '01090671474', 'label': 'رقم إنستاباي'}
+            Row(
+              children: [
+                Expanded(
+                  child: _paymentMethodBtn(
+                    title: 'إنستاباي',
+                    icon: Icons.flash_on_rounded,
+                    isSelected: _selectedPaymentMethod == 0,
+                    onTap: () => setState(() => _selectedPaymentMethod = 0),
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _paymentMethodBtn(
+                    title: 'محافظ إلكترونية',
+                    icon: Icons.phone_android_rounded,
+                    isSelected: _selectedPaymentMethod == 1,
+                    onTap: () => setState(() => _selectedPaymentMethod = 1),
+                    isDark: isDark,
+                  ),
+                ),
               ],
-              isDark: isDark,
             ),
-            const SizedBox(height: 10),
-            _paymentCard(
-              icon: Icons.phone_android_rounded, iconColor: Colors.green.shade700,
-              title: '2- محفظة إلكترونية (فودافون كاش / اتصالات / أورنج)',
-              items: [
-                {'number': '01107432010', 'label': 'رقم المحفظة (1)'},
-                {'number': '01090671474', 'label': 'رقم المحفظة (2)'}
-              ],
-              isDark: isDark,
-            ),
+            const SizedBox(height: 14),
+            if (_selectedPaymentMethod == 0)
+              _paymentCard(
+                icon: Icons.flash_on_rounded, iconColor: Colors.purple,
+                title: 'حساب Instapay:',
+                items: [
+                  {'number': '01090671474', 'label': 'رقم إنستاباي'}
+                ],
+                isDark: isDark,
+              )
+            else
+              _paymentCard(
+                icon: Icons.phone_android_rounded, iconColor: Colors.green.shade700,
+                title: 'أرقام المحافظ (فودافون كاش / اتصالات / أورنج):',
+                items: [
+                  {'number': '01090671474', 'label': 'رقم المحفظة (1)'},
+                  {'number': '01107432010', 'label': 'رقم المحفظة (2)'}
+                ],
+                isDark: isDark,
+              ),
           ]),
         ),
         const SizedBox(height: 12),
@@ -367,6 +393,42 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
           ),
         ),
       ],
+    );
+  }
+
+  Widget _paymentMethodBtn({
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    final bgColor = isSelected ? AppTheme.primary : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9));
+    final fgColor = isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87);
+    final borderColor = isSelected ? AppTheme.primary : (isDark ? Colors.white12 : const Color(0xFFCBD5E1));
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: fgColor),
+            const SizedBox(width: 6),
+            Text(
+              title,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: fgColor, fontFamilyFallback: const ['sans-serif']),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
