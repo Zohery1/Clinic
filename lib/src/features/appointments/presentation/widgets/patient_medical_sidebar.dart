@@ -31,7 +31,7 @@ class PatientMedicalSidebar extends ConsumerStatefulWidget {
 
 class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
   bool _isHistoryExpanded = true;
-  bool _isVisitsExpanded = true;
+  bool _isVisitsExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -254,14 +254,12 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                     const Text('الزيارات السابقة', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                     const Spacer(),
                     TextButton(
-                      onPressed: () {
-                        // Could open full history dialog later
-                      },
+                      onPressed: () => setState(() => _isVisitsExpanded = !_isVisitsExpanded),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         minimumSize: Size.zero,
                       ),
-                      child: const Text('عرض الكل', style: TextStyle(fontSize: 11)),
+                      child: Text(_isVisitsExpanded ? 'إخفاء' : 'عرض الكل', style: const TextStyle(fontSize: 11)),
                     ),
                     const SizedBox(width: 4),
                     Icon(
