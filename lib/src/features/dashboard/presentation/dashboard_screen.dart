@@ -29,6 +29,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // تفعيل الاستماع الفوري لتغييرات المواعيد عبر الأجهزة المختلفة
+    ref.watch(realtimeAppointmentsSyncProvider);
+
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     final user = ref.watch(currentUserProvider);
 
