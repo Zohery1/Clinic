@@ -104,8 +104,9 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: SafeArea(
-          child: LayoutBuilder(
+        child: SelectionArea(
+          child: SafeArea(
+            child: LayoutBuilder(
             builder: (context, constraints) {
               final isWide = constraints.maxWidth >= 800;
               return SingleChildScrollView(
@@ -120,15 +121,13 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                         const SizedBox(height: 18),
 
                         if (isWide)
-                          IntrinsicHeight(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(flex: 5, child: _plansSection(theme, isDark)),
-                                const SizedBox(width: 20),
-                                Expanded(flex: 6, child: _paymentAndActions(theme, isDark)),
-                              ],
-                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(flex: 5, child: _plansSection(theme, isDark)),
+                              const SizedBox(width: 20),
+                              Expanded(flex: 6, child: _paymentAndActions(theme, isDark)),
+                            ],
                           )
                         else ...[
                           _plansSection(theme, isDark),
@@ -154,6 +153,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                 ),
               );
             },
+          ),
           ),
         ),
       ),
@@ -203,7 +203,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
               const SizedBox(width: 6),
               const Text('كود العيادة: ', style: TextStyle(fontSize: 12.5, color: AppTheme.primary, fontFamilyFallback: ['sans-serif'])),
               Expanded(
-                child: SelectableText(
+                child: Text(
                   widget.inviteCode,
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppTheme.primary, letterSpacing: 1, fontFamilyFallback: ['monospace', 'sans-serif']),
                 ),
@@ -483,7 +483,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                 child: Row(
                   children: [
                     Expanded(
-                      child: SelectableText(
+                      child: Text(
                         numStr,
                         style: TextStyle(
                           fontSize: 17,
