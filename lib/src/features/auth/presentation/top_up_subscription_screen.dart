@@ -201,11 +201,12 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
               const Icon(Icons.qr_code_rounded, color: AppTheme.primary, size: 18),
               const SizedBox(width: 6),
               const Text('كود العيادة: ', style: TextStyle(fontSize: 12.5, color: AppTheme.primary, fontFamilyFallback: ['sans-serif'])),
-              SelectableText(
-                widget.inviteCode,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppTheme.primary, letterSpacing: 1, fontFamilyFallback: ['monospace', 'sans-serif']),
+              Expanded(
+                child: SelectableText(
+                  widget.inviteCode,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppTheme.primary, letterSpacing: 1, fontFamilyFallback: ['monospace', 'sans-serif']),
+                ),
               ),
-              const Spacer(),
               _copyBtn(() => _copy(widget.inviteCode, 'كود العيادة'), 'نسخ الكود'),
             ]),
           ),
@@ -419,17 +420,18 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                 ),
                 child: Row(
                   children: [
-                    SelectableText(
-                      numStr,
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                        color: numColor,
-                        fontFamilyFallback: const ['monospace', 'Roboto', 'sans-serif'],
+                    Expanded(
+                      child: SelectableText(
+                        numStr,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                          color: numColor,
+                          fontFamilyFallback: const ['monospace', 'Roboto', 'sans-serif'],
+                        ),
                       ),
                     ),
-                    const Spacer(),
                     _copyBtn(() => _copy(numStr, labelStr), 'نسخ'),
                   ],
                 ),
