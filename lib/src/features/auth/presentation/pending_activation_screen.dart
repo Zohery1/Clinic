@@ -31,8 +31,30 @@ class _PendingActivationScreenState extends ConsumerState<PendingActivationScree
     setState(() => _isChecking = true);
     await Future.delayed(const Duration(milliseconds: 600));
     widget.onRefresh();
+
     if (mounted) {
       setState(() => _isChecking = false);
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'طلبك ما زال قيد المراجعة والتفعيل من الإدارة. تواصل معنا عبر واتساب للمتابعة.',
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.amber.shade900,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
     }
   }
 

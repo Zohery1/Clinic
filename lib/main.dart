@@ -68,6 +68,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   bool _isClinicActive = true;
 
   late final StreamSubscription<AuthState> _authSubscription;
+  StreamSubscription<List<Map<String, dynamic>>>? _clinicStreamSubscription;
 
   @override
   void initState() {
@@ -87,6 +88,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
           });
         }
       } else {
+        _clinicStreamSubscription?.cancel();
         if (mounted) {
           setState(() {
             _isLoggedIn = false;
@@ -100,7 +102,33 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   @override
   void dispose() {
     _authSubscription.cancel();
+    _clinicStreamSubscription?.cancel();
     super.dispose();
+  }
+
+  void _listenToClinicRealtime(String clinicId) {
+    _clinicStreamSubscription?.cancel();
+    _clinicStreamSubscription = Supabase.instance.client
+        .from('clinics')
+        .stream(primaryKey: ['id'])
+        .eq('id', clinicId)
+        .listen((data) {
+          if (data.isNotEmpty && mounted) {
+            final res = data.first;
+            final isActive = res['is_active'] as bool? ?? true;
+            final endDateStr = res['subscription_end_date'] as String?;
+            final statusStr = (res['subscription_status'] as String? ?? 'active').toLowerCase();
+            final endDate = endDateStr != null ? DateTime.tryParse(endDateStr) : null;
+
+            setState(() {
+              _clinicName = res['name'] as String? ?? 'العيادة';
+              _inviteCode = res['invite_code'] as String? ?? '';
+              _isClinicActive = isActive;
+              _subscriptionEndDate = endDate;
+              _subscriptionStatus = statusStr;
+            });
+          }
+        });
   }
 
   Future<void> _verifySubscription() async {
@@ -108,6 +136,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       final user = ref.read(currentUserProvider);
       if (user != null) {
         _clinicId = user.clinicId;
+        _listenToClinicRealtime(user.clinicId);
         final res = await Supabase.instance.client
             .from('clinics')
             .select('name, invite_code, is_active, subscription_end_date, subscription_status')

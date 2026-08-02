@@ -20,14 +20,14 @@ class SubscriptionWarningBanner extends StatelessWidget {
 
     if (days > 0) {
       if (hours > 0) {
-        return 'بقي $days يوم و $hours ساعة';
+        return '$days يوم و $hours ساعة';
       }
-      return 'بقي $days يوم';
+      return '$days يوم';
     } else if (hours > 0) {
-      return 'بقي $hours ساعة';
+      return '$hours ساعة';
     } else {
       final mins = diff.inMinutes % 60;
-      return 'بقي $mins دقيقة';
+      return '$mins دقيقة';
     }
   }
 
@@ -36,89 +36,81 @@ class SubscriptionWarningBanner extends StatelessWidget {
     final remainingText = _formatRemainingTime();
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.amber.shade700,
-            Colors.orange.shade800,
-          ],
-        ),
+        color: const Color(0xFFFFFBEB), // Soft amber background
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.amber.withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: Colors.amber.withValues(alpha: 0.1),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: SafeArea(
-        top: false,
-        bottom: false,
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: Row(
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.warning_amber_rounded,
+              color: Color(0xFFD97706),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.access_time_filled_rounded,
-                    color: Colors.white,
-                    size: 20,
+                Text(
+                  'تنبيه اقتراب انتهاء الاشتراك',
+                  style: GoogleFonts.cairo(
+                    color: const Color(0xFF92400E),
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      style: GoogleFonts.cairo(
-                        color: Colors.white,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      children: [
-                        const TextSpan(
-                          text: 'تنبيه انتهاء الاشتراك: ',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(
-                          text: 'ينتهي اشتراك العيادة قريباً ($remainingText). يرجى التجديد لتجنب انقطاع الخدمة.',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: onRenewPressed,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.orange.shade900,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  icon: const Icon(Icons.payment_rounded, size: 16),
-                  label: Text(
-                    'تجديد الآن',
-                    style: GoogleFonts.cairo(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
+                Text(
+                  'ينتهي اشتراك عيادتك بعد ($remainingText). يرجى التجديد لتجنب توقف الخدمة.',
+                  style: GoogleFonts.cairo(
+                    color: const Color(0xFFB45309),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
-        ),
+          const SizedBox(width: 10),
+          ElevatedButton.icon(
+            onPressed: onRenewPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD97706),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            icon: const Icon(Icons.flash_on_rounded, size: 15),
+            label: Text(
+              'تجديد الآن',
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold,
+                fontSize: 12.5,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
