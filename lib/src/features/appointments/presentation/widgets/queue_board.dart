@@ -80,11 +80,13 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
           ref.read(notificationsProvider.notifier).sendBroadcastNotification(
             title: 'إلغاء موعد',
             body: 'تم إلغاء حجز المريض (${appt.patient.fullName}) بناءً على طلبه',
+            targetRole: 'doctor',
           );
         } else if (status == 'completed') {
           ref.read(notificationsProvider.notifier).sendBroadcastNotification(
             title: 'إنتهاء موعد',
             body: 'تم الانتهاء من موعد المريض (${appt.patient.fullName})',
+            targetRole: 'secretary',
             playSound: true,
           );
         }

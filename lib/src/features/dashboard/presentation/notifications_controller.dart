@@ -61,29 +61,39 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
         .onBroadcast(
           event: 'notification',
           callback: (payload) {
-            // Rule 1: Do not show notification to the person who triggered it
-            final senderId = payload['sender_id'] as String?;
-            if (senderId == user.id) return;
+            final Map<String, dynamic> data = (payload['payload'] is Map<String, dynamic>)
+                ? payload['payload'] as Map<String, dynamic>
+                : payload;
 
-            final targetRole = payload['target_role'] as String?;
+            // Rule 1: Do not show notification to the person who triggered it
+            final senderId = data['sender_id'] as String?;
+            if (senderId != null && senderId == user.id) return;
+
+            final targetRole = data['target_role'] as String?;
             // Only notify if notification is intended for this role or all roles
             if (targetRole == null || targetRole == roleName) {
-              
+              final title = data['title'] as String? ?? '';
+              final body = data['body'] as String? ?? '';
+
+              if (title.trim().isEmpty && body.trim().isEmpty) return;
+
               // Create local ephemeral notification object
               final newNotification = NotificationModel(
                 id: _uuid.v4(),
                 clinicId: user.clinicId,
-                title: payload['title'] ?? '',
-                body: payload['body'] ?? '',
+                title: title,
+                body: body,
                 isRead: false,
                 targetRole: targetRole,
                 createdAt: DateTime.now(),
               );
 
               // Rule 2: Play sound if requested
-              final bool playSound = payload['play_sound'] == true;
+              final bool playSound = data['play_sound'] == true;
               if (playSound) {
-                FlutterRingtonePlayer().playNotification();
+                try {
+                  FlutterRingtonePlayer().playNotification();
+                } catch (_) {}
               }
 
               state = state.copyWith(

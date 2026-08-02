@@ -186,6 +186,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
         ref.read(notificationsProvider.notifier).sendBroadcastNotification(
           title: 'تعديل موعد',
           body: 'تم تعديل موعد المريض (${widget.appointment.patient.fullName}) ليكون الساعة $formattedTime',
+          targetRole: 'doctor',
         );
       } catch (_) {}
 

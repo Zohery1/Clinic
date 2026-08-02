@@ -467,11 +467,13 @@ class QueueCard extends ConsumerWidget {
           ref.read(notificationsProvider.notifier).sendBroadcastNotification(
             title: 'إلغاء موعد',
             body: 'تم إلغاء حجز المريض (${appointment.patient.fullName}) بناءً على طلبه',
+            targetRole: 'doctor',
           );
         } else if (status == 'completed') {
           ref.read(notificationsProvider.notifier).sendBroadcastNotification(
             title: 'إنتهاء موعد',
             body: 'تم الانتهاء من موعد المريض (${appointment.patient.fullName})',
+            targetRole: 'secretary',
             playSound: true,
           );
         }

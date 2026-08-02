@@ -182,6 +182,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
         ref.read(notificationsProvider.notifier).sendBroadcastNotification(
           title: 'حجز جديد',
           body: 'تم إضافة حجز جديد للمريض ($patientName) الساعة $formattedTime',
+          targetRole: 'doctor',
         );
       } catch (_) {}
 

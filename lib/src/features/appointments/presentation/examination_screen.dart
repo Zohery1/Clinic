@@ -129,6 +129,7 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
           ref.read(notificationsProvider.notifier).sendBroadcastNotification(
             title: 'إضافة خدمة جديدة',
             body: 'تم إضافة خدمة ($serviceNames) للمريض (${widget.patientName})',
+            targetRole: 'secretary',
             playSound: true,
           );
         }
