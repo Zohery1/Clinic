@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class SubscriptionWarningBanner extends StatelessWidget {
   final DateTime endDate;
@@ -24,40 +23,52 @@ class SubscriptionWarningBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final remainingStr = _formatRemainingTime();
+
     return Material(
-      color: Colors.transparent,
+      elevation: 3,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF59E0B),
-          border: Border(bottom: BorderSide(color: Colors.orange.shade800, width: 1)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: const BoxDecoration(
+          color: Color(0xFFD97706), // Amber-700
         ),
         child: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
+            const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 24),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'ينتهي اشتراك عيادتك بعد (${_formatRemainingTime()}). يرجى التجديد لتجنب توقف الخدمة.',
-                style: GoogleFonts.cairo(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700),
+                'تنبيه: ينتهي اشتراك عيادتك بعد ($remainingStr). يرجى التجديد الآن لتجنب توقف الخدمات.',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold,
+                  fontFamilyFallback: ['sans-serif', 'Arial'],
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 10),
-            SizedBox(
-              height: 32,
-              child: ElevatedButton(
-                onPressed: onRenewPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFFD97706),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: onRenewPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFFB45309),
+                elevation: 2,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              icon: const Icon(Icons.flash_on_rounded, size: 16, color: Color(0xFFB45309)),
+              label: const Text(
+                'تجديد الآن',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                  color: Color(0xFFB45309),
+                  fontFamilyFallback: ['sans-serif', 'Arial'],
                 ),
-                child: Text('تجديد الآن', style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 12)),
               ),
             ),
           ],
