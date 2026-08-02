@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم المركزية للإدارة — عيادتي</title>
+  
+  <!-- Google Fonts: Cairo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            cairo: ['Cairo', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#EFF6FF',
+              100: '#DBEAFE',
+              500: '#3B82F6',
+              600: '#2563EB',
+              700: '#1D4ED8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #F8FAFC;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- ================================================================= -->
+  <!-- 1. PASSCODE LOGIN MODAL (بوابة الدخول المحمية) -->
+  <!-- ================================================================= -->
+  <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 transition-all duration-300">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-8 text-center relative overflow-hidden">
+      <!-- App Icon Header -->
+      <div class="mx-auto w-20 h-20 bg-brand-600 rounded-2xl p-2.5 shadow-lg shadow-brand-600/30 flex items-center justify-center mb-6">
+        <div class="w-full h-full bg-white rounded-xl flex items-center justify-center shadow-inner">
+          <i class="fa-solid fa-plus text-brand-600 text-3xl font-extrabold"></i>
+        </div>
+      </div>
+
+      <h2 class="text-2xl font-black text-slate-900 tracking-tight mb-2">لوحة الإدارة المركزية</h2>
+      <p class="text-slate-500 text-xs font-semibold mb-6">منصة عيادتي — أدخل رمز المرور الخاص بالمشرف الرئيسي للدخول</p>
+
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+        <div class="relative">
+          <input type="password" id="adminPasscode" required placeholder="رمز المرور (الباسورد)"
+            class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-center text-lg font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white transition-all">
+          <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+        </div>
+
+        <button type="submit"
+          class="w-full py-3.5 bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white font-extrabold rounded-2xl shadow-lg shadow-brand-600/25 transition-all text-sm flex items-center justify-center gap-2">
+          <span>دخول لوحة التحكم</span>
+          <i class="fa-solid fa-arrow-left text-xs"></i>
+        </button>
+      </form>
+
+      <div class="mt-6 pt-4 border-t border-slate-100 text-[11px] text-slate-400 font-medium">
+        رمز الدخول الافتراضي للتجربة: <span class="font-bold text-slate-700 select-all">2026</span> أو <span class="font-bold text-slate-700 select-all">admin2026</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================================================================= -->
+  <!-- 2. MAIN ADMIN DASHBOARD CONTENT -->
+  <!-- ================================================================= -->
+  <div id="mainDashboard" class="hidden flex-col flex-1">
+    
+    <!-- Top Header Bar -->
+    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        
+        <!-- Brand & Logo -->
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 bg-brand-600 rounded-xl p-1.5 shadow-md shadow-brand-600/20 flex items-center justify-center">
+            <div class="w-full h-full bg-white rounded-lg flex items-center justify-center shadow-inner">
+              <i class="fa-solid fa-plus text-brand-600 text-lg font-black"></i>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg font-black text-slate-900 leading-tight">عيادتي</h1>
+              <span class="bg-brand-50 text-brand-600 border border-brand-100 text-[10px] font-extrabold px-2 py-0.5 rounded-full">Super Admin</span>
+            </div>
+            <p class="text-xs font-semibold text-slate-500">لوحة الإدارة المركزية للمنصة والتراخيص</p>
+          </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center gap-3">
+          <!-- Refresh Button -->
+          <button onclick="loadClinicsData()" title="تحديث البيانات"
+            class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-2 transition-all">
+            <i class="fa-solid fa-rotate text-xs"></i>
+            <span class="hidden sm:inline">تحديث</span>
+          </button>
+
+          <!-- Logout Button -->
+          <button onclick="handleLogout()" title="تسجيل الخروج"
+            class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl text-xs flex items-center gap-2 transition-all">
+            <i class="fa-solid fa-right-from-bracket text-xs"></i>
+            <span class="hidden sm:inline">خروج</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+      
+      <!-- KPI Stats Section -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        
+        <!-- KPI 1: Total Clinics -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-500 mb-1">إجمالي العيادات</p>
+            <h3 id="statTotalClinics" class="text-2xl font-black text-slate-900">--</h3>
+          </div>
+          <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl">
+            <i class="fa-solid fa-hospital"></i>
+          </div>
+        </div>
+
+        <!-- KPI 2: Active Clinics -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-500 mb-1">العيادات النشطة</p>
+            <h3 id="statActiveClinics" class="text-2xl font-black text-emerald-600">--</h3>
+          </div>
+          <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+        </div>
+
+        <!-- KPI 3: Expiring Soon / Expired -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-500 mb-1">ينتهي قريباً / منتهي</p>
+            <h3 id="statExpiringClinics" class="text-2xl font-black text-amber-600">--</h3>
+          </div>
+          <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+        </div>
+
+        <!-- KPI 4: Total Users -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-500 mb-1">إجمالي الأطباء والفريق</p>
+            <h3 id="statTotalUsers" class="text-2xl font-black text-indigo-600">--</h3>
+          </div>
+          <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl">
+            <i class="fa-solid fa-users"></i>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Clinics Table Header Controls -->
+      <section class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        
+        <!-- Table Control Toolbar -->
+        <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          
+          <div>
+            <h2 class="text-lg font-black text-slate-900">سجل تراخيص العيادات والاشتراكات</h2>
+            <p class="text-xs font-semibold text-slate-500">إدارة العيادات، تمديد الاشتراك، وتغيير حالات الحظر والتفعيل</p>
+          </div>
+
+          <!-- Filters & Search -->
+          <div class="flex flex-wrap items-center gap-3">
+            
+            <!-- Search Box -->
+            <div class="relative min-w-[240px]">
+              <input type="text" id="searchInput" oninput="filterClinics()" placeholder="بحث باسم العيادة أو كود الدعوة..."
+                class="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white transition-all">
+              <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            </div>
+
+            <!-- Status Filter Tabs -->
+            <select id="statusFilter" onchange="filterClinics()"
+              class="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-600 transition-all cursor-pointer">
+              <option value="all">جميع الحالات</option>
+              <option value="active">النشطة فقط 🟢</option>
+              <option value="expiring">تنتهي قريباً (أقل من 48h) ⚡</option>
+              <option value="expired">منتهية / معلقة 🔴</option>
+            </select>
+
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-right border-collapse">
+            <thead>
+              <tr class="bg-slate-50/80 text-slate-500 font-extrabold text-[11px] uppercase tracking-wider border-b border-slate-100">
+                <th class="py-4 px-6">العيادة والطبيب</th>
+                <th class="py-4 px-4">كود الدعوة</th>
+                <th class="py-4 px-4">حالة الاشتراك</th>
+                <th class="py-4 px-4">تاريخ انتهاء الاشتراك</th>
+                <th class="py-4 px-4">الوقت المتبقي</th>
+                <th class="py-4 px-4">الحساب</th>
+                <th class="py-4 px-6 text-center">التحكم والإجراءات السريعة</th>
+              </tr>
+            </thead>
+            <tbody id="clinicsTableBody" class="divide-y divide-slate-100 text-xs font-bold text-slate-700">
+              <!-- Dynamic Rows Inserted Here -->
+              <tr>
+                <td colspan="7" class="py-12 text-center text-slate-400">
+                  <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-brand-600"></i>
+                  <p class="text-xs font-semibold">جاري تحميل بيانات العيادات من Supabase...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200/80 py-4 text-center text-xs font-semibold text-slate-400">
+      منصة عيادتي © 2026 — لوحة التحكم المركزية والإدارة العامة
+    </footer>
+  </div>
+
+
+  <!-- ================================================================= -->
+  <!-- 3. EXTEND SUBSCRIPTION MODAL (نافذة تمديد الاشتراك) -->
+  <!-- ================================================================= -->
+  <div id="extendModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-6 text-right relative overflow-hidden">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+        <div>
+          <h3 class="text-base font-black text-slate-900">⚡ تمديد اشتراك العيادة</h3>
+          <p id="modalClinicName" class="text-xs font-bold text-brand-600 mt-0.5">--</p>
+        </div>
+        <button onclick="closeExtendModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-xs transition-all">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <input type="hidden" id="modalClinicId">
+
+      <!-- Quick Preset Buttons -->
+      <label class="block text-xs font-extrabold text-slate-700 mb-2">خيارات التمديد السريعة:</label>
+      <div class="grid grid-cols-2 gap-2.5 mb-5">
+        <button type="button" onclick="setPresetDuration(30)" class="py-2.5 px-3 bg-slate-50 hover:bg-brand-50 hover:text-brand-600 border border-slate-200 hover:border-brand-300 rounded-xl font-extrabold text-xs transition-all text-center">
+          + 1 شهر (30 يوم)
+        </button>
+        <button type="button" onclick="setPresetDuration(90)" class="py-2.5 px-3 bg-slate-50 hover:bg-brand-50 hover:text-brand-600 border border-slate-200 hover:border-brand-300 rounded-xl font-extrabold text-xs transition-all text-center">
+          + 3 أشهر (90 يوم)
+        </button>
+        <button type="button" onclick="setPresetDuration(180)" class="py-2.5 px-3 bg-slate-50 hover:bg-brand-50 hover:text-brand-600 border border-slate-200 hover:border-brand-300 rounded-xl font-extrabold text-xs transition-all text-center">
+          + 6 أشهر (180 يوم)
+        </button>
+        <button type="button" onclick="setPresetDuration(365)" class="py-2.5 px-3 bg-slate-50 hover:bg-brand-50 hover:text-brand-600 border border-slate-200 hover:border-brand-300 rounded-xl font-extrabold text-xs transition-all text-center">
+          + 1 سنة (365 يوم)
+        </button>
+      </div>
+
+      <!-- Quick Test Preset -->
+      <div class="mb-5 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-amber-800">⚡ تجربة سريعة للتنبيهات:</p>
+          <p class="text-[11px] font-semibold text-amber-700">تحديد النهاية بعد دقيقتين فقط للتحقق</p>
+        </div>
+        <button type="button" onclick="setPresetMinutes(2)" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-lg shadow-sm transition-all">
+          + 2 دقيقة
+        </button>
+      </div>
+
+      <!-- Custom Date Picker -->
+      <div class="mb-6">
+        <label class="block text-xs font-extrabold text-slate-700 mb-1.5">أو حدد تاريخ وتوقيت الانتهاء الجديد:</label>
+        <input type="datetime-local" id="customEndDate"
+          class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-brand-600">
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="saveExtension()"
+          class="flex-1 py-3 bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white font-black rounded-xl text-xs shadow-md shadow-brand-600/20 transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-floppy-disk text-xs"></i>
+          <span>حفظ وتطبيق التمديد</span>
+        </button>
+        <button type="button" onclick="closeExtendModal()"
+          class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all">
+          إلغاء
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ================================================================= -->
+  <!-- 4. JAVASCRIPT LOGIC & SUPABASE INTEGRATION -->
+  <!-- ================================================================= -->
+  <script>
+    // Supabase Client Initialization
+    const SUPABASE_URL = 'https://sgbfmqplryyhypdvrlmn.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnYmZtcXBscnl5aHlwZHZybG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzMzMTYsImV4cCI6MjA5NzkwOTMxNn0.HtW6qIoBsxjFYWLG0C4QXublMzB06glrpLccQZcPP8Q';
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let allClinics = [];
+
+    // On Load Check Auth
+    window.addEventListener('DOMContentLoaded', () => {
+      const isAuth = sessionStorage.getItem('eyadaty_admin_auth');
+      if (isAuth === 'true') {
+        showDashboard();
+      }
+    });
+
+    // Handle Admin Login Passcode
+    function handleLogin(event) {
+      event.preventDefault();
+      const code = document.getElementById('adminPasscode').value.trim();
+      if (code === '2026' || code === 'admin2026' || code === 'eyadaty2026') {
+        sessionStorage.setItem('eyadaty_admin_auth', 'true');
+        showDashboard();
+        Swal.fire({
+          icon: 'success',
+          title: 'مرحباً بك!',
+          text: 'تم تسجل الدخول إلى لوحة الإدارة بنجاح',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'رمز المرور غير صحيح',
+          text: 'يرجى إدخال رمز المرور الصحيح للمشرف الرئيسي',
+          confirmButtonColor: '#2563EB',
+          confirmButtonText: 'محاولة أخرى'
+        });
+      }
+    }
+
+    function showDashboard() {
+      document.getElementById('loginModal').classList.add('hidden');
+      document.getElementById('mainDashboard').classList.remove('hidden');
+      document.getElementById('mainDashboard').classList.add('flex');
+      loadClinicsData();
+    }
+
+    function handleLogout() {
+      sessionStorage.removeItem('eyadaty_admin_auth');
+      document.getElementById('mainDashboard').classList.add('hidden');
+      document.getElementById('mainDashboard').classList.remove('flex');
+      document.getElementById('loginModal').classList.remove('hidden');
+    }
+
+    // Load Clinics & Stats from Supabase
+    async function loadClinicsData() {
+      const tbody = document.getElementById('clinicsTableBody');
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="py-12 text-center text-slate-400">
+            <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-brand-600"></i>
+            <p class="text-xs font-semibold">جاري تحميل وتحديث بيانات العيادات...</p>
+          </td>
+        </tr>
+      `;
+
+      try {
+        const { data: clinics, error } = await supabaseClient
+          .from('clinics')
+          .select('*, users(id, full_name, role)')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        allClinics = clinics || [];
+        updateKPIStats();
+        renderClinicsTable(allClinics);
+      } catch (err) {
+        console.error('Error loading clinics:', err);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-8 text-center text-rose-500 font-bold">
+              <i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i>
+              <p>حدث خطأ أثناء الاتصال بـ Supabase: ${err.message}</p>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Update KPI Summary Cards
+    function updateKPIStats() {
+      const total = allClinics.length;
+      let active = 0;
+      let expiring = 0;
+      let totalUsersCount = 0;
+
+      const now = new Date();
+
+      allClinics.forEach(c => {
+        if (c.users) totalUsersCount += c.users.length;
+
+        const endDate = c.subscription_end_date ? new Date(c.subscription_end_date) : null;
+        const isExpired = c.subscription_status === 'expired' || c.subscription_status === 'suspended' || (endDate && endDate < now);
+        
+        const diffHours = endDate ? (endDate - now) / (1000 * 60 * 60) : 999;
+        const isExpiringSoon = endDate && !isExpired && diffHours <= 48;
+
+        if (c.is_active && !isExpired && !isExpiringSoon) {
+          active++;
+        }
+        if (isExpired || isExpiringSoon) {
+          expiring++;
+        }
+      });
+
+      document.getElementById('statTotalClinics').textContent = total;
+      document.getElementById('statActiveClinics').textContent = active;
+      document.getElementById('statExpiringClinics').textContent = expiring;
+      document.getElementById('statTotalUsers').textContent = totalUsersCount;
+    }
+
+    // Render Clinics Table
+    function renderClinicsTable(clinics) {
+      const tbody = document.getElementById('clinicsTableBody');
+      if (clinics.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-12 text-center text-slate-400 font-bold">
+              لا توجد عيادات مطابقة للبحث أو التصفية الحالية.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const now = new Date();
+
+      tbody.innerHTML = clinics.map(clinic => {
+        const doctor = (clinic.users || []).find(u => u.role === 'doctor');
+        const doctorName = doctor ? doctor.full_name : 'غير محدد';
+
+        const endDate = clinic.subscription_end_date ? new Date(clinic.subscription_end_date) : null;
+        const isExpired = clinic.subscription_status === 'expired' || clinic.subscription_status === 'suspended' || (endDate && endDate < now);
+        
+        const diffHours = endDate ? (endDate - now) / (1000 * 60 * 60) : 999;
+        const isExpiringSoon = endDate && !isExpired && diffHours <= 48;
+
+        // Badge Status Styling
+        let statusBadge = '';
+        if (!clinic.is_active || clinic.subscription_status === 'suspended') {
+          statusBadge = `<span class="px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-[11px] font-bold">معطلة 🔴</span>`;
+        } else if (isExpired) {
+          statusBadge = `<span class="px-2.5 py-1 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-[11px] font-bold">منتهي 🔴</span>`;
+        } else if (isExpiringSoon) {
+          statusBadge = `<span class="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[11px] font-bold">ينتهي قريباً ⚡</span>`;
+        } else {
+          statusBadge = `<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold">نشط 🟢</span>`;
+        }
+
+        // Time Remaining String
+        let timeRemainingStr = '--';
+        if (endDate) {
+          const diffMs = endDate - now;
+          if (diffMs <= 0) {
+            timeRemainingStr = `<span class="text-rose-600 font-extrabold">منتهي</span>`;
+          } else {
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
+
+            if (days > 0) {
+              timeRemainingStr = `باقي ${days} يوم و ${hours}h`;
+            } else if (hours > 0) {
+              timeRemainingStr = `باقي ${hours}h و ${minutes}m`;
+            } else {
+              timeRemainingStr = `<span class="text-amber-600 font-black animate-pulse">باقي ${minutes} دقيقة</span>`;
+            }
+          }
+        }
+
+        const formattedEndDate = endDate ? endDate.toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) : 'غير محدد';
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition-colors">
+            <!-- Clinic & Doctor -->
+            <td class="py-4 px-6">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center font-black text-sm">
+                  <i class="fa-solid fa-hospital"></i>
+                </div>
+                <div>
+                  <div class="font-extrabold text-slate-900 text-sm">${clinic.name}</div>
+                  <div class="text-[11px] font-semibold text-slate-400">د/ ${doctorName}</div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Invite Code -->
+            <td class="py-4 px-4">
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-mono font-bold">
+                <span>${clinic.invite_code || '--'}</span>
+                <button onclick="copyToClipboard('${clinic.invite_code}')" title="نسخ الكود" class="text-slate-400 hover:text-brand-600 transition-colors">
+                  <i class="fa-regular fa-copy text-[11px]"></i>
+                </button>
+              </div>
+            </td>
+
+            <!-- Status Badge -->
+            <td class="py-4 px-4">
+              ${statusBadge}
+            </td>
+
+            <!-- End Date -->
+            <td class="py-4 px-4 text-xs font-semibold text-slate-600">
+              ${formattedEndDate}
+            </td>
+
+            <!-- Time Remaining -->
+            <td class="py-4 px-4 text-xs">
+              ${timeRemainingStr}
+            </td>
+
+            <!-- Active Switch -->
+            <td class="py-4 px-4">
+              <button onclick="toggleClinicActive('${clinic.id}', ${!clinic.is_active})"
+                class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold border transition-all ${clinic.is_active ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'}">
+                ${clinic.is_active ? 'مفعل 🟢' : 'معطل 🔴'}
+              </button>
+            </td>
+
+            <!-- Action Buttons -->
+            <td class="py-4 px-6 text-center">
+              <div class="flex items-center justify-center gap-2">
+                <!-- Extend Button -->
+                <button onclick="openExtendModal('${clinic.id}', '${clinic.name}', '${clinic.subscription_end_date || ''}')"
+                  class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition-all flex items-center gap-1">
+                  <i class="fa-solid fa-bolt text-[11px]"></i>
+                  <span>تمديد</span>
+                </button>
+
+                <!-- Delete Button -->
+                <button onclick="deleteClinic('${clinic.id}', '${clinic.name}')" title="حذف العيادة"
+                  class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
+                  <i class="fa-solid fa-trash-can text-sm"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Filter Clinics Function
+    function filterClinics() {
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      const status = document.getElementById('statusFilter').value;
+      const now = new Date();
+
+      const filtered = allClinics.filter(c => {
+        // Search Filter
+        const matchesSearch = c.name.toLowerCase().includes(search) || 
+          (c.invite_code && c.invite_code.toLowerCase().includes(search));
+
+        if (!matchesSearch) return false;
+
+        // Status Filter
+        if (status === 'all') return true;
+
+        const endDate = c.subscription_end_date ? new Date(c.subscription_end_date) : null;
+        const isExpired = c.subscription_status === 'expired' || c.subscription_status === 'suspended' || (endDate && endDate < now);
+        const diffHours = endDate ? (endDate - now) / (1000 * 60 * 60) : 999;
+        const isExpiringSoon = endDate && !isExpired && diffHours <= 48;
+
+        if (status === 'active') return c.is_active && !isExpired && !isExpiringSoon;
+        if (status === 'expiring') return isExpiringSoon;
+        if (status === 'expired') return isExpired || !c.is_active;
+
+        return true;
+      });
+
+      renderClinicsTable(filtered);
+    }
+
+    // Open Extend Modal
+    function openExtendModal(clinicId, clinicName, currentEndDateStr) {
+      document.getElementById('modalClinicId').value = clinicId;
+      document.getElementById('modalClinicName').textContent = clinicName;
+
+      const modal = document.getElementById('extendModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      // Set default datetime picker to current end date or now + 30 days
+      let defaultDate = new Date();
+      if (currentEndDateStr) {
+        const d = new Date(currentEndDateStr);
+        if (d > defaultDate) defaultDate = d;
+      }
+      defaultDate.setDate(defaultDate.getDate() + 30);
+      
+      const isoStr = new Date(defaultDate.getTime() - (defaultDate.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+      document.getElementById('customEndDate').value = isoStr;
+    }
+
+    function closeExtendModal() {
+      const modal = document.getElementById('extendModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // Quick Preset Add Days
+    function setPresetDuration(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      const isoStr = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+      document.getElementById('customEndDate').value = isoStr;
+    }
+
+    // Quick Preset Add Minutes
+    function setPresetMinutes(minutes) {
+      const d = new Date();
+      d.setMinutes(d.getMinutes() + minutes);
+      const isoStr = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+      document.getElementById('customEndDate').value = isoStr;
+    }
+
+    // Save Subscription Extension
+    async function saveExtension() {
+      const clinicId = document.getElementById('modalClinicId').value;
+      const customDateVal = document.getElementById('customEndDate').value;
+
+      if (!customDateVal) {
+        Swal.fire('خطأ', 'يرجى تحديد تاريخ تمديد صالح', 'warning');
+        return;
+      }
+
+      const newEndDate = new Date(customDateVal).toISOString();
+
+      try {
+        const { error } = await supabaseClient
+          .from('clinics')
+          .update({
+            subscription_end_date: newEndDate,
+            subscription_status: 'active',
+            is_active: true
+          })
+          .eq('id', clinicId);
+
+        if (error) throw error;
+
+        closeExtendModal();
+        Swal.fire({
+          icon: 'success',
+          title: 'تم التمديد بنجاح! ⚡',
+          text: 'تمت تحديث فترة الاشتراك وتفعيل العيادة مباشرة',
+          timer: 2000,
+          showConfirmButton: false
+        });
+
+        loadClinicsData();
+      } catch (err) {
+        Swal.fire('خطأ أثناء الحفظ', err.message, 'error');
+      }
+    }
+
+    // Toggle Clinic Active/Suspended
+    async function toggleClinicActive(clinicId, newStatus) {
+      try {
+        const { error } = await supabaseClient
+          .from('clinics')
+          .update({
+            is_active: newStatus,
+            subscription_status: newStatus ? 'active' : 'suspended'
+          })
+          .eq('id', clinicId);
+
+        if (error) throw error;
+
+        Swal.fire({
+          icon: 'success',
+          title: newStatus ? 'تم تفعيل العيادة 🟢' : 'تم تعطيل العيادة 🔴',
+          timer: 1200,
+          showConfirmButton: false
+        });
+
+        loadClinicsData();
+      } catch (err) {
+        Swal.fire('خطأ', err.message, 'error');
+      }
+    }
+
+    // Delete Clinic
+    async function deleteClinic(clinicId, clinicName) {
+      const confirm = await Swal.fire({
+        title: `حذف عيادة "${clinicName}"؟`,
+        text: 'تنبيه هام: هذا الإجراء سيقوم بحذف العيادة وكافة المواعيد والمرضى المرتبطين بها نهائياً!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#DC2626',
+        cancelButtonColor: '#64748B',
+        confirmButtonText: 'نعم، مسح العيادة',
+        cancelButtonText: 'إلغاء'
+      });
+
+      if (confirm.isConfirmed) {
+        try {
+          const { error } = await supabaseClient
+            .from('clinics')
+            .delete()
+            .eq('id', clinicId);
+
+          if (error) throw error;
+
+          Swal.fire('تم الحذف', 'تم حذف العيادة بنجاح', 'success');
+          loadClinicsData();
+        } catch (err) {
+          Swal.fire('خطأ أثناء الحذف', err.message, 'error');
+        }
+      }
+    }
+
+    // Copy to Clipboard Utility
+    function copyToClipboard(text) {
+      if (!text) return;
+      navigator.clipboard.writeText(text);
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'تم نسخ الكود!',
+        showConfirmButton: false,
+        timer: 1500
+      });
+    }
+  </script>
+</body>
+</html>
