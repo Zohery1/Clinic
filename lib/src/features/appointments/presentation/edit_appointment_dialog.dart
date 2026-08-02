@@ -213,32 +213,22 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return InkWell(
-      onTap: isBooked
-          ? null
-          : () {
-              setState(() {
-                _selectedTime = slotTime;
-                _customTimeController.text = slot;
-              });
-            },
+      onTap: () {
+        setState(() {
+          _selectedTime = slotTime;
+          _customTimeController.text = slot;
+        });
+      },
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
           color: isSelected
               ? _primaryColor
               : isBooked
-                  ? (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade100)
-                  : _surfaceCol,
+                  ? (isDark ? Colors.orange.withValues(alpha: 0.15) : Colors.orange.shade50)
+                  : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? _primaryColor
-                : isBooked
-                    ? Colors.transparent
-                    : _borderCol.withValues(alpha: 0.5),
-            width: isSelected ? 1.5 : 1,
-          ),
         ),
         child: Text(
           slot,
@@ -246,12 +236,10 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
             color: isSelected
                 ? Colors.white
                 : isBooked
-                    ? (isDark ? Colors.white24 : Colors.grey.shade400)
+                    ? (isDark ? Colors.orange.shade300 : Colors.orange.shade700)
                     : _textColor,
             fontSize: 11,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            decoration: isBooked ? TextDecoration.lineThrough : null,
-            decorationColor: isDark ? Colors.white24 : Colors.grey.shade400,
           ),
         ),
       ),
