@@ -43,8 +43,7 @@ class ClinicToast {
           behavior: SnackBarBehavior.floating,
           dismissDirection: DismissDirection.up,
           margin: EdgeInsets.only(
-            top: topPadding + 10,
-            bottom: screenHeight - topPadding - 85, // positions it cleanly at the top
+            bottom: 20,
             left: horizontalMargin,
             right: horizontalMargin,
           ),
