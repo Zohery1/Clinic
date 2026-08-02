@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/presentation/login_controller.dart';
@@ -42,13 +43,14 @@ final appointmentsForDateProvider = FutureProvider.autoDispose.family<List<Appoi
 // مزود لتخزين فلتر قائمة المرضى المحدد حالياً
 final dashboardFilterProvider = StateProvider<String>((ref) => 'confirmed');
 
-// مزود الاستماع التلقائي الفوري لتعديلات المواعيد عبر الأجهزة المختلفة (دكتور / مساعد)
-final realtimeAppointmentsSyncProvider = Provider.autoDispose<void>((ref) {
+// مزود الاستماع التلقائي الفوري لتعديلات المواعيد عبر الأجهزة المختلفة (دكتور / مساعد) مع ميزة الـ Debounce لتجنب البطء
+final realtimeAppointmentsSyncProvider = Provider<void>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return;
 
   final supabase = Supabase.instance.client;
   final channel = supabase.channel('realtime:appointments:${user.clinicId}');
+  Timer? debounceTimer;
 
   channel.onPostgresChanges(
     event: PostgresChangeEvent.all,
@@ -60,11 +62,16 @@ final realtimeAppointmentsSyncProvider = Provider.autoDispose<void>((ref) {
       value: user.clinicId,
     ),
     callback: (payload) {
-      invalidateAppointmentsAndReports(ref);
+      // تجميع التغييرات المتقاربة زمنياً وتأخير التحديث 500 ملي ثانية لمنع غمر السيرفر بالطلبات المتكررة
+      debounceTimer?.cancel();
+      debounceTimer = Timer(const Duration(milliseconds: 500), () {
+        invalidateAppointmentsAndReports(ref);
+      });
     },
   ).subscribe();
 
   ref.onDispose(() {
+    debounceTimer?.cancel();
     supabase.removeChannel(channel);
   });
 });
