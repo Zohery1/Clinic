@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
@@ -29,6 +30,8 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
   int _selectedPlanIndex = 1;
   int _selectedPaymentMethod = 0;
   bool _isSubmitting = false;
+  late String _inviteCode;
+  bool _isLoadingCode = false;
 
   static const _plans = [
     {'title': 'شهر واحد', 'price': '550', 'period': 'شهرياً', 'badge': ''},
@@ -37,25 +40,63 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     {'title': 'سنة كاملة', 'price': '6,400', 'period': 'سنوياً', 'badge': 'أفضل توفير'},
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _inviteCode = widget.inviteCode;
+    if (_inviteCode.trim().isEmpty && widget.clinicId.isNotEmpty) {
+      _fetchInviteCode();
+    }
+  }
+
+  Future<void> _fetchInviteCode() async {
+    setState(() => _isLoadingCode = true);
+    try {
+      final res = await Supabase.instance.client
+          .from('clinics')
+          .select('invite_code')
+          .eq('id', widget.clinicId)
+          .maybeSingle();
+      if (res != null && res['invite_code'] != null && mounted) {
+        setState(() {
+          _inviteCode = res['invite_code'] as String;
+        });
+      }
+    } catch (_) {
+      // Keep existing code if error
+    } finally {
+      if (mounted) setState(() => _isLoadingCode = false);
+    }
+  }
+
   void _copy(String text, String label) {
+    if (text.isEmpty) return;
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(
-        content: Text(
-          'تم نسخ $label: $text',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontFamilyFallback: ['sans-serif']),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'تم نسخ $label: $text',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ],
         ),
         backgroundColor: AppTheme.success,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
   }
 
   Future<void> _openWhatsApp() async {
     final plan = _plans[_selectedPlanIndex];
+    final codeStr = _inviteCode.isNotEmpty ? _inviteCode : widget.inviteCode;
     final msg = Uri.encodeComponent(
-      'مرحباً، أود تجديد اشتراك العيادة:\n• اسم العيادة: ${widget.clinicName}\n• كود العيادة: ${widget.inviteCode}\n• الخطة: ${plan['title']} (${plan['price']} ج.م)\nمرفق صورة التحويل.',
+      'مرحباً، أود تجديد اشتراك العيادة:\n• اسم العيادة: ${widget.clinicName}\n• كود العيادة: $codeStr\n• الخطة: ${plan['title']} (${plan['price']} ج.م)\nمرفق صورة التحويل.',
     );
     final url = Uri.parse('https://wa.me/201090671474?text=$msg');
     if (await canLaunchUrl(url)) {
@@ -74,8 +115,8 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
       widget.onRefresh();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('حدث خطأ، حاول مرة أخرى', style: TextStyle(fontFamilyFallback: ['sans-serif'])),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('حدث خطأ، حاول مرة أخرى', style: GoogleFonts.cairo()),
           backgroundColor: AppTheme.error,
         ));
       }
@@ -107,53 +148,56 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
         child: SelectionArea(
           child: SafeArea(
             child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 800;
-              return SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: isWide ? 32 : 14, vertical: 18),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: isWide ? 950 : 520),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _header(theme, isDark),
-                        const SizedBox(height: 18),
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 800;
+                return SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: isWide ? 32 : 16, vertical: 20),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: isWide ? 950 : 540),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _header(theme, isDark),
+                          const SizedBox(height: 20),
 
-                        if (isWide)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(flex: 5, child: _plansSection(theme, isDark)),
-                              const SizedBox(width: 20),
-                              Expanded(flex: 6, child: _paymentAndActions(theme, isDark)),
-                            ],
-                          )
-                        else ...[
-                          _plansSection(theme, isDark),
-                          const SizedBox(height: 16),
-                          _paymentAndActions(theme, isDark),
-                        ],
+                          if (isWide)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 5, child: _plansSection(theme, isDark)),
+                                const SizedBox(width: 24),
+                                Expanded(flex: 6, child: _paymentAndActions(theme, isDark)),
+                              ],
+                            )
+                          else ...[
+                            _plansSection(theme, isDark),
+                            const SizedBox(height: 20),
+                            _paymentAndActions(theme, isDark),
+                          ],
 
-                        const SizedBox(height: 14),
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: _handleLogout,
-                            style: TextButton.styleFrom(foregroundColor: AppTheme.error),
-                            icon: const Icon(Icons.logout_rounded, size: 16),
-                            label: const Text(
-                              'تسجيل الخروج',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, fontFamilyFallback: ['sans-serif']),
+                          const SizedBox(height: 20),
+                          Center(
+                            child: TextButton.icon(
+                              onPressed: _handleLogout,
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppTheme.error,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              ),
+                              icon: const Icon(Icons.logout_rounded, size: 18),
+                              label: Text(
+                                'تسجيل الخروج',
+                                style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -161,56 +205,150 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
   }
 
   Widget _header(ThemeData theme, bool isDark) {
+    final displayCode = _inviteCode.isNotEmpty ? _inviteCode : widget.inviteCode;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+              : [Colors.white, const Color(0xFFF8FAFC)],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.15), shape: BoxShape.circle),
-              child: const Icon(Icons.cloud_upload_rounded, size: 24, color: Colors.orange),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text(
-                  'تجديد اشتراك العيادة (Top Up)',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, fontFamilyFallback: ['sans-serif']),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.orange.shade400, Colors.orange.shade700],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orange.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                const Text(
-                  'يرجى التجديد للاستمرار في استخدام خدمات العيادة',
-                  style: TextStyle(fontSize: 12, color: Colors.grey, fontFamilyFallback: ['sans-serif']),
-                ),
-              ]),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
-            ),
-            child: Row(children: [
-              const Icon(Icons.qr_code_rounded, color: AppTheme.primary, size: 18),
-              const SizedBox(width: 6),
-              const Text('كود العيادة: ', style: TextStyle(fontSize: 12.5, color: AppTheme.primary, fontFamilyFallback: ['sans-serif'])),
+                child: const Icon(Icons.cloud_upload_rounded, size: 26, color: Colors.white),
+              ),
+              const SizedBox(width: 14),
               Expanded(
-                child: Text(
-                  widget.inviteCode,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppTheme.primary, letterSpacing: 1, fontFamilyFallback: ['monospace', 'sans-serif']),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'تجديد اشتراك العيادة',
+                      style: GoogleFonts.cairo(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : AppTheme.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'اختر الخطة المناسبة للاستمرار في استخدام كافة خدمات العيادة',
+                      style: GoogleFonts.cairo(
+                        fontSize: 12.5,
+                        color: isDark ? Colors.white70 : AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              _copyBtn(() => _copy(widget.inviteCode, 'كود العيادة'), 'نسخ الكود'),
-            ]),
+            ],
           ),
+          if (displayCode.isNotEmpty || _isLoadingCode) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: isDark ? 0.15 : 0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.primary.withValues(alpha: isDark ? 0.3 : 0.15)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.qr_code_rounded, color: AppTheme.primary, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'كود العيادة:',
+                    style: GoogleFonts.cairo(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (_isLoadingCode)
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
+                    )
+                  else
+                    SelectableText(
+                      displayCode,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.primary,
+                        letterSpacing: 1.2,
+                        fontFamilyFallback: ['monospace', 'sans-serif'],
+                      ),
+                    ),
+                  const Spacer(),
+                  if (displayCode.isNotEmpty)
+                    InkWell(
+                      onTap: () => _copy(displayCode, 'كود العيادة'),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.copy_rounded, size: 14, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text(
+                              'نسخ الكود',
+                              style: GoogleFonts.cairo(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -220,13 +358,29 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('اختر الخطة المناسبة:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, fontFamilyFallback: ['sans-serif'])),
-        const SizedBox(height: 10),
+        Row(
+          children: [
+            const Icon(Icons.card_membership_rounded, color: AppTheme.primary, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'اختر خطة الاشتراك:',
+              style: GoogleFonts.cairo(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppTheme.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, childAspectRatio: 1.4, crossAxisSpacing: 8, mainAxisSpacing: 8,
+            crossAxisCount: 2,
+            childAspectRatio: 1.25,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
           ),
           itemCount: 4,
           itemBuilder: (_, i) {
@@ -234,44 +388,115 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
             final sel = _selectedPlanIndex == i;
             return InkWell(
               onTap: () => setState(() => _selectedPlanIndex = i),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.all(10),
+              borderRadius: BorderRadius.circular(14),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: sel ? AppTheme.primary.withValues(alpha: isDark ? 0.2 : 0.07) : theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  color: sel
+                      ? AppTheme.primary.withValues(alpha: isDark ? 0.2 : 0.08)
+                      : (isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: sel ? AppTheme.primary : (isDark ? Colors.white10 : Colors.black12),
-                    width: sel ? 2.5 : 1,
+                    color: sel ? AppTheme.primary : (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.08)),
+                    width: sel ? 2 : 1,
                   ),
+                  boxShadow: sel
+                      ? [
+                          BoxShadow(
+                            color: AppTheme.primary.withValues(alpha: 0.15),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ]
+                      : [],
                 ),
-                child: Stack(children: [
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Row(children: [
-                      Expanded(child: Text(p['title']!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, fontFamilyFallback: ['sans-serif']))),
-                      Icon(sel ? Icons.check_circle_rounded : Icons.radio_button_unchecked, color: sel ? AppTheme.primary : Colors.grey, size: 17),
-                    ]),
-                    const SizedBox(height: 2),
-                    Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-                      Text(p['price']!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.primary, fontFamilyFallback: ['monospace', 'sans-serif'])),
-                      const SizedBox(width: 3),
-                      const Text('ج.م', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primary, fontFamilyFallback: ['sans-serif'])),
-                    ]),
-                    Text(p['period']!, style: const TextStyle(fontSize: 10, color: Colors.grey, fontFamilyFallback: ['sans-serif'])),
-                  ]),
-                  if (p['badge']!.isNotEmpty)
-                    Positioned(
-                      top: 0, left: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: i == 1 ? Colors.orange.shade800 : AppTheme.success,
-                          borderRadius: BorderRadius.circular(5),
+                child: Stack(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                p['title']!,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : AppTheme.textPrimary,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              sel ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                              color: sel ? AppTheme.primary : Colors.grey,
+                              size: 19,
+                            ),
+                          ],
                         ),
-                        child: Text(p['badge']!, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold, fontFamilyFallback: ['sans-serif'])),
-                      ),
+                        const SizedBox(height: 6),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              p['price']!,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: AppTheme.primary,
+                                fontFamilyFallback: ['monospace', 'sans-serif'],
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'ج.م',
+                              style: GoogleFonts.cairo(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          p['period']!,
+                          style: GoogleFonts.cairo(
+                            fontSize: 11,
+                            color: isDark ? Colors.white54 : AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
-                ]),
+                    if (p['badge']!.isNotEmpty)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: i == 1
+                                  ? [Colors.orange.shade700, Colors.amber.shade700]
+                                  : [AppTheme.success, Colors.teal.shade600],
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            p['badge']!,
+                            style: GoogleFonts.cairo(
+                              color: Colors.white,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             );
           },
@@ -284,111 +509,144 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.primary, size: 18),
-              const SizedBox(width: 8),
-              const Text('اختر وسيلة الدفع للتحويل:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, fontFamilyFallback: ['sans-serif'])),
-            ]),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _paymentMethodBtn(
-                    title: 'إنستاباي',
-                    icon: Icons.flash_on_rounded,
-                    isSelected: _selectedPaymentMethod == 0,
-                    onTap: () => setState(() => _selectedPaymentMethod = 0),
-                    isDark: isDark,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _paymentMethodBtn(
-                    title: 'محافظ إلكترونية',
-                    icon: Icons.phone_android_rounded,
-                    isSelected: _selectedPaymentMethod == 1,
-                    onTap: () => setState(() => _selectedPaymentMethod = 1),
-                    isDark: isDark,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            if (_selectedPaymentMethod == 0)
-              _paymentCard(
-                icon: Icons.flash_on_rounded, iconColor: Colors.purple,
-                title: 'حساب Instapay:',
-                items: [
-                  {'number': '01090671474', 'label': 'رقم إنستاباي'}
-                ],
-                isDark: isDark,
-              )
-            else
-              _paymentCard(
-                icon: Icons.phone_android_rounded, iconColor: Colors.green.shade700,
-                title: 'أرقام المحافظ (فودافون كاش / اتصالات / أورنج):',
-                items: [
-                  {'number': '01090671474', 'label': 'رقم المحفظة (1)'},
-                  {'number': '01107432010', 'label': 'رقم المحفظة (2)'}
-                ],
-                isDark: isDark,
+        Row(
+          children: [
+            const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.primary, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'بيانات تحويل المبلغ:',
+              style: GoogleFonts.cairo(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppTheme.textPrimary,
               ),
-          ]),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
 
+        // Tabs
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: const Color(0xFF25D366).withValues(alpha: 0.08),
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.3)),
           ),
-          child: Column(children: [
-            Text(
-              'يرجى إرسال صورة التحويل وكود العيادة عبر واتساب',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade800, fontFamilyFallback: const ['sans-serif']),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity, height: 40,
-              child: ElevatedButton.icon(
-                onPressed: _openWhatsApp,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white, elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: Row(
+            children: [
+              Expanded(
+                child: _paymentTabBtn(
+                  title: 'إينستاباي (InstaPay)',
+                  icon: Icons.flash_on_rounded,
+                  isSelected: _selectedPaymentMethod == 0,
+                  onTap: () => setState(() => _selectedPaymentMethod = 0),
+                  activeColor: Colors.purple.shade700,
                 ),
-                icon: const Icon(Icons.send_rounded, size: 16),
-                label: const Text('إرسال عبر واتساب (01090671474)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, fontFamilyFallback: ['sans-serif'])),
               ),
-            ),
-          ]),
+              const SizedBox(width: 4),
+              Expanded(
+                child: _paymentTabBtn(
+                  title: 'محافظ إلكترونية',
+                  icon: Icons.phone_android_rounded,
+                  isSelected: _selectedPaymentMethod == 1,
+                  onTap: () => setState(() => _selectedPaymentMethod = 1),
+                  activeColor: AppTheme.primary,
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 14),
 
+        // Payment detail items (NO empty input-like boxes!)
+        if (_selectedPaymentMethod == 0)
+          _paymentInfoCard(
+            icon: Icons.flash_on_rounded,
+            iconBg: Colors.purple.withValues(alpha: 0.12),
+            iconColor: Colors.purple.shade700,
+            title: 'حساب إنستاباي (InstaPay)',
+            subtitle: 'قم بتحويل قيمة الاشتراك إلى رقم حساب إنستاباي التالي:',
+            items: [
+              {'number': '01090671474', 'label': 'رقم InstaPay'}
+            ],
+            isDark: isDark,
+          )
+        else
+          _paymentInfoCard(
+            icon: Icons.phone_android_rounded,
+            iconBg: Colors.green.withValues(alpha: 0.12),
+            iconColor: Colors.green.shade700,
+            title: 'محافظ فودافون كاش / اتصالات / أورنج',
+            subtitle: 'قم بتحويل قيمة الاشتراك إلى أحد الأرقام التالية:',
+            items: [
+              {'number': '01090671474', 'label': 'فودافون كاش'},
+              {'number': '01107432010', 'label': 'اتصالات كاش'}
+            ],
+            isDark: isDark,
+          ),
+
+        const SizedBox(height: 16),
+
+        // WhatsApp action box
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF25D366).withValues(alpha: isDark ? 0.12 : 0.07),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.25)),
+          ),
+          child: Column(
+            children: [
+              Text(
+                'بعد إتمام التحويل، يرجى إرسال صورة الإيصال وكود العيادة لتفعيل الاشتراك مباشرة',
+                style: GoogleFonts.cairo(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.green.shade300 : Colors.green.shade900,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 42,
+                child: ElevatedButton.icon(
+                  onPressed: _openWhatsApp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF25D366),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.send_rounded, size: 18),
+                  label: Text(
+                    'إرسال إثبات التحويل عبر واتساب (01090671474)',
+                    style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Submit transfer confirmation button
         SizedBox(
-          height: 46,
+          height: 48,
           child: ElevatedButton.icon(
             onPressed: _isSubmitting ? null : _confirmTransfer,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary, foregroundColor: Colors.white,
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+              elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             icon: _isSubmitting
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.verified_rounded, size: 18),
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.verified_rounded, size: 20),
             label: Text(
-              _isSubmitting ? 'جاري التسجيل...' : 'تم إرسال الفاتورة / تأكيد التحويل',
-              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, fontFamilyFallback: ['sans-serif']),
+              _isSubmitting ? 'جاري التسجيل...' : 'تأكيد إرسال التحويل / تفعيل الاشتراك',
+              style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -396,35 +654,44 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     );
   }
 
-  Widget _paymentMethodBtn({
+  Widget _paymentTabBtn({
     required String title,
     required IconData icon,
     required bool isSelected,
     required VoidCallback onTap,
-    required bool isDark,
+    required Color activeColor,
   }) {
-    final bgColor = isSelected ? AppTheme.primary : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9));
-    final fgColor = isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87);
-    final borderColor = isSelected ? AppTheme.primary : (isDark ? Colors.white12 : const Color(0xFFCBD5E1));
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: bgColor,
+          color: isSelected ? activeColor : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: borderColor),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : [],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: fgColor),
+            Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.grey.shade600),
             const SizedBox(width: 6),
             Text(
               title,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: fgColor, fontFamilyFallback: const ['sans-serif']),
+              style: GoogleFonts.cairo(
+                fontSize: 12.5,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : Colors.grey.shade700,
+              ),
             ),
           ],
         ),
@@ -432,94 +699,144 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     );
   }
 
-  Widget _paymentCard({
+  Widget _paymentInfoCard({
     required IconData icon,
+    required Color iconBg,
     required Color iconColor,
     required String title,
+    required String subtitle,
     required List<Map<String, String>> items,
     required bool isDark,
   }) {
-    final bg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final numColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A);
-
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? Colors.blue.withValues(alpha: 0.3) : const Color(0xFFCBD5E1), width: 1.2),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(icon, color: iconColor, size: 16),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
-                  fontFamilyFallback: const ['sans-serif'],
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : AppTheme.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.cairo(
+                        fontSize: 11.5,
+                        color: isDark ? Colors.white60 : AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ]),
-          const SizedBox(height: 10),
+            ],
+          ),
+          const SizedBox(height: 14),
           ...items.map((item) {
             final numStr = item['number']!;
             final labelStr = item['label']!;
             return Padding(
-              padding: EdgeInsets.only(top: item != items.first ? 8 : 0),
+              padding: EdgeInsets.only(top: item != items.first ? 10 : 0),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.08)),
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? Colors.blue.withValues(alpha: 0.15) : AppTheme.primary.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Expanded(
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: iconColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                       child: Text(
+                        labelStr,
+                        style: GoogleFonts.cairo(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: iconColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SelectableText(
                         numStr,
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
-                          color: numColor,
+                          letterSpacing: 1.2,
+                          color: isDark ? Colors.white : AppTheme.textPrimary,
                           fontFamilyFallback: const ['monospace', 'Roboto', 'sans-serif'],
                         ),
                       ),
                     ),
-                    _copyBtn(() => _copy(numStr, labelStr), 'نسخ'),
+                    InkWell(
+                      onTap: () => _copy(numStr, labelStr),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.copy_rounded, size: 13, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text(
+                              'نسخ',
+                              style: GoogleFonts.cairo(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             );
           }),
         ],
-      ),
-    );
-  }
-
-  Widget _copyBtn(VoidCallback onTap, String label) {
-    return SizedBox(
-      height: 30,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.primary, foregroundColor: Colors.white, elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        ),
-        icon: const Icon(Icons.copy_rounded, size: 13),
-        label: Text(
-          label,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, fontFamilyFallback: ['sans-serif']),
-        ),
       ),
     );
   }
