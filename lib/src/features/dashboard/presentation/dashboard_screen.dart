@@ -72,54 +72,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     final user = ref.watch(currentUserProvider);
 
-    final showWarning = widget.subscriptionEndDate != null &&
-        widget.subscriptionEndDate!.isAfter(DateTime.now()) &&
-        widget.subscriptionEndDate!.difference(DateTime.now()).inHours <= 48;
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: Column(
-          children: [
-            if (showWarning)
-              SubscriptionWarningBanner(
-                endDate: widget.subscriptionEndDate!,
-                onRenewPressed: _openRenewModal,
-              ),
-            Expanded(
-              child: isDesktop
-                  ? Row(
+        body: isDesktop
+            ? Row(
+                children: [
+                  // ─── Sidebar (يمين في RTL) ───
+                  _buildSidebar(user),
+                  // ─── المحتوى الرئيسي ───
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // ─── Sidebar (يمين في RTL) ───
-                        _buildSidebar(user),
-                        // ─── المحتوى الرئيسي ───
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // ─── Top Header Bar ───
-                              _buildTopHeader(user),
-                              // ─── المحتوى حسب التاب المختار ───
-                              Expanded(
-                                child: _currentIndex == 0
-                                    ? _buildDashboardContent()
-                                    : _currentIndex == 1
-                                        ? const PatientsScreen()
-                                        : _currentIndex == 2
-                                            ? const ReportsScreen()
-                                            : const SettingsScreen(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      children: [
+                        // ─── Top Header Bar ───
+                        _buildTopHeader(user),
+                        // ─── المحتوى حسب التاب المختار ───
                         Expanded(
                           child: _currentIndex == 0
-                              ? const AppointmentsScreen()
+                              ? _buildDashboardContent()
                               : _currentIndex == 1
                                   ? const PatientsScreen()
                                   : _currentIndex == 2
@@ -128,9 +100,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                       ],
                     ),
-            ),
-          ],
-        ),
+                  ),
+                ],
+              )
+            : Column(
+                children: [
+                  _buildTopHeader(user),
+                  Expanded(
+                    child: _currentIndex == 0
+                        ? const AppointmentsScreen()
+                        : _currentIndex == 1
+                            ? const PatientsScreen()
+                            : _currentIndex == 2
+                                ? const ReportsScreen()
+                                : const SettingsScreen(),
+                  ),
+                ],
+              ),
         bottomNavigationBar: isDesktop
             ? null
             : Container(
@@ -145,19 +131,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ],
                 ),
                 child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildNavItem(0, Icons.calendar_today_rounded, 'الرئيسية'),
-                          _buildNavItem(1, Icons.people_outline_rounded, 'المرضى'),
-                          if (user?.role == UserRole.doctor || (user?.canViewReports ?? false))
-                            _buildNavItem(2, Icons.bar_chart_rounded, 'التقارير'),
-                          _buildNavItem(3, Icons.settings_outlined, 'الإعدادات'),
-                        ],
-                      ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildNavItem(0, Icons.calendar_today_rounded, 'الرئيسية'),
+                        _buildNavItem(1, Icons.people_outline_rounded, 'المرضى'),
+                        if (user?.role == UserRole.doctor || (user?.canViewReports ?? false))
+                          _buildNavItem(2, Icons.bar_chart_rounded, 'التقارير'),
+                        _buildNavItem(3, Icons.settings_outlined, 'الإعدادات'),
+                      ],
                     ),
+                  ),
                 ),
               ),
       ),
@@ -398,6 +384,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final notificationsState = ref.watch(notificationsProvider);
     final unreadCount = notificationsState.notifications.where((n) => !n.isRead).length;
 
+    final showWarning = widget.subscriptionEndDate != null &&
+        widget.subscriptionEndDate!.isAfter(DateTime.now()) &&
+        widget.subscriptionEndDate!.difference(DateTime.now()).inHours <= 48;
+
     return Container(
       height: 70,
       decoration: BoxDecoration(
@@ -423,7 +413,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               letterSpacing: -0.01,
             ),
           ),
-          const Spacer(),
+          Expanded(
+            child: showWarning
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: SubscriptionWarningBanner(
+                        endDate: widget.subscriptionEndDate!,
+                        onRenewPressed: _openRenewModal,
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
 
           // Notifications
           _buildHeaderIconButton(
