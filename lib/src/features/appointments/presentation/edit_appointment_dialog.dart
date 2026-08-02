@@ -663,18 +663,49 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    Widget buildSectionHeader(String title, IconData icon, Color iconColor) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10, top: 4),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: iconColor),
+            const SizedBox(width: 6),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: isDark ? iconColor.withValues(alpha: 0.8) : iconColor,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget buildSlotsGrid(List<String> slots) {
+      return GridView.count(
+        crossAxisCount: 5,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        mainAxisSpacing: 6,
+        crossAxisSpacing: 6,
+        childAspectRatio: 2.2,
+        children: slots.map((slot) => _buildSlotButton(slot, booked)).toList(),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildFieldLabel('الوقت المتاح للحجز'),
         const SizedBox(height: 8),
         Container(
-          height: 250,
-          padding: const EdgeInsets.all(12),
+          constraints: const BoxConstraints(maxHeight: 280),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: _inputFillCol,
+            color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _borderCol),
           ),
           child: ScrollConfiguration(
             behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
@@ -682,66 +713,24 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Morning
-                  Row(
-                    children: [
-                      const Icon(Icons.wb_sunny_rounded, size: 14, color: Colors.amber),
-                      const SizedBox(width: 6),
-                      Text(
-                        'صباحاً (7:00 AM - 11:30 AM)',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.amber.shade200 : Colors.amber.shade800,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  if (morningSlots.isEmpty)
-                    Text('لا توجد أوقات صباحية متاحة', style: TextStyle(fontSize: 11, color: _textSecColor))
-                  else
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: morningSlots.map((slot) => _buildSlotButton(slot, booked)).toList(),
-                    ),
+                  buildSectionHeader('صباحاً', Icons.wb_sunny_rounded, Colors.amber.shade700),
+                  buildSlotsGrid(morningSlots),
 
-                  const SizedBox(height: 16),
-                  Divider(height: 1, color: _borderCol.withValues(alpha: 0.5)),
-                  const SizedBox(height: 16),
-
-                  // Evening
-                  Row(
-                    children: [
-                      const Icon(Icons.nights_stay_rounded, size: 14, color: Colors.indigo),
-                      const SizedBox(width: 6),
-                      Text(
-                        'مساءً (12:00 PM - 2:00 AM)',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.indigo.shade200 : Colors.indigo.shade800,
-                        ),
-                      ),
-                    ],
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(height: 1, color: _borderCol.withValues(alpha: 0.3)),
                   ),
-                  const SizedBox(height: 8),
-                  if (eveningSlots.isEmpty)
-                    Text('لا توجد أوقات مسائية متاحة', style: TextStyle(fontSize: 11, color: _textSecColor))
-                  else
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: eveningSlots.map((slot) => _buildSlotButton(slot, booked)).toList(),
-                    ),
+
+                  buildSectionHeader('مساءً', Icons.nights_stay_rounded, Colors.indigo.shade400),
+                  buildSlotsGrid(eveningSlots),
+                  const SizedBox(height: 4),
                 ],
               ),
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        InkWell(
+        const SizedBox(height: 10),
+        GestureDetector(
           onTap: () async {
             final TimeOfDay? picked = await showTimePicker(
               context: context,
@@ -757,21 +746,24 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: _inputFillCol,
+              color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _borderCol),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.edit_calendar_rounded, size: 16, color: _textSecColor),
-                const SizedBox(width: 8),
-                Text(
-                  'أو اختر وقتاً دقيقاً بالدقيقة: ${_formatTimeOfDay(_selectedTime)}',
-                  style: TextStyle(color: _textColor, fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-                const Spacer(),
-                Icon(Icons.arrow_drop_down_rounded, color: _textSecColor, size: 18),
-              ],
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  Icon(Icons.schedule_rounded, size: 15, color: _textSecColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    'وقت مخصص: ${_formatTimeOfDay(_selectedTime)}',
+                    style: TextStyle(color: _textColor, fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.edit_rounded, color: _primaryColor, size: 15),
+                ],
+              ),
             ),
           ),
         ),
