@@ -211,6 +211,16 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
               selectedDate,
             );
         ref.invalidate(todayAppointmentsProvider);
+
+        try {
+          ref.read(notificationsProvider.notifier).sendBroadcastNotification(
+            title: 'إلغاء جميع المواعيد',
+            body: 'قام الطبيب بإلغاء جميع مواعيد الانتظار لهذا اليوم ($waitingCount موعد)',
+            targetRole: 'secretary',
+            playSound: true,
+          );
+        } catch (_) {}
+
         if (context.mounted) {
           ClinicToast.showSuccess(context, 'تم إلغاء مواعيد الانتظار بنجاح');
         }

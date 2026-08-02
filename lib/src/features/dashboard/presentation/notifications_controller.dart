@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
@@ -91,6 +92,9 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
               // Rule 2: Play sound if requested
               final bool playSound = data['play_sound'] == true;
               if (playSound) {
+                try {
+                  SystemSound.play(SystemSoundType.alert);
+                } catch (_) {}
                 try {
                   FlutterRingtonePlayer().playNotification();
                 } catch (_) {}
