@@ -96,24 +96,26 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
   }
 
   Widget _buildCopyButton(VoidCallback onTap, String label) {
-    return SizedBox(
-      height: 34,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        icon: const Icon(Icons.copy_rounded, size: 14),
-        label: Text(
-          label,
-          style: GoogleFonts.cairo(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+    return SelectionContainer.disabled(
+      child: SizedBox(
+        height: 34,
+        child: ElevatedButton.icon(
+          onPressed: onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          icon: const Icon(Icons.copy_rounded, size: 14),
+          label: Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
       ),
@@ -173,57 +175,61 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 800;
-              return SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: isWide ? 32 : 16, vertical: 20),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: isWide ? 950 : 540),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _header(theme, isDark),
-                        const SizedBox(height: 20),
-
-                        if (isWide)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(flex: 5, child: _plansSection(theme, isDark)),
-                              const SizedBox(width: 24),
-                              Expanded(flex: 6, child: _paymentAndActions(theme, isDark)),
-                            ],
-                          )
-                        else ...[
-                          _plansSection(theme, isDark),
+        child: SelectionArea(
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 800;
+                return SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: isWide ? 32 : 16, vertical: 20),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: isWide ? 950 : 540),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _header(theme, isDark),
                           const SizedBox(height: 20),
-                          _paymentAndActions(theme, isDark),
-                        ],
 
-                        const SizedBox(height: 20),
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: _handleLogout,
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppTheme.error,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            ),
-                            icon: const Icon(Icons.logout_rounded, size: 18),
-                            label: Text(
-                              'تسجيل الخروج',
-                              style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+                          if (isWide)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 5, child: _plansSection(theme, isDark)),
+                                const SizedBox(width: 24),
+                                Expanded(flex: 6, child: _paymentAndActions(theme, isDark)),
+                              ],
+                            )
+                          else ...[
+                            _plansSection(theme, isDark),
+                            const SizedBox(height: 20),
+                            _paymentAndActions(theme, isDark),
+                          ],
+
+                          const SizedBox(height: 20),
+                          Center(
+                            child: SelectionContainer.disabled(
+                              child: TextButton.icon(
+                                onPressed: _handleLogout,
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppTheme.error,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                ),
+                                icon: const Icon(Icons.logout_rounded, size: 18),
+                                label: Text(
+                                  'تسجيل الخروج',
+                                  style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -387,116 +393,118 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
           itemBuilder: (_, i) {
             final p = _plans[i];
             final sel = _selectedPlanIndex == i;
-            return InkWell(
-              onTap: () => setState(() => _selectedPlanIndex = i),
-              borderRadius: BorderRadius.circular(14),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: sel
-                      ? AppTheme.primary.withValues(alpha: isDark ? 0.2 : 0.08)
-                      : (isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: sel ? AppTheme.primary : (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.08)),
-                    width: sel ? 2 : 1,
+            return SelectionContainer.disabled(
+              child: InkWell(
+                onTap: () => setState(() => _selectedPlanIndex = i),
+                borderRadius: BorderRadius.circular(14),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: sel
+                        ? AppTheme.primary.withValues(alpha: isDark ? 0.2 : 0.08)
+                        : (isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: sel ? AppTheme.primary : (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.08)),
+                      width: sel ? 2 : 1,
+                    ),
+                    boxShadow: sel
+                        ? [
+                            BoxShadow(
+                              color: AppTheme.primary.withValues(alpha: 0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            )
+                          ]
+                        : [],
                   ),
-                  boxShadow: sel
-                      ? [
-                          BoxShadow(
-                            color: AppTheme.primary.withValues(alpha: 0.15),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          )
-                        ]
-                      : [],
-                ),
-                child: Stack(
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                p['title']!,
-                                style: GoogleFonts.cairo(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : AppTheme.textPrimary,
+                  child: Stack(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  p['title']!,
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : AppTheme.textPrimary,
+                                  ),
                                 ),
                               ),
-                            ),
-                            Icon(
-                              sel ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-                              color: sel ? AppTheme.primary : Colors.grey,
-                              size: 19,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              p['price']!,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                color: AppTheme.primary,
-                                fontFamilyFallback: ['monospace', 'sans-serif'],
+                              Icon(
+                                sel ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                                color: sel ? AppTheme.primary : Colors.grey,
+                                size: 19,
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'ج.م',
-                              style: GoogleFonts.cairo(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primary,
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                p['price']!,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppTheme.primary,
+                                  fontFamilyFallback: ['monospace', 'sans-serif'],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          p['period']!,
-                          style: GoogleFonts.cairo(
-                            fontSize: 11,
-                            color: isDark ? Colors.white54 : AppTheme.textSecondary,
+                              const SizedBox(width: 4),
+                              Text(
+                                'ج.م',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                    if (p['badge']!.isNotEmpty)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: i == 1
-                                  ? [Colors.orange.shade700, Colors.amber.shade700]
-                                  : [AppTheme.success, Colors.teal.shade600],
-                            ),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            p['badge']!,
+                          const SizedBox(height: 2),
+                          Text(
+                            p['period']!,
                             style: GoogleFonts.cairo(
-                              color: Colors.white,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              color: isDark ? Colors.white54 : AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (p['badge']!.isNotEmpty)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: i == 1
+                                    ? [Colors.orange.shade700, Colors.amber.shade700]
+                                    : [AppTheme.success, Colors.teal.shade600],
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              p['badge']!,
+                              style: GoogleFonts.cairo(
+                                color: Colors.white,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
@@ -611,18 +619,20 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
               SizedBox(
                 width: double.infinity,
                 height: 42,
-                child: ElevatedButton.icon(
-                  onPressed: _openWhatsApp,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF25D366),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  icon: const Icon(Icons.send_rounded, size: 18),
-                  label: Text(
-                    'إرسال إثبات التحويل عبر واتساب (01090671474)',
-                    style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+                child: SelectionContainer.disabled(
+                  child: ElevatedButton.icon(
+                    onPressed: _openWhatsApp,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF25D366),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.send_rounded, size: 18),
+                    label: Text(
+                      'إرسال إثبات التحويل عبر واتساب (01090671474)',
+                      style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ),
@@ -634,20 +644,22 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
         // Submit transfer confirmation button
         SizedBox(
           height: 48,
-          child: ElevatedButton.icon(
-            onPressed: _isSubmitting ? null : _confirmTransfer,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: _isSubmitting
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.verified_rounded, size: 20),
-            label: Text(
-              _isSubmitting ? 'جاري التسجيل...' : 'تأكيد إرسال التحويل / تفعيل الاشتراك',
-              style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold),
+          child: SelectionContainer.disabled(
+            child: ElevatedButton.icon(
+              onPressed: _isSubmitting ? null : _confirmTransfer,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: _isSubmitting
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.verified_rounded, size: 20),
+              label: Text(
+                _isSubmitting ? 'جاري التسجيل...' : 'تأكيد إرسال التحويل / تفعيل الاشتراك',
+                style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ),
@@ -662,39 +674,41 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     required VoidCallback onTap,
     required Color activeColor,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? activeColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: activeColor.withValues(alpha: 0.25),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : [],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.grey.shade600),
-            const SizedBox(width: 6),
-            Text(
-              title,
-              style: GoogleFonts.cairo(
-                fontSize: 12.5,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : Colors.grey.shade700,
+    return SelectionContainer.disabled(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? activeColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: activeColor.withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : [],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.grey.shade600),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: GoogleFonts.cairo(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : Colors.grey.shade700,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
