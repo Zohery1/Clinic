@@ -11,6 +11,7 @@ import '../domain/appointment_type_model.dart';
 import '../domain/service_model.dart';
 import 'appointments_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
+import '../../dashboard/presentation/notifications_controller.dart';
 
 /// حوار حجز موعد جديد — متوافق مع الهاتف والويب
 class EditAppointmentDialog extends ConsumerStatefulWidget {
@@ -179,6 +180,14 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
       ref.invalidate(monthlyStatsProvider);
       ref.invalidate(dailyStatsProvider);
       ref.invalidate(detailedReportProvider);
+
+      try {
+        final formattedTime = intl.DateFormat('hh:mm a', 'ar').format(appointmentDateTime);
+        ref.read(notificationsProvider.notifier).sendBroadcastNotification(
+          title: 'تعديل موعد',
+          body: 'تم تعديل موعد المريض (${widget.appointment.patient.fullName}) ليكون الساعة $formattedTime',
+        );
+      } catch (_) {}
 
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(

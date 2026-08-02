@@ -1,6 +1,7 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
+import 'package:uuid/uuid.dart';
 import '../domain/notification_model.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
@@ -8,23 +9,19 @@ import '../../auth/domain/user_model.dart';
 class NotificationsState {
   final List<NotificationModel> notifications;
   final bool isLoading;
-  final String? errorMessage;
 
   NotificationsState({
     this.notifications = const [],
     this.isLoading = false,
-    this.errorMessage,
   });
 
   NotificationsState copyWith({
     List<NotificationModel>? notifications,
     bool? isLoading,
-    String? errorMessage,
   }) {
     return NotificationsState(
       notifications: notifications ?? this.notifications,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
     );
   }
 }
@@ -32,6 +29,7 @@ class NotificationsState {
 class NotificationsNotifier extends StateNotifier<NotificationsState> {
   final Ref _ref;
   RealtimeChannel? _subscription;
+  final _uuid = const Uuid();
 
   NotificationsNotifier(this._ref) : super(NotificationsState()) {
     _init();
@@ -41,65 +39,53 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
     final user = _ref.read(currentUserProvider);
     if (user == null) return;
     
-    fetchNotifications();
-    _subscribeToRealtime(user.clinicId);
-  }
-
-  Future<void> fetchNotifications() async {
-    final user = _ref.read(currentUserProvider);
-    if (user == null) return;
-
-    state = state.copyWith(isLoading: true);
+    // 1. Wipe all old notifications from the database (As requested by the user to start clean)
     try {
-      final roleName = user.role == UserRole.doctor ? 'doctor' : 'secretary';
-
-      // 1. Purge/delete read notifications from the database to prevent DB bloat
-      await Supabase.instance.client
+      Supabase.instance.client
           .from('notifications')
           .delete()
-          .eq('clinic_id', user.clinicId)
-          .eq('is_read', true);
+          .eq('clinic_id', user.clinicId);
+    } catch (_) {}
 
-      // 2. Fetch unread notifications for this clinic
-      final response = await Supabase.instance.client
-          .from('notifications')
-          .select()
-          .eq('clinic_id', user.clinicId)
-          .order('created_at', ascending: false)
-          .limit(50);
-          
-      final list = (response as List)
-          .map((json) => NotificationModel.fromJson(json))
-          .where((n) => n.targetRole == null || n.targetRole == roleName)
-          .toList();
-          
-      state = state.copyWith(notifications: list, isLoading: false);
-    } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
-    }
+    // 2. Subscribe to Ephemeral Broadcasts (No DB persistence)
+    _subscribeToBroadcasts(user);
   }
 
-  void _subscribeToRealtime(String clinicId) {
+  void _subscribeToBroadcasts(UserModel user) {
     _subscription?.unsubscribe();
     
-    _subscription = Supabase.instance.client
-        .channel('public:notifications')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'notifications',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'clinic_id',
-            value: clinicId,
-          ),
-          callback: (payload) {
-            final newNotification = NotificationModel.fromJson(payload.newRecord);
-            final user = _ref.read(currentUserProvider);
-            final roleName = user?.role == UserRole.doctor ? 'doctor' : 'secretary';
+    final roleName = user.role == UserRole.doctor ? 'doctor' : 'secretary';
 
+    _subscription = Supabase.instance.client
+        .channel('clinic_notifications_${user.clinicId}')
+        .onBroadcast(
+          event: 'notification',
+          callback: (payload) {
+            // Rule 1: Do not show notification to the person who triggered it
+            final senderId = payload['sender_id'] as String?;
+            if (senderId == user.id) return;
+
+            final targetRole = payload['target_role'] as String?;
             // Only notify if notification is intended for this role or all roles
-            if (newNotification.targetRole == null || newNotification.targetRole == roleName) {
+            if (targetRole == null || targetRole == roleName) {
+              
+              // Create local ephemeral notification object
+              final newNotification = NotificationModel(
+                id: _uuid.v4(),
+                clinicId: user.clinicId,
+                title: payload['title'] ?? '',
+                body: payload['body'] ?? '',
+                isRead: false,
+                targetRole: targetRole,
+                createdAt: DateTime.now(),
+              );
+
+              // Rule 2: Play sound if requested
+              final bool playSound = payload['play_sound'] == true;
+              if (playSound) {
+                FlutterRingtonePlayer().playNotification();
+              }
+
               state = state.copyWith(
                 notifications: [newNotification, ...state.notifications],
               );
@@ -109,39 +95,41 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
         .subscribe();
   }
 
-  Future<void> markAsRead(String notificationId) async {
-    try {
-      // Physically delete from DB when seen to keep database clean
-      await Supabase.instance.client
-          .from('notifications')
-          .delete()
-          .eq('id', notificationId);
-          
-      state = state.copyWith(
-        notifications: state.notifications.where((n) => n.id != notificationId).toList(),
-      );
-    } catch (e) {
-      // Fail silently
-    }
+  void sendBroadcastNotification({
+    required String title,
+    required String body,
+    String? targetRole,
+    bool playSound = false,
+  }) {
+    final user = _ref.read(currentUserProvider);
+    if (user == null) return;
+
+    Supabase.instance.client
+        .channel('clinic_notifications_${user.clinicId}')
+        .sendBroadcastMessage(
+      event: 'notification',
+      payload: {
+        'sender_id': user.id,
+        'title': title,
+        'body': body,
+        'target_role': targetRole,
+        'play_sound': playSound,
+      },
+    );
   }
 
-  Future<void> markAllAsRead() async {
-    try {
-      final user = _ref.read(currentUserProvider);
-      if (user == null) return;
+  void markAsRead(String notificationId) {
+    // Simply remove from local memory
+    state = state.copyWith(
+      notifications: state.notifications.where((n) => n.id != notificationId).toList(),
+    );
+  }
 
-      // Delete all notifications for this role to keep DB lean
-      await Supabase.instance.client
-          .from('notifications')
-          .delete()
-          .eq('clinic_id', user.clinicId);
-          
-      state = state.copyWith(
-        notifications: [],
-      );
-    } catch (e) {
-      // Fail silently
-    }
+  void markAllAsRead() {
+    // Simply clear the local memory array
+    state = state.copyWith(
+      notifications: [],
+    );
   }
 
   @override

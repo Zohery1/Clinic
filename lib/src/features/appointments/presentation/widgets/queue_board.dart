@@ -14,6 +14,7 @@ import '../../../../core/widgets/clinic_toast.dart';
 import '../book_appointment_dialog.dart';
 import '../edit_appointment_dialog.dart';
 import 'admission_confirmation_sheet.dart';
+import '../../../dashboard/presentation/notifications_controller.dart';
 
 /// الحالات المختلفة لمكان المريض في طابور العيادة
 enum QueueLaneType { waiting, withDoctor, completed, cancelled }
@@ -73,6 +74,21 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
     try {
       await ref.read(appointmentRepositoryProvider).updateAppointmentStatus(appt.id, status);
       invalidateAppointmentsAndReports(ref);
+
+      try {
+        if (status == 'cancelled' || status == 'cancelled_by_patient' || status == 'cancelled_by_clinic') {
+          ref.read(notificationsProvider.notifier).sendBroadcastNotification(
+            title: 'إلغاء موعد',
+            body: 'تم إلغاء حجز المريض (${appt.patient.fullName}) بناءً على طلبه',
+          );
+        } else if (status == 'completed') {
+          ref.read(notificationsProvider.notifier).sendBroadcastNotification(
+            title: 'إنتهاء موعد',
+            body: 'تم الانتهاء من موعد المريض (${appt.patient.fullName})',
+            playSound: true,
+          );
+        }
+      } catch (_) {}
 
       if (context.mounted) {
         final label = status == 'pending'

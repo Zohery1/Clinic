@@ -11,6 +11,7 @@ import '../domain/appointment_type_model.dart';
 import '../domain/service_model.dart';
 import 'appointments_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
+import '../../dashboard/presentation/notifications_controller.dart';
 import '../../../core/widgets/clinic_dialog.dart';
 
 /// حوار حجز موعد جديد — متوافق مع الهاتف والويب
@@ -174,6 +175,15 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
       ref.invalidate(monthlyStatsProvider);
       ref.invalidate(dailyStatsProvider);
       ref.invalidate(detailedReportProvider);
+
+      try {
+        final formattedTime = intl.DateFormat('hh:mm a', 'ar').format(appointmentDateTime);
+        final patientName = _autocompleteController?.text ?? '';
+        ref.read(notificationsProvider.notifier).sendBroadcastNotification(
+          title: 'حجز جديد',
+          body: 'تم إضافة حجز جديد للمريض ($patientName) الساعة $formattedTime',
+        );
+      } catch (_) {}
 
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(

@@ -12,6 +12,7 @@ import 'queue_board.dart';
 import 'admission_confirmation_sheet.dart';
 import '../edit_appointment_dialog.dart';
 import '../../../../core/widgets/clinic_toast.dart';
+import '../../../dashboard/presentation/notifications_controller.dart';
 
 /// بطاقة مريض مبسطة ومخصصة حسب حالته في الطابور
 class QueueCard extends ConsumerWidget {
@@ -460,6 +461,21 @@ class QueueCard extends ConsumerWidget {
     try {
       await ref.read(appointmentRepositoryProvider).updateAppointmentStatus(appointment.id, status);
       invalidateAppointmentsAndReports(ref);
+
+      try {
+        if (status == 'cancelled') {
+          ref.read(notificationsProvider.notifier).sendBroadcastNotification(
+            title: 'إلغاء موعد',
+            body: 'تم إلغاء حجز المريض (${appointment.patient.fullName}) بناءً على طلبه',
+          );
+        } else if (status == 'completed') {
+          ref.read(notificationsProvider.notifier).sendBroadcastNotification(
+            title: 'إنتهاء موعد',
+            body: 'تم الانتهاء من موعد المريض (${appointment.patient.fullName})',
+            playSound: true,
+          );
+        }
+      } catch (_) {}
 
       if (context.mounted) {
         final label = status == 'pending'

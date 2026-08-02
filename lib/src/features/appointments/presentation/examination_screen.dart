@@ -9,6 +9,7 @@ import '../presentation/appointments_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import 'widgets/patient_medical_sidebar.dart';
 import 'widgets/examination_form.dart';
+import '../../dashboard/presentation/notifications_controller.dart';
 
 // فاصل الحقول داخل حقل notes الواحد في قاعدة البيانات
 const _fieldSeparator = '\n---\n';
@@ -121,6 +122,17 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       ref.invalidate(appointmentServicesProvider(widget.appointmentId));
       ref.invalidate(todayAppointmentsProvider);
       ref.invalidate(todayRevenueProvider);
+
+      try {
+        if (_selectedServices.isNotEmpty) {
+          final serviceNames = _selectedServices.map((s) => s.name).join('، ');
+          ref.read(notificationsProvider.notifier).sendBroadcastNotification(
+            title: 'إضافة خدمة جديدة',
+            body: 'تم إضافة خدمة ($serviceNames) للمريض (${widget.patientName})',
+            playSound: true,
+          );
+        }
+      } catch (_) {}
 
       if (mounted) {
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
