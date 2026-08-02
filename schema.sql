@@ -40,6 +40,7 @@ CREATE TABLE public.clinics (
     name text NOT NULL,
     invite_code text UNIQUE NOT NULL DEFAULT substring(md5(random()::text) from 1 for 6), -- كود دعوة عشوائي مكون من 6 رموز
     subscription_end_date timestamptz NOT NULL DEFAULT (now() + interval '30 days'), -- 30-day default trial
+    subscription_status text NOT NULL DEFAULT 'active' CHECK (subscription_status IN ('active', 'pending_activation', 'expired', 'suspended')),
     is_active boolean NOT NULL DEFAULT true,
     whatsapp_enabled boolean NOT NULL DEFAULT false,
     whatsapp_phone text,

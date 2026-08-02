@@ -12,13 +12,26 @@ import '../../settings/presentation/settings_screen.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/user_model.dart';
+import '../../auth/presentation/subscription_warning_banner.dart';
+import '../../auth/presentation/top_up_subscription_screen.dart';
 import 'notifications_controller.dart';
 import 'financial_panel.dart';
 
 /// الداشبورد الرئيسي — مطابق لتصميم Stitch
 /// Sidebar (يمين RTL) + Top Header + محتوى 2/3 مواعيد + 1/3 مالية
 class DashboardScreen extends ConsumerStatefulWidget {
-  const DashboardScreen({super.key});
+  final DateTime? subscriptionEndDate;
+  final String? inviteCode;
+  final String? clinicName;
+  final String? clinicId;
+
+  const DashboardScreen({
+    super.key,
+    this.subscriptionEndDate,
+    this.inviteCode,
+    this.clinicName,
+    this.clinicId,
+  });
 
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
@@ -26,6 +39,30 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _currentIndex = 0;
+
+  void _openRenewModal() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 700, maxHeight: 750),
+            child: TopUpSubscriptionScreen(
+              clinicName: widget.clinicName ?? 'العيادة',
+              inviteCode: widget.inviteCode ?? '',
+              clinicId: widget.clinicId ?? '',
+              onRefresh: () {
+                Navigator.of(ctx).pop();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,26 +72,54 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     final user = ref.watch(currentUserProvider);
 
+    final showWarning = widget.subscriptionEndDate != null &&
+        widget.subscriptionEndDate!.isAfter(DateTime.now()) &&
+        widget.subscriptionEndDate!.difference(DateTime.now()).inHours <= 48;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: isDesktop
-            ? Row(
-                children: [
-                  // ─── Sidebar (يمين في RTL) ───
-                  _buildSidebar(user),
-                  // ─── المحتوى الرئيسي ───
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+        body: Column(
+          children: [
+            if (showWarning)
+              SubscriptionWarningBanner(
+                endDate: widget.subscriptionEndDate!,
+                onRenewPressed: _openRenewModal,
+              ),
+            Expanded(
+              child: isDesktop
+                  ? Row(
                       children: [
-                        // ─── Top Header Bar ───
-                        _buildTopHeader(user),
-                        // ─── المحتوى حسب التاب المختار ───
+                        // ─── Sidebar (يمين في RTL) ───
+                        _buildSidebar(user),
+                        // ─── المحتوى الرئيسي ───
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // ─── Top Header Bar ───
+                              _buildTopHeader(user),
+                              // ─── المحتوى حسب التاب المختار ───
+                              Expanded(
+                                child: _currentIndex == 0
+                                    ? _buildDashboardContent()
+                                    : _currentIndex == 1
+                                        ? const PatientsScreen()
+                                        : _currentIndex == 2
+                                            ? const ReportsScreen()
+                                            : const SettingsScreen(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      children: [
                         Expanded(
                           child: _currentIndex == 0
-                              ? _buildDashboardContent()
+                              ? const AppointmentsScreen()
                               : _currentIndex == 1
                                   ? const PatientsScreen()
                                   : _currentIndex == 2
@@ -63,22 +128,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                       ],
                     ),
-                  ),
-                ],
-              )
-            : Column(
-                children: [
-                  Expanded(
-                    child: _currentIndex == 0
-                        ? const AppointmentsScreen()
-                        : _currentIndex == 1
-                            ? const PatientsScreen()
-                            : _currentIndex == 2
-                                ? const ReportsScreen()
-                                : const SettingsScreen(),
-                  ),
-                ],
-              ),
+            ),
+          ],
+        ),
         bottomNavigationBar: isDesktop
             ? null
             : Container(

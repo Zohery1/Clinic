@@ -8,6 +8,8 @@ import 'src/core/theme/theme_provider.dart';
 import 'src/features/auth/presentation/login_screen.dart';
 import 'src/features/auth/presentation/login_controller.dart';
 import 'src/features/auth/presentation/subscription_gate_screen.dart';
+import 'src/features/auth/presentation/top_up_subscription_screen.dart';
+import 'src/features/auth/presentation/pending_activation_screen.dart';
 import 'src/features/dashboard/presentation/dashboard_screen.dart';
 
 import 'package:intl/date_symbol_data_local.dart';
@@ -58,9 +60,11 @@ class AuthGate extends ConsumerStatefulWidget {
 class _AuthGateState extends ConsumerState<AuthGate> {
   bool _isInitializing = true;
   bool _isLoggedIn = false;
-  bool _isSubscribed = true;
   String _clinicName = '';
+  String _inviteCode = '';
+  String _clinicId = '';
   DateTime? _subscriptionEndDate;
+  String _subscriptionStatus = 'active'; // 'active', 'pending_activation', 'expired', 'suspended'
   bool _isClinicActive = true;
 
   late final StreamSubscription<AuthState> _authSubscription;
@@ -103,21 +107,23 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     try {
       final user = ref.read(currentUserProvider);
       if (user != null) {
+        _clinicId = user.clinicId;
         final res = await Supabase.instance.client
             .from('clinics')
-            .select('name, is_active, subscription_end_date')
+            .select('name, invite_code, is_active, subscription_end_date, subscription_status')
             .eq('id', user.clinicId)
             .single();
 
         final isActive = res['is_active'] as bool? ?? true;
         final endDateStr = res['subscription_end_date'] as String?;
+        final statusStr = (res['subscription_status'] as String? ?? 'active').toLowerCase();
         final endDate = endDateStr != null ? DateTime.tryParse(endDateStr) : null;
-        final isExpired = endDate != null && endDate.isBefore(DateTime.now());
 
         _clinicName = res['name'] as String? ?? 'العيادة';
+        _inviteCode = res['invite_code'] as String? ?? '';
         _isClinicActive = isActive;
         _subscriptionEndDate = endDate;
-        _isSubscribed = isActive && !isExpired;
+        _subscriptionStatus = statusStr;
       }
     } catch (_) {
       // وفي حالة وجود خطأ نعتمد الحالة الافتراضية
@@ -178,21 +184,54 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (_isLoggedIn) {
-      if (!_isSubscribed) {
+      // 1. حساب العيادة معطل من الإدارة
+      if (!_isClinicActive || _subscriptionStatus == 'suspended') {
         return SubscriptionGateScreen(
           clinicName: _clinicName,
           subscriptionEndDate: _subscriptionEndDate,
-          isActive: _isClinicActive,
+          isActive: false,
           onRefresh: () async {
             setState(() => _isInitializing = true);
             await _checkInitialSession();
           },
         );
       }
-      return const DashboardScreen();
+
+      // 2. حالة الانتظار لحين تفعيل الفاتورة
+      if (_subscriptionStatus == 'pending_activation') {
+        return PendingActivationScreen(
+          clinicName: _clinicName,
+          inviteCode: _inviteCode,
+          onRefresh: () async {
+            setState(() => _isInitializing = true);
+            await _checkInitialSession();
+          },
+        );
+      }
+
+      // 3. حالة الانتهاء وعدم الدفع (Top Up)
+      final isExpired = _subscriptionEndDate != null && _subscriptionEndDate!.isBefore(DateTime.now());
+      if (_subscriptionStatus == 'expired' || isExpired) {
+        return TopUpSubscriptionScreen(
+          clinicName: _clinicName,
+          inviteCode: _inviteCode,
+          clinicId: _clinicId,
+          onRefresh: () async {
+            setState(() => _isInitializing = true);
+            await _checkInitialSession();
+          },
+        );
+      }
+
+      // 4. الاشتراك نشط (مع التمرير لبيانات الانتهاء لحساب إنذار الـ 48 ساعة)
+      return DashboardScreen(
+        subscriptionEndDate: _subscriptionEndDate,
+        inviteCode: _inviteCode,
+        clinicName: _clinicName,
+        clinicId: _clinicId,
+      );
     } else {
       return const LoginScreen();
     }
   }
 }
-
