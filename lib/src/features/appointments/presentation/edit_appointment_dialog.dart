@@ -212,34 +212,39 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
         _selectedTime.minute == slotTime.minute;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return InkWell(
+    return GestureDetector(
       onTap: () {
         setState(() {
           _selectedTime = slotTime;
           _customTimeController.text = slot;
         });
       },
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
               ? _primaryColor
               : isBooked
-                  ? (isDark ? Colors.orange.withValues(alpha: 0.15) : Colors.orange.shade50)
-                  : Colors.transparent,
+                  ? (isDark ? const Color(0xFF2D2418) : const Color(0xFFFFF3E0))
+                  : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          slot,
-          style: TextStyle(
-            color: isSelected
-                ? Colors.white
-                : isBooked
-                    ? (isDark ? Colors.orange.shade300 : Colors.orange.shade700)
-                    : _textColor,
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+        child: Center(
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: Text(
+              slot,
+              style: TextStyle(
+                color: isSelected
+                    ? Colors.white
+                    : isBooked
+                        ? (isDark ? Colors.orange.shade300 : Colors.orange.shade800)
+                        : (isDark ? Colors.white70 : Colors.grey.shade800),
+                fontSize: 11,
+                fontWeight: isSelected || isBooked ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
           ),
         ),
       ),

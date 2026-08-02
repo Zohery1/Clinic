@@ -463,7 +463,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
               ? _primaryColor
               : isBooked
                   ? (isDark ? const Color(0xFF2D2418) : const Color(0xFFFFF3E0))
-                  : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50),
+                  : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
