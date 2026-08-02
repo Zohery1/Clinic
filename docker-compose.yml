@@ -38,7 +38,7 @@ services:
 
   # 3. بوابة الواتساب المجانية السريعة (Evolution API)
   evolution_api:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:latest
     container_name: clinic_evolution_api
     restart: always
     ports:
