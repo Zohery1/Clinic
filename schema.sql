@@ -710,13 +710,20 @@ BEGIN
 END;
 $$;
 
--- 5. Delete Clinic
+-- 5. Delete Clinic (Cleanly purges Auth Users + All Clinic Data)
 CREATE OR REPLACE FUNCTION public.admin_delete_clinic(p_clinic_id uuid)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
+    -- 1. Delete all user accounts associated with this clinic from auth.users
+    DELETE FROM auth.users 
+    WHERE id IN (
+        SELECT id FROM public.users WHERE clinic_id = p_clinic_id
+    );
+
+    -- 2. Delete the clinic (cascades to all patients, appointments, services, notes, etc.)
     DELETE FROM public.clinics WHERE id = p_clinic_id;
 END;
 $$;
