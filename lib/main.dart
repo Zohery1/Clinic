@@ -220,12 +220,11 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (_isLoggedIn) {
-      // 1. حساب العيادة معطل من الإدارة
-      if (!_isClinicActive || _subscriptionStatus == 'suspended') {
-        return SubscriptionGateScreen(
+      // 1. حالة الانتظار لحين تفعيل العيادة لأول مرة من الإدارة
+      if (_subscriptionStatus == 'pending_activation') {
+        return PendingActivationScreen(
           clinicName: _clinicName,
-          subscriptionEndDate: _subscriptionEndDate,
-          isActive: false,
+          inviteCode: _inviteCode,
           onRefresh: () async {
             setState(() => _isInitializing = true);
             await _checkInitialSession();
@@ -233,11 +232,12 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         );
       }
 
-      // 2. حالة الانتظار لحين تفعيل الفاتورة
-      if (_subscriptionStatus == 'pending_activation') {
-        return PendingActivationScreen(
+      // 2. حساب العيادة معطل من الإدارة
+      if (!_isClinicActive || _subscriptionStatus == 'suspended') {
+        return SubscriptionGateScreen(
           clinicName: _clinicName,
-          inviteCode: _inviteCode,
+          subscriptionEndDate: _subscriptionEndDate,
+          isActive: false,
           onRefresh: () async {
             setState(() => _isInitializing = true);
             await _checkInitialSession();

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +27,24 @@ class PendingActivationScreen extends ConsumerStatefulWidget {
 
 class _PendingActivationScreenState extends ConsumerState<PendingActivationScreen> {
   bool _isChecking = false;
+  Timer? _autoRefreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // إعادة فحص حالة العيادة تلقائياً كل 3 ثوانٍ للدخول فور تفعيل الأدمن
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted) {
+        widget.onRefresh();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
+  }
 
   void _checkAgain() async {
     setState(() => _isChecking = true);

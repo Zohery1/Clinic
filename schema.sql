@@ -218,8 +218,8 @@ BEGIN
 
   -- If still null, create a new clinic (Self-onboarding for doctors)
   IF v_clinic_id IS NULL THEN
-    INSERT INTO public.clinics (name, subscription_end_date, is_active)
-    VALUES (v_clinic_name, now() + interval '30 days', true)
+    INSERT INTO public.clinics (name, subscription_status, is_active, subscription_end_date)
+    VALUES (v_clinic_name, 'pending_activation', false, now())
     RETURNING id INTO v_clinic_id;
   END IF;
 
