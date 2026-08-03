@@ -146,7 +146,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               )
             : Column(
                 children: [
-                  _buildTopHeader(user),
+                  if (widget.subscriptionEndDate != null &&
+                      widget.subscriptionEndDate!.isAfter(DateTime.now()) &&
+                      widget.subscriptionEndDate!.difference(DateTime.now()).inHours <= 48)
+                    SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                        child: SubscriptionWarningBanner(
+                          endDate: widget.subscriptionEndDate!,
+                          onRenewPressed: _openRenewModal,
+                        ),
+                      ),
+                    ),
                   Expanded(
                     child: _currentIndex == 0
                         ? const AppointmentsScreen()
