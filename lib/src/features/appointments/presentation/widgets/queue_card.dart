@@ -103,7 +103,7 @@ class QueueCard extends ConsumerWidget {
                     context: context,
                     builder: (context) => PatientDetailsDialog(
                       clinicId: clinicId,
-                      patient: appointment.patient,
+                      patient: appointment.toPatientModel(),
                     ),
                   );
                 },

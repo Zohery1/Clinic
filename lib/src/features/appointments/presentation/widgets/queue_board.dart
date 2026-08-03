@@ -386,7 +386,7 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
                   context: context,
                   builder: (context) => PatientDetailsDialog(
                     clinicId: widget.clinicId,
-                    patient: appt.patient,
+                    patient: appt.toPatientModel(),
                   ),
                 );
               },

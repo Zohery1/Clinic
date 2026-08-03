@@ -353,7 +353,7 @@ class FinancialPanel extends ConsumerWidget {
                   context: context,
                   builder: (context) => PatientDetailsDialog(
                     clinicId: appt.clinicId,
-                    patient: appt.patient,
+                    patient: appt.toPatientModel(),
                   ),
                 );
               },

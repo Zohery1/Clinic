@@ -1,3 +1,5 @@
+import '../../patients/domain/patient_model.dart';
+
 class AppointmentPatient {
   final String fullName;
   final String? phone;
@@ -82,6 +84,17 @@ class AppointmentModel {
       patient: json['patients'] != null
           ? AppointmentPatient.fromJson(json['patients'] as Map<String, dynamic>)
           : AppointmentPatient(fullName: 'مريض غير معروف'),
+    );
+  }
+
+  PatientModel toPatientModel() {
+    return PatientModel(
+      id: patientId,
+      clinicId: clinicId,
+      fullName: patient.fullName,
+      phone: patient.phone,
+      address: patient.address,
+      createdAt: DateTime.now(),
     );
   }
 
