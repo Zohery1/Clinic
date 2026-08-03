@@ -1,0 +1,30 @@
+===================================================
+EYADATY (عيادتي) - AI ADVERTISING & PROMPTING GUIDE
+===================================================
+
+BRAND COLOR CODES:
+- Royal Blue: #2563EB
+- Soft Blue: #EFF6FF
+- Emerald Green: #059669
+- Amber Alert: #D97706
+- Dark Slate: #0F172A
+
+---------------------------------------------------
+PROMPT 1: 3D PRODUCT SHOWCASE (Midjourney / Flux / DALL-E)
+---------------------------------------------------
+High-end 3D render of a futuristic tablet screen displaying a sleek clinic management dashboard named Eyadaty. Surrounding the tablet are floating 3D glassmorphic icons: medical cross, calendar, financial growth charts, and patient files. Royal blue (#2563EB) and emerald green color scheme, soft studio lighting, clean white background with subtle blue glowing reflections, octane render, 8k resolution, commercial advertising design. --ar 16:9
+
+---------------------------------------------------
+PROMPT 2: DOCTOR HERO AD (Social Media Posts)
+---------------------------------------------------
+A modern, confident Egyptian male doctor wearing a clean white coat with a stethoscope around his neck, holding a smartphone displaying the Eyadaty medical app. In the background, a bright, modern, high-tech medical clinic with soft natural daylight. Professional portrait photography, shallow depth of field, royal blue branding accents, trustworthy and friendly atmosphere, 8k image. --ar 4:5
+
+---------------------------------------------------
+PROMPT 3: CLINIC DASHBOARD & ANALYTICS BANNER
+---------------------------------------------------
+Minimalist 3D infographic banner for a medical software called Eyadaty. Features floating 3D bar graphs in royal blue and emerald green, ascending upward with glowing medical plus icons. Clean white glass surface, ultra-modern UI elements, soft shadows, premium SaaS marketing visual, 8k render. --ar 16:9
+
+---------------------------------------------------
+PROMPT 4: RECEPTION & CLINIC AMBIANCE
+---------------------------------------------------
+Cinematic wide shot of a modern medical clinic reception area. On a sleek glass wall, a glowing logo badge with a blue rounded rectangle and white square medical cross (+) is displayed with the text 'عيادتي | Eyadaty'. Clean aesthetic, architectural photography, soft morning sunlight streaming through floor-to-ceiling windows, 8k resolution. --ar 16:9

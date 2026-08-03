@@ -1269,7 +1269,7 @@ class ThemeSettingsPage extends ConsumerWidget {
         clipBehavior: Clip.antiAlias,
         child: ListTile(
           onTap: () {
-            ref.read(themeModeProvider.notifier).state = mode;
+            ref.read(themeModeProvider.notifier).setThemeMode(mode);
           },
           leading: Icon(icon, color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).iconTheme.color),
           title: Text(
