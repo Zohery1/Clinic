@@ -48,12 +48,7 @@ class LoginController extends StateNotifier<LoginState> {
       return;
     }
 
-    state = state.copyWith(
-      isLoading: true,
-      errorMessage: null,
-      isEmailVerificationRequired: false,
-      isSuccess: false,
-    );
+    state = state.copyWith(isLoading: true, errorMessage: null, isSuccess: false, isEmailVerificationRequired: false);
 
     try {
       // محاولة تسجيل الدخول وجلب الملف الشخصي للمستخدم
@@ -64,11 +59,7 @@ class LoginController extends StateNotifier<LoginState> {
 
       // حفظ بيانات المستخدم الحالي في الـ Provider العام
       _currentUserNotifier.state = userModel;
-      state = state.copyWith(
-        isLoading: false,
-        isSuccess: true,
-        isEmailVerificationRequired: false,
-      );
+      state = state.copyWith(isLoading: false, isSuccess: true, isEmailVerificationRequired: false);
     } catch (e) {
       final errMsg = e.toString().toLowerCase();
       if (errMsg.contains('email not confirmed') ||
@@ -83,6 +74,8 @@ class LoginController extends StateNotifier<LoginState> {
       } else {
         state = state.copyWith(
           isLoading: false,
+          isSuccess: false,
+          isEmailVerificationRequired: false,
           errorMessage: 'فشل تسجيل الدخول: يرجى التحقق من صحة البيانات أو الاتصال بالإنترنت.',
         );
       }
@@ -110,7 +103,7 @@ class LoginController extends StateNotifier<LoginState> {
       return;
     }
 
-    state = state.copyWith(isLoading: true, errorMessage: null, isEmailVerificationRequired: false);
+    state = state.copyWith(isLoading: true, errorMessage: null, isSuccess: false, isEmailVerificationRequired: false);
 
     try {
       final signUpResult = await _authRepository.signUp(
@@ -140,13 +133,15 @@ class LoginController extends StateNotifier<LoginState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
+        isSuccess: false,
+        isEmailVerificationRequired: false,
         errorMessage: 'فشل إنشاء الحساب: ${e.toString().replaceAll('Exception:', '')}',
       );
     }
   }
 
   Future<void> signInWithGoogle() async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, errorMessage: null, isSuccess: false, isEmailVerificationRequired: false);
     try {
       await _authRepository.signInWithGoogle();
       state = state.copyWith(isLoading: false);
@@ -176,7 +171,7 @@ class LoginController extends StateNotifier<LoginState> {
 }
 
 // مزود متحكم شاشة تسجيل الدخول
-final loginControllerProvider = StateNotifierProvider<LoginController, LoginState>((ref) {
+final loginControllerProvider = StateNotifierProvider.autoDispose<LoginController, LoginState>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
   final currentUserNotifier = ref.watch(currentUserProvider.notifier);
   return LoginController(authRepository, currentUserNotifier);
