@@ -207,9 +207,10 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
 
   Widget _header(ThemeData theme, bool isDark) {
     final displayCode = _inviteCode.isNotEmpty ? _inviteCode : widget.inviteCode;
+    final canClose = Navigator.canPop(context);
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
@@ -235,15 +236,15 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Colors.orange.shade400, Colors.orange.shade700],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.orange.withValues(alpha: 0.3),
@@ -252,9 +253,9 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                     ),
                   ],
                 ),
-                child: const Icon(Icons.cloud_upload_rounded, size: 26, color: Colors.white),
+                child: const Icon(Icons.cloud_upload_rounded, size: 24, color: Colors.white),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,21 +263,36 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                     Text(
                       'تجديد اشتراك العيادة',
                       style: GoogleFonts.cairo(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: isDark ? Colors.white : AppTheme.textPrimary,
                       ),
                     ),
                     Text(
-                      'اختر الخطة المناسبة للاستمرار في استخدام كافة خدمات العيادة',
+                      'اختر الخطة المناسبة للاستمرار في استخدام كافة الخدمات',
                       style: GoogleFonts.cairo(
-                        fontSize: 12.5,
+                        fontSize: 11.5,
                         color: isDark ? Colors.white70 : AppTheme.textSecondary,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
+              if (canClose) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  tooltip: 'إغلاق',
+                  style: IconButton.styleFrom(
+                    backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06),
+                    foregroundColor: isDark ? Colors.white : Colors.black87,
+                    padding: const EdgeInsets.all(8),
+                  ),
+                ),
+              ],
             ],
           ),
           if (displayCode.isNotEmpty || _isLoadingCode) ...[
@@ -379,9 +395,9 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 1.25,
+            childAspectRatio: MediaQuery.of(context).size.width < 500 ? 1.35 : 1.25,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
           ),
@@ -394,7 +410,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
               borderRadius: BorderRadius.circular(14),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: sel
                       ? AppTheme.primary.withValues(alpha: isDark ? 0.2 : 0.08)
@@ -426,43 +442,49 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                               child: Text(
                                 p['title']!,
                                 style: GoogleFonts.cairo(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                   color: isDark ? Colors.white : AppTheme.textPrimary,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             Icon(
                               sel ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
                               color: sel ? AppTheme.primary : Colors.grey,
-                              size: 19,
+                              size: 17,
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              p['price']!,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                color: AppTheme.primary,
-                                fontFamilyFallback: ['monospace', 'sans-serif'],
+                        const SizedBox(height: 4),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                p['price']!,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppTheme.primary,
+                                  fontFamilyFallback: ['monospace', 'sans-serif'],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'ج.م',
-                              style: GoogleFonts.cairo(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primary,
+                              const SizedBox(width: 3),
+                              Text(
+                                'ج.م',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -622,9 +644,12 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   icon: const Icon(Icons.send_rounded, size: 18),
-                  label: Text(
-                    'إرسال إثبات التحويل عبر واتساب (01090671474)',
-                    style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'إرسال إثبات التحويل عبر واتساب (01090671474)',
+                      style: GoogleFonts.cairo(fontSize: 12.5, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ),
@@ -647,9 +672,12 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
             icon: _isSubmitting
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.verified_rounded, size: 20),
-            label: Text(
-              _isSubmitting ? 'جاري التسجيل...' : 'تأكيد إرسال التحويل / تفعيل الاشتراك',
-              style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold),
+            label: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                _isSubmitting ? 'جاري التسجيل...' : 'تأكيد إرسال التحويل / تفعيل الاشتراك',
+                style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ),
