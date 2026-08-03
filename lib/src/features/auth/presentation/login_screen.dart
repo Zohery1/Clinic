@@ -58,14 +58,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       final loginState = ref.read(loginControllerProvider);
       if (mounted) {
-        if (loginState.isEmailVerificationRequired) {
+        if (loginState.isSuccess) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const AuthGate()),
+            (route) => false,
+          );
+        } else if (loginState.isEmailVerificationRequired) {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => VerifyOtpScreen(email: _emailController.text.trim()),
             ),
           );
-        } else if (loginState.isSuccess) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
         }
       }
     }

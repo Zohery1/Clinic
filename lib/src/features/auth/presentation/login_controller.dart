@@ -48,7 +48,12 @@ class LoginController extends StateNotifier<LoginState> {
       return;
     }
 
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(
+      isLoading: true,
+      errorMessage: null,
+      isEmailVerificationRequired: false,
+      isSuccess: false,
+    );
 
     try {
       // محاولة تسجيل الدخول وجلب الملف الشخصي للمستخدم
@@ -59,7 +64,11 @@ class LoginController extends StateNotifier<LoginState> {
 
       // حفظ بيانات المستخدم الحالي في الـ Provider العام
       _currentUserNotifier.state = userModel;
-      state = state.copyWith(isLoading: false, isSuccess: true);
+      state = state.copyWith(
+        isLoading: false,
+        isSuccess: true,
+        isEmailVerificationRequired: false,
+      );
     } catch (e) {
       final errMsg = e.toString().toLowerCase();
       if (errMsg.contains('email not confirmed') ||
