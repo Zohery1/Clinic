@@ -423,18 +423,31 @@
         <tr>
           <td colspan="7" class="py-12 text-center text-slate-400">
             <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-brand-600"></i>
-            <p class="text-xs font-semibold">جاري تحميل وتحديث بيانات العيادات...</p>
+            <p class="text-xs font-semibold">جاري تحميل وتحديث كافة بيانات العيادات...</p>
           </td>
         </tr>
       `;
 
       try {
-        const { data: clinics, error } = await supabaseClient
-          .from('clinics')
-          .select('*, users(id, full_name, role)')
-          .order('created_at', { ascending: false });
+        let clinics = null;
+        // 1. Try RPC first (Bypasses RLS to return all clinics across all tenants)
+        const { data: rpcData, error: rpcError } = await supabaseClient.rpc('get_all_clinics_for_admin');
 
-        if (error) throw error;
+        if (!rpcError && rpcData) {
+          clinics = rpcData.map(c => ({
+            ...c,
+            doctorName: c.doctor_name || 'غير محدد'
+          }));
+        } else {
+          // 2. Fallback to direct select
+          const { data: tableData, error: tableError } = await supabaseClient
+            .from('clinics')
+            .select('*, users(id, full_name, role)')
+            .order('created_at', { ascending: false });
+
+          if (tableError) throw tableError;
+          clinics = tableData || [];
+        }
 
         allClinics = clinics || [];
         updateKPIStats();
@@ -507,8 +520,8 @@
       const now = new Date();
 
       tbody.innerHTML = clinics.map(clinic => {
-        const doctor = (clinic.users || []).find(u => u.role === 'doctor');
-        const doctorName = doctor ? doctor.full_name : 'غير محدد';
+        const doctorName = clinic.doctorName || 
+          ((clinic.users || []).find(u => u.role === 'doctor')?.full_name || 'غير محدد');
 
         const endDate = clinic.subscription_end_date ? new Date(clinic.subscription_end_date) : null;
         const isExpired = clinic.subscription_status === 'expired' || clinic.subscription_status === 'suspended' || (endDate && endDate < now);
@@ -725,16 +738,25 @@
       const newEndDate = new Date(customDateVal).toISOString();
 
       try {
-        const { error } = await supabaseClient
-          .from('clinics')
-          .update({
-            subscription_end_date: newEndDate,
-            subscription_status: 'active',
-            is_active: true
-          })
-          .eq('id', clinicId);
+        let rpcSuccess = false;
+        const { error: rpcErr } = await supabaseClient.rpc('admin_extend_clinic', {
+          p_clinic_id: clinicId,
+          p_end_date: newEndDate
+        });
 
-        if (error) throw error;
+        if (!rpcErr) {
+          rpcSuccess = true;
+        } else {
+          const { error } = await supabaseClient
+            .from('clinics')
+            .update({
+              subscription_end_date: newEndDate,
+              subscription_status: 'active',
+              is_active: true
+            })
+            .eq('id', clinicId);
+          if (error) throw error;
+        }
 
         closeExtendModal();
         Swal.fire({
@@ -765,18 +787,25 @@
       });
 
       if (confirm.isConfirmed) {
-        const newEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         try {
-          const { error } = await supabaseClient
-            .from('clinics')
-            .update({
-              subscription_status: 'active',
-              is_active: true,
-              subscription_end_date: newEndDate
-            })
-            .eq('id', clinicId);
+          const { error: rpcErr } = await supabaseClient.rpc('admin_activate_clinic', {
+            p_clinic_id: clinicId,
+            p_days: 30
+          });
 
-          if (error) throw error;
+          if (rpcErr) {
+            const newEndDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+            const { error } = await supabaseClient
+              .from('clinics')
+              .update({
+                subscription_status: 'active',
+                is_active: true,
+                subscription_end_date: newEndDate
+              })
+              .eq('id', clinicId);
+
+            if (error) throw error;
+          }
 
           Swal.fire({
             icon: 'success',
@@ -796,15 +825,22 @@
     // Toggle Clinic Active/Suspended
     async function toggleClinicActive(clinicId, newStatus) {
       try {
-        const { error } = await supabaseClient
-          .from('clinics')
-          .update({
-            is_active: newStatus,
-            subscription_status: newStatus ? 'active' : 'suspended'
-          })
-          .eq('id', clinicId);
+        const { error: rpcErr } = await supabaseClient.rpc('admin_toggle_clinic_active', {
+          p_clinic_id: clinicId,
+          p_is_active: newStatus
+        });
 
-        if (error) throw error;
+        if (rpcErr) {
+          const { error } = await supabaseClient
+            .from('clinics')
+            .update({
+              is_active: newStatus,
+              subscription_status: newStatus ? 'active' : 'suspended'
+            })
+            .eq('id', clinicId);
+
+          if (error) throw error;
+        }
 
         Swal.fire({
           icon: 'success',
@@ -834,12 +870,18 @@
 
       if (confirm.isConfirmed) {
         try {
-          const { error } = await supabaseClient
-            .from('clinics')
-            .delete()
-            .eq('id', clinicId);
+          const { error: rpcErr } = await supabaseClient.rpc('admin_delete_clinic', {
+            p_clinic_id: clinicId
+          });
 
-          if (error) throw error;
+          if (rpcErr) {
+            const { error } = await supabaseClient
+              .from('clinics')
+              .delete()
+              .eq('id', clinicId);
+
+            if (error) throw error;
+          }
 
           Swal.fire('تم الحذف', 'تم حذف العيادة بنجاح', 'success');
           loadClinicsData();

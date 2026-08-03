@@ -628,4 +628,97 @@ CREATE TRIGGER audit_patients_changes
   AFTER UPDATE OR DELETE ON public.patients
   FOR EACH ROW EXECUTE FUNCTION public.log_sensitive_action();
 
+-- ==========================================
+-- Super Admin RPC Functions (Bypass RLS for Admin Dashboard)
+-- ==========================================
+
+-- 1. Get All Clinics for Super Admin Dashboard
+CREATE OR REPLACE FUNCTION public.get_all_clinics_for_admin()
+RETURNS TABLE (
+    id uuid,
+    name text,
+    invite_code text,
+    subscription_end_date timestamptz,
+    subscription_status text,
+    is_active boolean,
+    created_at timestamptz,
+    doctor_name text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        c.id,
+        c.name,
+        c.invite_code,
+        c.subscription_end_date,
+        c.subscription_status,
+        c.is_active,
+        c.created_at,
+        coalesce((SELECT u.full_name FROM public.users u WHERE u.clinic_id = c.id AND u.role = 'doctor' LIMIT 1), 'غير محدد') as doctor_name
+    FROM public.clinics c
+    ORDER BY c.created_at DESC;
+END;
+$$;
+
+-- 2. 1-Click Activate Pending Clinic (+30 days)
+CREATE OR REPLACE FUNCTION public.admin_activate_clinic(p_clinic_id uuid, p_days int DEFAULT 30)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    UPDATE public.clinics
+    SET 
+        subscription_status = 'active',
+        is_active = true,
+        subscription_end_date = (now() + (p_days || ' days')::interval)
+    WHERE id = p_clinic_id;
+END;
+$$;
+
+-- 3. Extend Clinic Subscription
+CREATE OR REPLACE FUNCTION public.admin_extend_clinic(p_clinic_id uuid, p_end_date timestamptz)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    UPDATE public.clinics
+    SET 
+        subscription_status = 'active',
+        is_active = true,
+        subscription_end_date = p_end_date
+    WHERE id = p_clinic_id;
+END;
+$$;
+
+-- 4. Toggle Clinic Active / Suspended State
+CREATE OR REPLACE FUNCTION public.admin_toggle_clinic_active(p_clinic_id uuid, p_is_active boolean)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    UPDATE public.clinics
+    SET 
+        is_active = p_is_active,
+        subscription_status = CASE WHEN p_is_active THEN 'active' ELSE 'suspended' END
+    WHERE id = p_clinic_id;
+END;
+$$;
+
+-- 5. Delete Clinic
+CREATE OR REPLACE FUNCTION public.admin_delete_clinic(p_clinic_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    DELETE FROM public.clinics WHERE id = p_clinic_id;
+END;
+$$;
+
 
