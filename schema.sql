@@ -727,6 +727,7 @@ CREATE OR REPLACE FUNCTION public.admin_delete_clinic(p_clinic_id uuid)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, auth
 AS $$
 DECLARE
   v_user_ids uuid[];
@@ -736,15 +737,22 @@ BEGIN
     FROM public.users u
     WHERE u.clinic_id = p_clinic_id;
 
-    -- Delete clinic row (cascades all public tables)
-    DELETE FROM public.clinics WHERE id = p_clinic_id;
-
-    -- Delete associated users from auth.users schema
+    -- Delete associated users from auth.users schema FIRST
     IF v_user_ids IS NOT NULL AND array_length(v_user_ids, 1) > 0 THEN
       DELETE FROM auth.users WHERE id = ANY(v_user_ids);
     END IF;
+
+    -- Delete clinic row (cascades all remaining public tables)
+    DELETE FROM public.clinics WHERE id = p_clinic_id;
 END;
 $$;
+
+GRANT EXECUTE ON FUNCTION public.admin_delete_clinic(uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_all_clinics_for_admin() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_activate_clinic(uuid, int) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_extend_clinic(uuid, timestamptz) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_toggle_clinic_active(uuid, boolean) TO anon, authenticated, service_role;
+
 
 
 
