@@ -231,7 +231,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
               ? _primaryColor
@@ -241,18 +241,21 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
-          child: Directionality(
-            textDirection: TextDirection.ltr,
-            child: Text(
-              slot,
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : isBooked
-                        ? (isDark ? Colors.orange.shade300 : Colors.orange.shade800)
-                        : (isDark ? Colors.white70 : Colors.grey.shade800),
-                fontSize: 11,
-                fontWeight: isSelected || isBooked ? FontWeight.w600 : FontWeight.w500,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Text(
+                slot,
+                style: TextStyle(
+                  color: isSelected
+                      ? Colors.white
+                      : isBooked
+                          ? (isDark ? Colors.orange.shade300 : Colors.orange.shade800)
+                          : (isDark ? Colors.white70 : Colors.grey.shade800),
+                  fontSize: 12,
+                  fontWeight: isSelected || isBooked ? FontWeight.w700 : FontWeight.w500,
+                ),
               ),
             ),
           ),
@@ -699,13 +702,17 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
     }
 
     Widget buildSlotsGrid(List<String> slots) {
+      final isMobile = MediaQuery.of(context).size.width < 600;
+      final cols = isMobile ? 3 : 5;
+      final ratio = isMobile ? 2.6 : 2.2;
+
       return GridView.count(
-        crossAxisCount: 5,
+        crossAxisCount: cols,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         mainAxisSpacing: 6,
         crossAxisSpacing: 6,
-        childAspectRatio: 2.2,
+        childAspectRatio: ratio,
         children: slots.map((slot) => _buildSlotButton(slot, booked)).toList(),
       );
     }

@@ -468,7 +468,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
               ? _primaryColor
@@ -478,18 +478,21 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
-          child: Directionality(
-            textDirection: TextDirection.ltr,
-            child: Text(
-              slot,
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : isBooked
-                        ? (isDark ? Colors.orange.shade300 : Colors.orange.shade800)
-                        : (isDark ? Colors.white70 : Colors.grey.shade800),
-                fontSize: 11,
-                fontWeight: isSelected || isBooked ? FontWeight.w600 : FontWeight.w500,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: Text(
+                slot,
+                style: TextStyle(
+                  color: isSelected
+                      ? Colors.white
+                      : isBooked
+                          ? (isDark ? Colors.orange.shade300 : Colors.orange.shade800)
+                          : (isDark ? Colors.white70 : Colors.grey.shade800),
+                  fontSize: 12,
+                  fontWeight: isSelected || isBooked ? FontWeight.w700 : FontWeight.w500,
+                ),
               ),
             ),
           ),
@@ -962,15 +965,18 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
             Expanded(
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   side: BorderSide(color: _borderCol),
                   backgroundColor: _inputFillCol,
                 ),
-                icon: Icon(Icons.calendar_month_rounded, color: _primaryColor),
-                label: Text(
-                  intl.DateFormat('EEEE، d MMMM yyyy', 'ar').format(_selectedDate),
-                  style: TextStyle(fontWeight: FontWeight.bold, color: _primaryColor, fontSize: 14),
+                icon: Icon(Icons.calendar_month_rounded, color: _primaryColor, size: 20),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    intl.DateFormat('EEEE، d MMMM yyyy', 'ar').format(_selectedDate),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: _primaryColor, fontSize: 13.5),
+                  ),
                 ),
                 onPressed: () async {
                   final DateTime? picked = await showDatePicker(
@@ -1028,13 +1034,17 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
     }
 
     Widget buildSlotsGrid(List<String> slots) {
+      final isMobile = MediaQuery.of(context).size.width < 600;
+      final cols = isMobile ? 3 : 5;
+      final ratio = isMobile ? 2.6 : 2.2;
+
       return GridView.count(
-        crossAxisCount: 5,
+        crossAxisCount: cols,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         mainAxisSpacing: 6,
         crossAxisSpacing: 6,
-        childAspectRatio: 2.2,
+        childAspectRatio: ratio,
         children: slots.map((slot) => _buildSlotButton(slot, booked)).toList(),
       );
     }

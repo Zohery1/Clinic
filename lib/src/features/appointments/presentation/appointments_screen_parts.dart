@@ -851,8 +851,9 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
                                 },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  width: 50,
+                                  width: 56,
                                   margin: const EdgeInsets.only(left: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? AppTheme.primary
@@ -877,14 +878,17 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text(
-                                        dayName,
-                                        style: TextStyle(
-                                          color: isSelected
-                                              ? Colors.white
-                                              : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
+                                      FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          dayName,
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? Colors.white
+                                                : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(height: 2),
