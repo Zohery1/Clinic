@@ -455,6 +455,7 @@ class ClinicFormField extends StatelessWidget {
           minLines: minLines,
           readOnly: readOnly,
           onTap: onTap,
+          onTapOutside: (_) {},
           scrollPadding: const EdgeInsets.all(20.0),
           style: TextStyle(
             fontSize: 14,

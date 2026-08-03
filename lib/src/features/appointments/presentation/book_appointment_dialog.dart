@@ -1340,6 +1340,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
     return TextFormField(
       controller: controller,
       focusNode: focusNode,
+      onTapOutside: (_) {},
       style: TextStyle(color: _textColor, fontSize: 14),
       keyboardType: keyboardType,
       decoration: InputDecoration(
