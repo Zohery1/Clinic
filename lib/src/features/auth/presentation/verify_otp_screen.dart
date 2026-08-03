@@ -4,9 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../main.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/clinic_toast.dart';
 import '../data/auth_repository.dart';
+import 'login_controller.dart';
 
 /// شاشة التحقق من رمز OTP المكون من 6 أرقام عبر الإيميل
 class VerifyOtpScreen extends ConsumerStatefulWidget {
@@ -77,11 +79,15 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     try {
       final authRepo = ref.read(authRepositoryProvider);
       await authRepo.verifyEmailOtp(email: widget.email, token: otp);
+      await ref.read(loginControllerProvider.notifier).tryAutoLogin();
 
       if (mounted) {
         ClinicToast.showSuccess(context, 'تم التحقق من الرمز بنجاح! ⚡');
-        // العودة للبداية ودع بوابة AuthGate تعيد التوجيه أوتوماتيكياً
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        // الانتقال الفوري لبوابة AuthGate التي تفتح شاشة انتظار التفعيل تلقائياً
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+          (route) => false,
+        );
       }
     } catch (e) {
       if (mounted) {
