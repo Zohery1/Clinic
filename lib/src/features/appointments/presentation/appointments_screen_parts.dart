@@ -735,9 +735,10 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
                                 isScrollControlled: true,
                                 backgroundColor: Colors.transparent,
                                 builder: (ctx) => SubscriptionStatusSheet(
-                                  clinicName: user.clinicId ?? 'العيادة',
-                                  clinicId: user.clinicId ?? '',
-                                  inviteCode: '',
+                                  subscriptionEndDate: widget.subscriptionEndDate,
+                                  clinicName: widget.clinicName ?? 'العيادة',
+                                  clinicId: widget.clinicId ?? user.clinicId,
+                                  inviteCode: widget.inviteCode ?? '',
                                 ),
                               );
                             },

@@ -148,7 +148,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 children: [
                   Expanded(
                     child: _currentIndex == 0
-                        ? const AppointmentsScreen()
+                        ? AppointmentsScreen(
+                            subscriptionEndDate: widget.subscriptionEndDate,
+                            inviteCode: widget.inviteCode,
+                            clinicName: widget.clinicName,
+                            clinicId: widget.clinicId,
+                          )
                         : _currentIndex == 1
                             ? const PatientsScreen()
                             : _currentIndex == 2

@@ -21,7 +21,18 @@ import '../../auth/presentation/subscription_status_sheet.dart';
 part 'appointments_screen_parts.dart';
 
 class AppointmentsScreen extends ConsumerStatefulWidget {
-  const AppointmentsScreen({super.key});
+  final DateTime? subscriptionEndDate;
+  final String? inviteCode;
+  final String? clinicName;
+  final String? clinicId;
+
+  const AppointmentsScreen({
+    super.key,
+    this.subscriptionEndDate,
+    this.inviteCode,
+    this.clinicName,
+    this.clinicId,
+  });
 
   @override
   ConsumerState<AppointmentsScreen> createState() => _AppointmentsScreenState();
