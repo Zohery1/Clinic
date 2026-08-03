@@ -366,12 +366,12 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
                   showDialog(
                     context: context,
                     builder: (ctx) => Dialog(
-                      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(20),
                         child: Container(
-                          constraints: const BoxConstraints(maxWidth: 700, maxHeight: 750),
+                          constraints: const BoxConstraints(maxWidth: 650, maxHeight: 680),
                           child: TopUpSubscriptionScreen(
                             clinicName: _clinicName,
                             inviteCode: _inviteCode,
