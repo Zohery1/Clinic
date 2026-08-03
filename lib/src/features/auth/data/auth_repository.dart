@@ -174,4 +174,49 @@ class AuthRepository {
   Future<void> signOut() async {
     await _supabase.auth.signOut();
   }
+
+  // التحقق من رمز OTP المرسل للإيميل (6 أرقام)
+  Future<UserModel?> verifyEmailOtp({
+    required String email,
+    required String token,
+  }) async {
+    try {
+      final AuthResponse response = await _supabase.auth.verifyOTP(
+        email: email,
+        token: token.trim(),
+        type: OtpType.signup,
+      );
+
+      if (response.user != null) {
+        return await getUserProfile(response.user!.id);
+      }
+
+      // تجربة النوع الافتراضي email إذا فشل signup
+      final AuthResponse response2 = await _supabase.auth.verifyOTP(
+        email: email,
+        token: token.trim(),
+        type: OtpType.email,
+      );
+
+      if (response2.user != null) {
+        return await getUserProfile(response2.user!.id);
+      }
+
+      throw Exception('رمز التحقق غير صحيح أو انتهت صلاحيته.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // إعادة إرسال رمز OTP للبريد الإلكتروني
+  Future<void> resendEmailOtp(String email) async {
+    try {
+      await _supabase.auth.resend(
+        email: email,
+        type: OtpType.signup,
+      );
+    } catch (_) {
+      await _supabase.auth.signInWithOtp(email: email);
+    }
+  }
 }
