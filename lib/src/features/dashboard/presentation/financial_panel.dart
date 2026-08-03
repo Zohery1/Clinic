@@ -5,6 +5,7 @@ import 'package:intl/intl.dart' as intl;
 import '../../reports/presentation/reports_controller.dart';
 import '../../appointments/presentation/appointments_controller.dart';
 import '../../appointments/domain/appointment_model.dart';
+import '../../patients/presentation/patient_details_dialog.dart';
 
 /// لوحة الإحصائيات المالية الجانبية للكمبيوتر (1/3 من الداشبورد)
 /// تحتوي على رسم بياني مصغر للإيراد الأسبوعي وجدول المعاملات المالية الأخيرة
@@ -346,14 +347,39 @@ class FinancialPanel extends ConsumerWidget {
         children: [
           Expanded(
             flex: 2,
-            child: Text(
-              appt.patient.fullName,
-              style: GoogleFonts.cairo(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: theme.textTheme.bodyLarge?.color,
+            child: InkWell(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => PatientDetailsDialog(
+                    clinicId: appt.clinicId,
+                    patient: appt.patient,
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      appt.patient.fullName,
+                      style: GoogleFonts.cairo(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.primary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.open_in_new_rounded,
+                    size: 13,
+                    color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                  ),
+                ],
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(

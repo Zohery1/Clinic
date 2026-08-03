@@ -13,6 +13,7 @@ import 'admission_confirmation_sheet.dart';
 import '../edit_appointment_dialog.dart';
 import '../../../../core/widgets/clinic_toast.dart';
 import '../../../dashboard/presentation/notifications_controller.dart';
+import '../../../patients/presentation/patient_details_dialog.dart';
 
 /// بطاقة مريض مبسطة ومخصصة حسب حالته في الطابور
 class QueueCard extends ConsumerWidget {
@@ -96,14 +97,39 @@ class QueueCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                appointment.patient.fullName,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: Theme.of(context).textTheme.titleMedium?.color,
+              InkWell(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => PatientDetailsDialog(
+                      clinicId: clinicId,
+                      patient: appointment.patient,
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        appointment.patient.fullName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.open_in_new_rounded,
+                      size: 13,
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                    ),
+                  ],
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 3),
               Row(

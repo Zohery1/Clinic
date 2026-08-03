@@ -15,6 +15,7 @@ import '../book_appointment_dialog.dart';
 import '../edit_appointment_dialog.dart';
 import 'admission_confirmation_sheet.dart';
 import '../../../dashboard/presentation/notifications_controller.dart';
+import '../../../patients/presentation/patient_details_dialog.dart';
 
 /// الحالات المختلفة لمكان المريض في طابور العيادة
 enum QueueLaneType { waiting, withDoctor, completed, cancelled }
@@ -379,40 +380,72 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
           // 2. المريض وبياناته
           Expanded(
             flex: 3,
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  child: Text(
-                    appt.patient.fullName.trim().substring(0, 1),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
+            child: InkWell(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => PatientDetailsDialog(
+                    clinicId: widget.clinicId,
+                    patient: appt.patient,
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      child: Text(
+                        appt.patient.fullName.trim().substring(0, 1),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        appt.patient.fullName,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
-                        overflow: TextOverflow.ellipsis,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  appt.patient.fullName,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13.5,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.open_in_new_rounded,
+                                size: 13,
+                                color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            appt.patient.phone ?? 'بدون رقم هاتف',
+                            style: TextStyle(fontSize: 11, color: theme.hintColor),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        appt.patient.phone ?? 'بدون رقم هاتف',
-                        style: TextStyle(fontSize: 11, color: theme.hintColor),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
 
