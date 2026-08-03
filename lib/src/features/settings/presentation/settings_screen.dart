@@ -85,7 +85,6 @@ class SettingsScreen extends ConsumerWidget {
 
     final isDoctor = user.role == UserRole.doctor;
     final currentTheme = ref.watch(themeModeProvider);
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
 
     return Directionality(
       textDirection: TextDirection.rtl,

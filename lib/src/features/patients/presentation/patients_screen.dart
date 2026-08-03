@@ -252,7 +252,6 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
     }
 
     final patientsAsync = ref.watch(patientsListProvider(user.clinicId));
-    final patientCount = patientsAsync.value?.length ?? 0;
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
     final fullPatients = patientsAsync.value ?? [];
