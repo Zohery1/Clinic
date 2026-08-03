@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import 'login_controller.dart';
 import 'register_screen.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
+import 'verify_otp_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -56,10 +57,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           );
 
       final loginState = ref.read(loginControllerProvider);
-      if (loginState.isSuccess && mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const DashboardScreen()),
-        );
+      if (mounted) {
+        if (loginState.isEmailVerificationRequired) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => VerifyOtpScreen(email: _emailController.text.trim()),
+            ),
+          );
+        } else if (loginState.isSuccess) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
       }
     }
   }

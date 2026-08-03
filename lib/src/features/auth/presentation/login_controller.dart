@@ -61,10 +61,22 @@ class LoginController extends StateNotifier<LoginState> {
       _currentUserNotifier.state = userModel;
       state = state.copyWith(isLoading: false, isSuccess: true);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'فشل تسجيل الدخول: يرجى التحقق من صحة البيانات أو الاتصال بالإنترنت.',
-      );
+      final errMsg = e.toString().toLowerCase();
+      if (errMsg.contains('email not confirmed') ||
+          errMsg.contains('email_not_confirmed') ||
+          errMsg.contains('unconfirmed')) {
+        state = state.copyWith(
+          isLoading: false,
+          isSuccess: false,
+          isEmailVerificationRequired: true,
+          errorMessage: null,
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'فشل تسجيل الدخول: يرجى التحقق من صحة البيانات أو الاتصال بالإنترنت.',
+        );
+      }
     }
   }
 
