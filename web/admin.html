@@ -368,6 +368,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let allClinics = [];
+    let realtimeChannel = null;
 
     // On Load Check Auth
     window.addEventListener('DOMContentLoaded', () => {
@@ -387,7 +388,7 @@
         Swal.fire({
           icon: 'success',
           title: 'مرحباً بك!',
-          text: 'تم تسجل الدخول إلى لوحة الإدارة بنجاح',
+          text: 'تم تسجيل الدخول إلى لوحة الإدارة بنجاح',
           timer: 1500,
           showConfirmButton: false,
         });
@@ -407,36 +408,76 @@
       document.getElementById('mainDashboard').classList.remove('hidden');
       document.getElementById('mainDashboard').classList.add('flex');
       loadClinicsData();
+      initRealtimeSubscription();
     }
 
     function handleLogout() {
+      if (realtimeChannel) {
+        supabaseClient.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+      }
       sessionStorage.removeItem('eyadaty_admin_auth');
       document.getElementById('mainDashboard').classList.add('hidden');
       document.getElementById('mainDashboard').classList.remove('flex');
       document.getElementById('loginModal').classList.remove('hidden');
     }
 
+    // Initialize Supabase Realtime Stream for Instant Dashboard Sync
+    function initRealtimeSubscription() {
+      if (realtimeChannel) return;
+
+      realtimeChannel = supabaseClient
+        .channel('admin-dashboard-realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'clinics' },
+          (payload) => {
+            console.log('Realtime update received on clinics:', payload);
+            
+            if (payload.eventType === 'INSERT') {
+              Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: '⚡ عيادة جديدة سجلت الآن!',
+                text: `اسم العيادة: ${payload.new.name}`,
+                showConfirmButton: false,
+                timer: 4000
+              });
+            }
+            
+            loadClinicsData();
+          }
+        )
+        .subscribe();
+    }
+
     // Load Clinics & Stats from Supabase
     async function loadClinicsData() {
       const tbody = document.getElementById('clinicsTableBody');
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="7" class="py-12 text-center text-slate-400">
-            <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-brand-600"></i>
-            <p class="text-xs font-semibold">جاري تحميل وتحديث كافة بيانات العيادات...</p>
-          </td>
-        </tr>
-      `;
+      if (allClinics.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-12 text-center text-slate-400">
+              <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-brand-600"></i>
+              <p class="text-xs font-semibold">جاري تحميل وتحديث كافة بيانات العيادات بالوقت الفعلي...</p>
+            </td>
+          </tr>
+        `;
+      }
 
       try {
         let clinics = null;
-        // 1. Try RPC first (Bypasses RLS to return all clinics across all tenants)
+        // 1. Try RPC first (Bypasses RLS to return all clinics + doctor emails + counts)
         const { data: rpcData, error: rpcError } = await supabaseClient.rpc('get_all_clinics_for_admin');
 
         if (!rpcError && rpcData) {
           clinics = rpcData.map(c => ({
             ...c,
-            doctorName: c.doctor_name || 'غير محدد'
+            doctorName: c.doctor_name || 'غير محدد',
+            doctorEmail: c.doctor_email || '',
+            patientCount: c.patient_count || 0,
+            appointmentCount: c.appointment_count || 0
           }));
         } else {
           // 2. Fallback to direct select
@@ -451,7 +492,7 @@
 
         allClinics = clinics || [];
         updateKPIStats();
-        renderClinicsTable(allClinics);
+        filterClinics();
       } catch (err) {
         console.error('Error loading clinics:', err);
         tbody.innerHTML = `
@@ -476,7 +517,11 @@
       const now = new Date();
 
       allClinics.forEach(c => {
-        if (c.users) totalUsersCount += c.users.length;
+        if (c.users) {
+          totalUsersCount += c.users.length;
+        } else {
+          totalUsersCount += 1;
+        }
 
         if (c.subscription_status === 'pending_activation') {
           pending++;
@@ -522,6 +567,8 @@
       tbody.innerHTML = clinics.map(clinic => {
         const doctorName = clinic.doctorName || 
           ((clinic.users || []).find(u => u.role === 'doctor')?.full_name || 'غير محدد');
+
+        const doctorEmail = clinic.doctorEmail || '';
 
         const endDate = clinic.subscription_end_date ? new Date(clinic.subscription_end_date) : null;
         const isExpired = clinic.subscription_status === 'expired' || clinic.subscription_status === 'suspended' || (endDate && endDate < now);
@@ -581,7 +628,8 @@
                     <span>${clinic.name}</span>
                     ${isPending ? '<span class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-black">جديدة</span>' : ''}
                   </div>
-                  <div class="text-[11px] font-semibold text-slate-400">د/ ${doctorName}</div>
+                  <div class="text-[11px] font-semibold text-slate-400">د/ ${doctorName} ${doctorEmail ? `<span class="text-slate-400">(${doctorEmail})</span>` : ''}</div>
+                  <div class="text-[10px] text-slate-400 mt-0.5">مرضى: <span class="font-bold text-slate-600">${clinic.patientCount || 0}</span> | حجوزات: <span class="font-bold text-slate-600">${clinic.appointmentCount || 0}</span></div>
                 </div>
               </div>
             </td>
@@ -639,7 +687,7 @@
                 </button>
 
                 <!-- Delete Button -->
-                <button onclick="deleteClinic('${clinic.id}', '${clinic.name}')" title="حذف العيادة"
+                <button onclick="deleteClinic('${clinic.id}', '${clinic.name}')" title="حذف العيادة وكافة مستخدميها نهائياً"
                   class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
                   <i class="fa-solid fa-trash-can text-sm"></i>
                 </button>
@@ -652,14 +700,19 @@
 
     // Filter Clinics Function
     function filterClinics() {
-      const search = document.getElementById('searchInput').value.trim().toLowerCase();
-      const status = document.getElementById('statusFilter').value;
+      const searchInput = document.getElementById('searchInput');
+      const statusSelect = document.getElementById('statusFilter');
+      const search = searchInput ? searchInput.value.trim().toLowerCase() : '';
+      const status = statusSelect ? statusSelect.value : 'all';
       const now = new Date();
 
       const filtered = allClinics.filter(c => {
         // Search Filter
+        const doctorEmail = c.doctorEmail ? c.doctorEmail.toLowerCase() : '';
         const matchesSearch = c.name.toLowerCase().includes(search) || 
-          (c.invite_code && c.invite_code.toLowerCase().includes(search));
+          (c.invite_code && c.invite_code.toLowerCase().includes(search)) ||
+          (c.doctorName && c.doctorName.toLowerCase().includes(search)) ||
+          doctorEmail.includes(search);
 
         if (!matchesSearch) return false;
 
@@ -855,16 +908,16 @@
       }
     }
 
-    // Delete Clinic
+    // Delete Clinic (Cascades all data AND deletes associated auth.users accounts)
     async function deleteClinic(clinicId, clinicName) {
       const confirm = await Swal.fire({
-        title: `حذف عيادة "${clinicName}"؟`,
-        text: 'تنبيه هام: هذا الإجراء سيقوم بحذف العيادة وكافة المواعيد والمرضى المرتبطين بها نهائياً!',
+        title: `حذف عيادة "${clinicName}" ومستخدميها نهائياً؟`,
+        text: 'تنبيه هام جداً: هذا الإجراء سيقوم بحذف العيادة وكافة أطبائها وسكرتاريتها من قاعدة البيانات وحسابات Supabase Auth تماماً ولن يمكنك التراجع عن هذا الإجراء!',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#DC2626',
         cancelButtonColor: '#64748B',
-        confirmButtonText: 'نعم، مسح العيادة',
+        confirmButtonText: 'نعم، مسح العيادة ومستخدميها نهائياً',
         cancelButtonText: 'إلغاء'
       });
 
@@ -875,6 +928,7 @@
           });
 
           if (rpcErr) {
+            console.warn('RPC admin_delete_clinic failed, attempting fallback table delete:', rpcErr);
             const { error } = await supabaseClient
               .from('clinics')
               .delete()
@@ -883,7 +937,14 @@
             if (error) throw error;
           }
 
-          Swal.fire('تم الحذف', 'تم حذف العيادة بنجاح', 'success');
+          Swal.fire({
+            icon: 'success',
+            title: 'تم الحذف النهائي 🗑️',
+            text: `تم حذف عيادة "${clinicName}" وكافة مستخدميها وبياناتها بنجاح`,
+            timer: 2000,
+            showConfirmButton: false
+          });
+
           loadClinicsData();
         } catch (err) {
           Swal.fire('خطأ أثناء الحذف', err.message, 'error');
