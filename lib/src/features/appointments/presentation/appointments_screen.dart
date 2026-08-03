@@ -14,7 +14,7 @@ import 'book_appointment_dialog.dart';
 import 'widgets/queue_board.dart';
 import 'widgets/queue_card.dart';
 import '../../dashboard/presentation/notifications_controller.dart';
-import '../../auth/presentation/top_up_subscription_screen.dart';
+import '../../auth/presentation/subscription_status_sheet.dart';
 
 /// شاشة المواعيد — مطابقة لتصميم Stitch
 /// شريط أيام أفقي + بطاقات مواعيد بتأثير waterfall

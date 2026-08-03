@@ -730,25 +730,14 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
                           borderRadius: BorderRadius.circular(8),
                           child: InkWell(
                             onTap: () {
-                              showDialog(
+                              showModalBottomSheet(
                                 context: context,
-                                builder: (ctx) => Dialog(
-                                  insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(24),
-                                    child: Container(
-                                      constraints: const BoxConstraints(maxWidth: 700, maxHeight: 750),
-                                      child: TopUpSubscriptionScreen(
-                                        clinicName: user.clinicId ?? 'العيادة',
-                                        inviteCode: '',
-                                        clinicId: user.clinicId ?? '',
-                                        onRefresh: () {
-                                          Navigator.of(ctx).pop();
-                                        },
-                                      ),
-                                    ),
-                                  ),
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (ctx) => SubscriptionStatusSheet(
+                                  clinicName: user.clinicId ?? 'العيادة',
+                                  clinicId: user.clinicId ?? '',
+                                  inviteCode: '',
                                 ),
                               );
                             },
