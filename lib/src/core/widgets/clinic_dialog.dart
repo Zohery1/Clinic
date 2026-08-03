@@ -88,17 +88,14 @@ class ClinicDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconBg = (iconColor ?? Theme.of(context).colorScheme.primary).withValues(alpha: 0.12);
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final isMobile = MediaQuery.of(context).size.width < 650;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: Theme.of(context).colorScheme.surface,
-      insetPadding: EdgeInsets.only(
-        left: isMobile ? 12 : 24,
-        right: isMobile ? 12 : 24,
-        top: isMobile ? 16 : 32,
-        bottom: bottomInset > 0 ? bottomInset + 12 : (isMobile ? 16 : 32),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 24,
+        vertical: isMobile ? 12 : 24,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
@@ -108,12 +105,17 @@ class ClinicDialog extends StatelessWidget {
           children: [
             // ─── Header ───
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 16, 16),
+              padding: EdgeInsets.fromLTRB(
+                isMobile ? 14 : 20,
+                isMobile ? 12 : 20,
+                isMobile ? 12 : 16,
+                isMobile ? 8 : 16,
+              ),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
                       color: iconBg,
                       borderRadius: BorderRadius.circular(8),
@@ -121,18 +123,19 @@ class ClinicDialog extends StatelessWidget {
                     child: Icon(
                       icon,
                       color: iconColor ?? Theme.of(context).colorScheme.primary,
-                      size: 20,
+                      size: isMobile ? 18 : 20,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           title,
                           style: GoogleFonts.cairo(
-                            fontSize: 16,
+                            fontSize: isMobile ? 14.5 : 16,
                             fontWeight: FontWeight.w700,
                             color: Theme.of(context).textTheme.titleLarge?.color,
                           ),
@@ -141,7 +144,7 @@ class ClinicDialog extends StatelessWidget {
                           Text(
                             subtitle!,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.8),
                             ),
                           ),
@@ -152,8 +155,8 @@ class ClinicDialog extends StatelessWidget {
                     onTap: () => Navigator.pop(context),
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
-                      width: 28,
-                      height: 28,
+                      width: 26,
+                      height: 26,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         boxShadow: [
@@ -177,7 +180,12 @@ class ClinicDialog extends StatelessWidget {
             Flexible(
               child: SingleChildScrollView(
                 keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                padding: EdgeInsets.fromLTRB(
+                  isMobile ? 14 : 20,
+                  isMobile ? 10 : 16,
+                  isMobile ? 14 : 20,
+                  isMobile ? 6 : 8,
+                ),
                 child: content,
               ),
             ),
@@ -185,12 +193,17 @@ class ClinicDialog extends StatelessWidget {
             if (actions.isNotEmpty) ...[
               const SizedBox(height: 1),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                padding: EdgeInsets.fromLTRB(
+                  isMobile ? 14 : 20,
+                  isMobile ? 8 : 12,
+                  isMobile ? 14 : 20,
+                  isMobile ? 10 : 16,
+                ),
                 child: Theme(
                   data: Theme.of(context).copyWith(
                     elevatedButtonTheme: ElevatedButtonThemeData(
                       style: Theme.of(context).elevatedButtonTheme.style?.copyWith(
-                        minimumSize: WidgetStateProperty.all(const Size(80, 40)),
+                        minimumSize: WidgetStateProperty.all(Size(80, isMobile ? 36 : 40)),
                       ),
                     ),
                   ),
@@ -442,7 +455,7 @@ class ClinicFormField extends StatelessWidget {
           minLines: minLines,
           readOnly: readOnly,
           onTap: onTap,
-          scrollPadding: const EdgeInsets.only(bottom: 140),
+          scrollPadding: const EdgeInsets.all(20.0),
           style: TextStyle(
             fontSize: 14,
             color: Theme.of(context).textTheme.bodyLarge?.color,
