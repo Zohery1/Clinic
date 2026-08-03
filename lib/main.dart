@@ -64,8 +64,8 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   String _inviteCode = '';
   String _clinicId = '';
   DateTime? _subscriptionEndDate;
-  String _subscriptionStatus = 'active'; // 'active', 'pending_activation', 'expired', 'suspended'
-  bool _isClinicActive = true;
+  String _subscriptionStatus = 'pending_activation'; // 'active', 'pending_activation', 'expired', 'suspended'
+  bool _isClinicActive = false;
 
   late final StreamSubscription<AuthState> _authSubscription;
   StreamSubscription<List<Map<String, dynamic>>>? _clinicStreamSubscription;

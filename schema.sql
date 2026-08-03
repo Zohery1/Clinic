@@ -39,9 +39,9 @@ CREATE TABLE public.clinics (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL,
     invite_code text UNIQUE NOT NULL DEFAULT substring(md5(random()::text) from 1 for 6), -- كود دعوة عشوائي مكون من 6 رموز
-    subscription_end_date timestamptz NOT NULL DEFAULT (now() + interval '30 days'), -- 30-day default trial
-    subscription_status text NOT NULL DEFAULT 'active' CHECK (subscription_status IN ('active', 'pending_activation', 'expired', 'suspended')),
-    is_active boolean NOT NULL DEFAULT true,
+    subscription_end_date timestamptz NOT NULL DEFAULT now(), -- Bounded to zero until admin activates
+    subscription_status text NOT NULL DEFAULT 'pending_activation' CHECK (subscription_status IN ('active', 'pending_activation', 'expired', 'suspended')),
+    is_active boolean NOT NULL DEFAULT false,
     whatsapp_enabled boolean NOT NULL DEFAULT false,
     whatsapp_phone text,
     whatsapp_instance_name text,
@@ -642,7 +642,10 @@ RETURNS TABLE (
     subscription_status text,
     is_active boolean,
     created_at timestamptz,
-    doctor_name text
+    doctor_name text,
+    doctor_email text,
+    patient_count bigint,
+    appointment_count bigint
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -657,7 +660,16 @@ BEGIN
         c.subscription_status,
         c.is_active,
         c.created_at,
-        coalesce((SELECT u.full_name FROM public.users u WHERE u.clinic_id = c.id AND u.role = 'doctor' LIMIT 1), 'غير محدد') as doctor_name
+        coalesce((SELECT u.full_name FROM public.users u WHERE u.clinic_id = c.id AND u.role = 'doctor' LIMIT 1), 'غير محدد') as doctor_name,
+        coalesce((
+          SELECT au.email::text 
+          FROM public.users u 
+          JOIN auth.users au ON au.id = u.id 
+          WHERE u.clinic_id = c.id AND u.role = 'doctor' 
+          LIMIT 1
+        ), '') as doctor_email,
+        (SELECT count(*) FROM public.patients p WHERE p.clinic_id = c.id) as patient_count,
+        (SELECT count(*) FROM public.appointments a WHERE a.clinic_id = c.id) as appointment_count
     FROM public.clinics c
     ORDER BY c.created_at DESC;
 END;
@@ -710,22 +722,29 @@ BEGIN
 END;
 $$;
 
--- 5. Delete Clinic (Cleanly purges Auth Users + All Clinic Data)
+-- 5. Delete Clinic (Cascades all data AND deletes associated auth.users accounts)
 CREATE OR REPLACE FUNCTION public.admin_delete_clinic(p_clinic_id uuid)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
+DECLARE
+  v_user_ids uuid[];
 BEGIN
-    -- 1. Delete all user accounts associated with this clinic from auth.users
-    DELETE FROM auth.users 
-    WHERE id IN (
-        SELECT id FROM public.users WHERE clinic_id = p_clinic_id
-    );
+    -- Extract all user IDs linked to this clinic
+    SELECT array_agg(u.id) INTO v_user_ids
+    FROM public.users u
+    WHERE u.clinic_id = p_clinic_id;
 
-    -- 2. Delete the clinic (cascades to all patients, appointments, services, notes, etc.)
+    -- Delete clinic row (cascades all public tables)
     DELETE FROM public.clinics WHERE id = p_clinic_id;
+
+    -- Delete associated users from auth.users schema
+    IF v_user_ids IS NOT NULL AND array_length(v_user_ids, 1) > 0 THEN
+      DELETE FROM auth.users WHERE id = ANY(v_user_ids);
+    END IF;
 END;
 $$;
+
 
 
