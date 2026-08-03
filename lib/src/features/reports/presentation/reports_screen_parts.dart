@@ -14,8 +14,8 @@ extension ReportsScreenParts on _ReportsScreenState {
         int filterTypeIndex = 0; // 0 for Days, 1 for Months
         int subTypeIndex = 0;    // 0 for Single, 1 for Range
         DateTime localSingleDay = DateTime.now();
-        DateTime localRangeStart = _startDate;
-        DateTime localRangeEnd = _endDate;
+        DateTime localRangeStart = DateTime.now();
+        DateTime localRangeEnd = DateTime.now();
 
         int localSingleMonth = DateTime.now().month;
         int localSingleYear = DateTime.now().year;
@@ -283,9 +283,10 @@ extension ReportsScreenParts on _ReportsScreenState {
                           onTap: () async {
                             final picked = await showDateRangePicker(
                               context: context,
-                              firstDate: DateTime(2025),
-                              lastDate: DateTime.now(),
+                              firstDate: DateTime(2024),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
                               initialDateRange: DateTimeRange(start: localRangeStart, end: localRangeEnd),
+                              currentDate: DateTime.now(),
                             );
                             if (picked != null) {
                               setDialogState(() {
