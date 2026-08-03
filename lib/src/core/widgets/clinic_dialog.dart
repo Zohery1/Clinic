@@ -88,11 +88,18 @@ class ClinicDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconBg = (iconColor ?? Theme.of(context).colorScheme.primary).withValues(alpha: 0.12);
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final isMobile = MediaQuery.of(context).size.width < 650;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: Theme.of(context).colorScheme.surface,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      insetPadding: EdgeInsets.only(
+        left: isMobile ? 12 : 24,
+        right: isMobile ? 12 : 24,
+        top: isMobile ? 16 : 32,
+        bottom: bottomInset > 0 ? bottomInset + 12 : (isMobile ? 16 : 32),
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: Column(
@@ -169,6 +176,7 @@ class ClinicDialog extends StatelessWidget {
             // ─── Content ───
             Flexible(
               child: SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                 child: content,
               ),
@@ -434,6 +442,7 @@ class ClinicFormField extends StatelessWidget {
           minLines: minLines,
           readOnly: readOnly,
           onTap: onTap,
+          scrollPadding: const EdgeInsets.only(bottom: 140),
           style: TextStyle(
             fontSize: 14,
             color: Theme.of(context).textTheme.bodyLarge?.color,

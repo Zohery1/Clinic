@@ -216,7 +216,7 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
           child: isMobile
               ? Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: [...col1, const SizedBox(height: 14), ...col2],
+                  children: [...col1, const SizedBox(height: 14), ...col2, const SizedBox(height: 30)],
                 )
               : Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
