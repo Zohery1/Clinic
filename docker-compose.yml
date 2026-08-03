@@ -1,83 +1,112 @@
 version: '3.8'
 
 services:
-  # 1. قاعدة بيانات خاصة بـ Evolution API لحفظ اتصالات الواتساب والجلسات بشكل دائم
+  # 1. قاعدة بيانات Evolution API
   db_evo:
     image: postgres:15-alpine
     container_name: clinic_db_evo
     restart: always
+    command: postgres -c max_connections=300 -c shared_buffers=128MB
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pgdata_evo:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - clinic-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # 2. خادم Redis لتحسين الأداء وتسريع استجابة الجلسات ومجموعات الرسائل
+  # 2. Redis للكاش
   redis_evo:
     image: redis:7-alpine
     container_name: clinic_redis_evo
     restart: always
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru --maxclients 10000
     volumes:
       - redisdata_evo:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - clinic-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # 3. بوابة الواتساب المجانية السريعة (Evolution API)
+  # 3. Evolution API (Back-end)
   evolution_api:
     image: evoapicloud/evolution-api:latest
     container_name: clinic_evolution_api
     restart: always
     ports:
-      - "${EVO_PORT}:8080"
+      - "8081:8080"
     environment:
       - SERVER_URL=${EVO_SERVER_URL}
       - SERVER_PORT=8080
+      - AUTHENTICATION_TYPE=apikey
       - AUTHENTICATION_API_KEY=${EVO_API_KEY}
-      # ربط البوابة بقاعدة بيانات PostgreSQL
       - DATABASE_ENABLED=true
-      - DATABASE_CONNECTION_CLIENT=pg
-      - DATABASE_CONNECTION_HOST=db_evo
-      - DATABASE_CONNECTION_PORT=5432
-      - DATABASE_CONNECTION_USER=${POSTGRES_USER}
-      - DATABASE_CONNECTION_PASSWORD=${POSTGRES_PASSWORD}
-      - DATABASE_CONNECTION_DATABASE=${POSTGRES_DB}
-      # ربط البوابة بكاش Redis لتخزين الحالات المؤقتة
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_evo:5432/${POSTGRES_DB}?schema=public
       - CACHE_REDIS_ENABLED=true
       - CACHE_REDIS_HOST=redis_evo
       - CACHE_REDIS_PORT=6379
       - CACHE_REDIS_PASSWORD=${REDIS_PASSWORD}
-      # إعدادات النوم التلقائي للجلسات (Auto-sleep) لتوفير الرام
-      - INSTANCE_AUTO_CLOSE=${INSTANCE_AUTO_CLOSE}
-      - INSTANCE_AUTO_CLOSE_INTERVAL=${INSTANCE_AUTO_CLOSE_INTERVAL}
-      - INSTANCE_AUTO_HELPER_CLEANUP=${INSTANCE_AUTO_HELPER_CLEANUP}
+      - INSTANCE_AUTO_CLOSE=true
+      - INSTANCE_AUTO_CLOSE_INTERVAL=5
+      - INSTANCE_AUTO_HELPER_CLEANUP=true
+      - CORS_ORIGIN=https://eyadaty.vercel.app,*
+      - CORS_METHODS=GET,POST,PUT,DELETE,OPTIONS
+      - CORS_CREDENTIALS=true
+      - DEL_INSTANCE=true
+      - WEBHOOK_GLOBAL_ENABLED=false
+      - WEBHOOK_EVENTS_GROUPS=false
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=false
+      - WEBHOOK_EVENTS_MESSAGES_SET=false
+      - REJECT_CALLS=false
+      - CONFIG_SESSION_PHONE_CLIENT_NAME=Eyadaty Clinic
     depends_on:
-      - db_evo
-      - redis_evo
+      db_evo:
+        condition: service_healthy
+      redis_evo:
+        condition: service_healthy
     volumes:
       - evo_instances:/evolution/instances
     networks:
       - clinic-network
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # 4. محرك الأتمتة n8n لإدارة التدفقات والرسائل التلقائية
+  # 4. محرك الأتمتة n8n
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
     container_name: clinic_n8n
@@ -87,18 +116,22 @@ services:
     environment:
       - N8N_HOST=${N8N_DOMAIN}
       - N8N_PORT=5678
-      - N8N_PROTOCOL=https
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
       - NODE_ENV=production
-      - WEBHOOK_URL=https://${N8N_DOMAIN}/
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://${N8N_DOMAIN}:${N8N_PORT}/}
       - GENERIC_TIMEZONE=${TIMEZONE}
-      # إعدادات التنظيف التلقائي لسجلات تشغيل الأتمتة لمنع امتلاء الهارد
       - EXECUTIONS_DATA_PRUNE=${EXECUTIONS_DATA_PRUNE}
       - EXECUTIONS_DATA_MAX_AGE=${EXECUTIONS_DATA_MAX_AGE}
       - EXECUTIONS_DATA_PRUNE_TIMEOUT=${EXECUTIONS_DATA_PRUNE_TIMEOUT}
+      - EXECUTIONS_PROCESS=main
     volumes:
       - n8n_data:/home/node/.n8n
     networks:
       - clinic-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     logging:
       driver: "json-file"
       options:
