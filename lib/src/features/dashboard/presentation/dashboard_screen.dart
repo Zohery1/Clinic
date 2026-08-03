@@ -146,7 +146,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               )
             : Column(
                 children: [
-                  _buildMobileTopBar(user),
                   Expanded(
                     child: _currentIndex == 0
                         ? const AppointmentsScreen()
@@ -412,102 +411,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildMobileTopBar(dynamic user) {
-    final theme = Theme.of(context);
-    final notificationsState = ref.watch(notificationsProvider);
-    final unreadCount = notificationsState.notifications.where((n) => !n.isRead).length;
-
-    final isExpiringSoon = widget.subscriptionEndDate != null &&
-        widget.subscriptionEndDate!.isAfter(DateTime.now()) &&
-        widget.subscriptionEndDate!.difference(DateTime.now()).inHours <= 48;
-
-    return SafeArea(
-      bottom: false,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        child: Row(
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.local_hospital_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  widget.clinicName ?? 'عيادتي',
-                  style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    color: theme.textTheme.titleMedium?.color,
-                  ),
-                ),
-              ],
-            ),
-
-            const Spacer(),
-
-            if (isExpiringSoon) ...[
-              Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-                child: InkWell(
-                  onTap: _openRenewModal,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF7ED),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFEA580C).withValues(alpha: 0.4)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.orange.withValues(alpha: 0.1),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.flash_on_rounded, size: 14, color: Color(0xFFEA580C)),
-                        const SizedBox(width: 4),
-                        Text(
-                          'تجديد ⚡',
-                          style: GoogleFonts.cairo(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFFEA580C),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-
-            _buildHeaderIconButton(
-              Icons.notifications_none_rounded,
-              badge: unreadCount > 0,
-              onTap: () => _showNotificationsDialog(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // ═══════════════════════════════════════════════
+  // ─── Top Header Bar — SaaS Layout ───
+  // ═══════════════════════════════════════════════
 
   // ═══════════════════════════════════════════════
   // ─── Top Header Bar — SaaS Layout ───

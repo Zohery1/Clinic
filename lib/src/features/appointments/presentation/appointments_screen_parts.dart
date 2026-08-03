@@ -724,6 +724,59 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
                             ],
                           ),
                         ),
+                        // Orange Receipt / Invoice Top-Up Button (فاتورة الاشتراك)
+                        Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => Dialog(
+                                  insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(24),
+                                    child: Container(
+                                      constraints: const BoxConstraints(maxWidth: 700, maxHeight: 750),
+                                      child: TopUpSubscriptionScreen(
+                                        clinicName: user.clinicId ?? 'العيادة',
+                                        inviteCode: '',
+                                        clinicId: user.clinicId ?? '',
+                                        onRefresh: () {
+                                          Navigator.of(ctx).pop();
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: 38,
+                              height: 38,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF7ED),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFEA580C).withValues(alpha: 0.4)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.orange.withValues(alpha: 0.08),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.receipt_long_rounded,
+                                color: Color(0xFFEA580C),
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         // Bell notification button for mobile
                         Stack(
