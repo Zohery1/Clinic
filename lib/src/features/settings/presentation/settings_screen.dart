@@ -91,12 +91,7 @@ class SettingsScreen extends ConsumerWidget {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: isDesktop
-            ? null
-            : AppBar(
-                title: const Text('الإعدادات العامة'),
-                elevation: 0,
-              ),
+        appBar: null,
         body: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [

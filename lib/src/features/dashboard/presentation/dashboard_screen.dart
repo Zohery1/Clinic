@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -39,6 +40,24 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _currentIndex = 0;
+  Timer? _expirationTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // مؤقت فوري كل ثانية لإعادة التقييم لحظياً ومنع التخطي عند انتهاء الاشتراك
+    _expirationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _expirationTimer?.cancel();
+    super.dispose();
+  }
 
   void _openRenewModal() {
     showDialog(
@@ -56,6 +75,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               clinicId: widget.clinicId ?? '',
               onRefresh: () {
                 Navigator.of(ctx).pop();
+                setState(() {});
               },
             ),
           ),
@@ -68,6 +88,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     // تفعيل الاستماع الفوري لتغييرات المواعيد عبر الأجهزة المختلفة
     ref.watch(realtimeAppointmentsSyncProvider);
+
+    // إذا انتهى تاريخ الاشتراك، يتم التحويل فوراً للشاشة الكاملة للتجديد ومحو الوصول لأي تاب
+    final isExpired = widget.subscriptionEndDate != null &&
+        widget.subscriptionEndDate!.isBefore(DateTime.now());
+
+    if (isExpired) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: TopUpSubscriptionScreen(
+            clinicName: widget.clinicName ?? 'العيادة',
+            inviteCode: widget.inviteCode ?? '',
+            clinicId: widget.clinicId ?? '',
+            onRefresh: () {
+              setState(() {});
+            },
+          ),
+        ),
+      );
+    }
 
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     final user = ref.watch(currentUserProvider);

@@ -69,11 +69,17 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
   late final StreamSubscription<AuthState> _authSubscription;
   StreamSubscription<List<Map<String, dynamic>>>? _clinicStreamSubscription;
+  Timer? _liveClockTimer;
 
   @override
   void initState() {
     super.initState();
     _checkInitialSession();
+    _liveClockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _isLoggedIn) {
+        setState(() {});
+      }
+    });
     _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       final session = data.session;
       if (session != null) {
@@ -101,6 +107,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
   @override
   void dispose() {
+    _liveClockTimer?.cancel();
     _authSubscription.cancel();
     _clinicStreamSubscription?.cancel();
     super.dispose();

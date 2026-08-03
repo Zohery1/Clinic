@@ -150,9 +150,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             )
           : Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              appBar: AppBar(
-                title: const Text('التقارير المالية والتحليلات'),
-              ),
+              appBar: null,
               body: _buildFinancialAnalyticsTab(
                 todayRevenueAsync,
                 monthRevenueAsync,

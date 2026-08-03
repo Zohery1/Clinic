@@ -276,32 +276,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: isDesktop
-            ? null
-            : AppBar(
-                title: Row(
-                  children: [
-                    const Text('المرضى'),
-                    const SizedBox(width: 10),
-                    if (patientCount > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryLight,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          patientCount.toString(),
-                          style: const TextStyle(
-                            color: AppTheme.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+        appBar: null,
         body: LayoutBuilder(
           builder: (context, constraints) {
             final isDesktopWidth = constraints.maxWidth >= 900;
