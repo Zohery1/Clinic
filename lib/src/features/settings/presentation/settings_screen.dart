@@ -1879,7 +1879,6 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
             .update({
               'whatsapp_enabled': _whatsappEnabled,
               'whatsapp_phone': _whatsappPhoneController.text.trim(),
-              'whatsapp_instance_name': _whatsappInstanceNameController.text.trim(),
               'whatsapp_status': _whatsappStatus,
               'send_booking_message': _sendBookingMessage,
               'send_reminder_message': _sendReminderMessage,
@@ -1958,43 +1957,6 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                   String? fetchedQr;
                   String? fetchedPairing;
 
-                  // 1. Check if instance is already connected!
-                  final instanceData = data['instance'] as Map<String, dynamic>?;
-                  final state = instanceData?['state'] as String? ?? data['state'] as String?;
-
-                  if (state == 'open' || state == 'connecting') {
-                    final user = ref.read(currentUserProvider);
-                    setState(() {
-                      _whatsappStatus = 'connected';
-                      _whatsappEnabled = true;
-                      _whatsappInstanceNameController.text = instanceName;
-                    });
-
-                    if (user != null) {
-                      await Supabase.instance.client
-                          .from('clinics')
-                          .update({
-                            'whatsapp_status': 'connected',
-                            'whatsapp_enabled': true,
-                            'whatsapp_instance_name': instanceName,
-                          })
-                          .eq('id', user.clinicId);
-                    }
-
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                        const SnackBar(
-                          duration: Duration(seconds: 3),
-                          content: Text('حساب الواتساب متصل بالفعل ومفعل للإرسال التلقائي ✅'),
-                          backgroundColor: AppTheme.success,
-                        ),
-                      );
-                    }
-                    return;
-                  }
-
-                  // 2. Parse QR base64 / Pairing code if not connected yet
                   if (data['base64'] != null) {
                     fetchedQr = data['base64'] as String;
                   } else if (data['code'] != null) {
@@ -2215,7 +2177,6 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                             .update({
                               'whatsapp_status': 'connected',
                               'whatsapp_enabled': true,
-                              'whatsapp_instance_name': instanceName,
                             })
                             .eq('id', user.clinicId);
                       }
