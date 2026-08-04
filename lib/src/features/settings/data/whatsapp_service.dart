@@ -32,13 +32,19 @@ class WhatsAppService {
           .maybeSingle();
 
       if (clinicRes == null || clinicRes['whatsapp_enabled'] != true || clinicRes['send_booking_message'] != true) {
+        _showErrorToast('إرسال الواتساب غير مفعل في الإعدادات');
         return;
       }
 
       final instanceName = clinicRes['whatsapp_instance_name'] as String?;
       final template = clinicRes['booking_message_template'] as String?;
 
-      if (instanceName == null || instanceName.isEmpty || template == null || template.isEmpty) {
+      if (instanceName == null || instanceName.isEmpty) {
+        _showErrorToast('اسم الـ Instance غير موجود، يرجى إعادة الربط');
+        return;
+      }
+      if (template == null || template.isEmpty) {
+        _showErrorToast('قالب رسالة الحجز فارغ في الإعدادات');
         return;
       }
 
@@ -49,6 +55,7 @@ class WhatsAppService {
           .maybeSingle();
 
       if (patientRes == null || patientRes['phone'] == null || patientRes['phone'].toString().isEmpty) {
+        _showErrorToast('المريض ليس لديه رقم هاتف مسجل');
         return;
       }
 
@@ -69,6 +76,7 @@ class WhatsAppService {
         message: message,
       );
     } catch (e) {
+      _showErrorToast('حدث خطأ داخلي أثناء تجهيز الرسالة: $e');
       print('Error sending WhatsApp booking message: $e');
     }
   }
