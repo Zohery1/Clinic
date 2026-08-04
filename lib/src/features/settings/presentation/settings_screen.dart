@@ -19,6 +19,7 @@ import '../../appointments/domain/appointment_type_model.dart';
 import '../../appointments/domain/service_model.dart';
 import '../../../core/widgets/clinic_dialog.dart';
 import '../../../core/widgets/clinic_toast.dart';
+import '../data/whatsapp_service.dart';
 
 class ClinicSubscriptionInfo {
   final DateTime? endDate;
@@ -1943,11 +1944,8 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
             void checkStatus() async {
               if (activeInstanceName == null || isConnectedSuccess) return;
               try {
-                final statusRes = await Supabase.instance.client.rpc(
-                  'check_evolution_status',
-                  params: {'p_instance_name': activeInstanceName},
-                );
-                if (statusRes != null && statusRes is Map && statusRes['connectionStatus'] == 'open') {
+                final statusRes = await ref.read(whatsappServiceProvider).checkEvolutionStatus(activeInstanceName!);
+                if (statusRes != null && statusRes['connectionStatus'] == 'open') {
                   isConnectedSuccess = true;
                   pollTimer?.cancel();
 
@@ -2003,17 +2001,10 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
               });
 
               try {
-                final phone = _whatsappPhoneController.text.replaceAll(RegExp(r'[^0-9]'), '');
-                final res = await Supabase.instance.client.rpc(
-                  'fetch_evolution_qr',
-                  params: {
-                    'p_instance_name': instanceName,
-                    'p_phone': phone,
-                  },
-                );
+                final res = await ref.read(whatsappServiceProvider).fetchEvolutionQr(instanceName);
 
-                if (res != null && res is Map) {
-                  final data = res as Map<String, dynamic>;
+                if (res != null) {
+                  final data = res;
                   String? fetchedQr;
                   String? fetchedPairing;
 
@@ -2263,11 +2254,8 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                           } catch (_) {}
 
                           try {
-                            final statusRes = await Supabase.instance.client.rpc(
-                              'check_evolution_status',
-                              params: {'p_instance_name': realInstanceName},
-                            );
-                            if (statusRes != null && statusRes is Map && statusRes['phone'] != null) {
+                            final statusRes = await ref.read(whatsappServiceProvider).checkEvolutionStatus(realInstanceName);
+                            if (statusRes != null && statusRes['phone'] != null) {
                               String p = statusRes['phone'].toString();
                               if (p.startsWith('201') && p.length == 12) {
                                 connectedPhone = '01${p.substring(3)}';

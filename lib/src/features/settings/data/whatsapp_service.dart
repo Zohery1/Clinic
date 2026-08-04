@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import '../../../../main.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -250,6 +251,75 @@ class WhatsAppService {
       print('Exception sending WhatsApp message via RPC: $e');
       _showErrorToast('خطأ في الاتصال بسيرفر واتساب (RPC)');
     }
+  }
+
+  Future<Map<String, dynamic>?> fetchEvolutionQr(String instanceName) async {
+    try {
+      final connectUrl = Uri.parse('$_evoBaseUrl/instance/connect/$instanceName');
+      final res = await http.get(
+        connectUrl,
+        headers: {'apikey': _evoApiKey},
+      ).timeout(const Duration(seconds: 10));
+
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          return data;
+        }
+      }
+
+      final createUrl = Uri.parse('$_evoBaseUrl/instance/create');
+      final createRes = await http.post(
+        createUrl,
+        headers: {
+          'apikey': _evoApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'instanceName': instanceName,
+          'qrcode': true,
+          'integration': 'WHATSAPP-BAILEYS',
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (createRes.statusCode >= 200 && createRes.statusCode < 300) {
+        final data = jsonDecode(createRes.body);
+        if (data is Map<String, dynamic>) {
+          if (data['qrcode'] != null && data['qrcode'] is Map) {
+            return data['qrcode'] as Map<String, dynamic>;
+          }
+          return data;
+        }
+      }
+    } catch (e) {
+      print('Error fetching QR directly from Evolution API: $e');
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> checkEvolutionStatus(String instanceName) async {
+    try {
+      final url = Uri.parse('$_evoBaseUrl/instance/connectionState/$instanceName');
+      final res = await http.get(
+        url,
+        headers: {'apikey': _evoApiKey},
+      ).timeout(const Duration(seconds: 7));
+
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        final state = data['instance']?['state'] ?? data['state'];
+        if (state == 'open') {
+          return {
+            'connectionStatus': 'open',
+            'phone': data['instance']?['owner'] ?? data['owner'] ?? '',
+          };
+        }
+        return {'connectionStatus': state};
+      }
+    } catch (e) {
+      print('Error checking connection state: $e');
+    }
+    return null;
   }
 }
 
