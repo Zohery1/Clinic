@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/evo/:path*",
+      "destination": "http://37.27.31.127:8081/:path*"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     },
@@ -9,8 +13,9 @@
       "destination": "/admin.html"
     },
     {
-      "source": "/((?!admin).*)",
+      "source": "/((?!admin|api/evo).*)",
       "destination": "/index.html"
     }
   ]
 }
+

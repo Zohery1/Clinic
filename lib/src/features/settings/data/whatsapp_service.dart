@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -15,7 +16,13 @@ final whatsappServiceProvider = Provider<WhatsAppService>((ref) {
 class WhatsAppService {
   final SupabaseClient _supabase;
   final String _evoApiKey = "EyadatyEvoSecretKey2026!";
-  final String _evoBaseUrl = "http://37.27.31.127:8081";
+
+  String get _evoBaseUrl {
+    if (kIsWeb) {
+      return "${Uri.base.origin}/api/evo";
+    }
+    return "http://37.27.31.127:8081";
+  }
 
   WhatsAppService(this._supabase);
 
