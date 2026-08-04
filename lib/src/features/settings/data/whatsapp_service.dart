@@ -209,7 +209,7 @@ class WhatsAppService {
 
     try {
       final response = await _supabase.rpc(
-        'send_whatsapp_message',
+        'send_whatsapp_message_async',
         params: {
           'p_instance_name': instanceName,
           'p_phone': formattedPhone,
