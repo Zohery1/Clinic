@@ -216,47 +216,43 @@ class WhatsAppService {
     }
 
     try {
-      final response = await _supabase.rpc(
-        'send_whatsapp_message_async',
-        params: {
-          'p_instance_name': instanceName,
-          'p_phone': formattedPhone,
-          'p_message': message,
-          'p_api_key': _evoApiKey,
+      final url = Uri.parse('$_evoBaseUrl/message/sendText/$instanceName');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': _evoApiKey,
         },
+        body: jsonEncode({
+          'number': formattedPhone,
+          'text': message,
+        }),
       );
 
-      final status = response['status'];
-      final body = response['body'];
-      final error = response['error'];
+      final status = response.statusCode;
+      final body = response.body;
 
-      if (status != null && status >= 200 && status < 300) {
+      if (status >= 200 && status < 300) {
         print('WhatsApp message sent successfully: $body');
         _showSuccessToast('تم إرسال رسالة واتساب بنجاح');
       } else {
-        String err = error?.toString() ?? body?.toString() ?? 'Unknown error';
-        if (body != null && body is String) {
-          try {
-            final decoded = jsonDecode(body);
-            final msg = decoded['response']?['message'];
-            if (msg is List) {
-              err = msg.join(', ');
-            } else if (msg != null) {
-              err = msg.toString();
-            } else if (decoded['error'] != null) {
-              err = decoded['error'].toString();
-            } else if (decoded['message'] != null) {
-              err = decoded['message'].toString();
-            }
-          } catch (_) {}
-        }
-        
+        String err = body;
+        try {
+          final decoded = jsonDecode(body);
+          final msg = decoded['response']?['message'] ?? decoded['error'] ?? decoded['message'];
+          if (msg is List) {
+            err = msg.join(', ');
+          } else if (msg != null) {
+            err = msg.toString();
+          }
+        } catch (_) {}
+
         print('Failed to send WhatsApp message: $status - $body');
         _showErrorToast('فشل واتساب: $err');
       }
     } catch (e) {
-      print('Exception sending WhatsApp message via RPC: $e');
-      _showErrorToast('خطأ في الاتصال بسيرفر واتساب (RPC)');
+      print('Exception sending WhatsApp message directly: $e');
+      _showErrorToast('خطأ في الاتصال بسيرفر واتساب');
     }
   }
 
