@@ -247,8 +247,16 @@ class WhatsAppService {
           }
         } catch (_) {}
 
+        String userFriendlyError = 'فشل واتساب: $err';
+        final errLower = err.toLowerCase();
+        if (errLower.contains('connection closed') || errLower.contains('not connected')) {
+          userFriendlyError = 'واتساب غير متصل بالموبيل، يرجى فتح الإعدادات ومسح الـ QR Code لربط الرقم';
+        } else if (errLower.contains('not found') || errLower.contains('does not exist')) {
+          userFriendlyError = 'جلسة الواتساب غير موجودة، يرجى إعادة الربط من الإعدادات';
+        }
+
         print('Failed to send WhatsApp message: $status - $body');
-        _showErrorToast('فشل واتساب: $err');
+        _showErrorToast(userFriendlyError);
       }
     } catch (e) {
       print('Exception sending WhatsApp message directly: $e');
