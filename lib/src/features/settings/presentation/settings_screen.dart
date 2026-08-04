@@ -1955,23 +1955,30 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                 http.Response? res;
                 for (final url in candidateUrls) {
                   try {
-                    // Create instance if needed
-                    try {
+                    // Try fetching connection QR first
+                    var response = await http.get(
+                      Uri.parse('$url/instance/connect/$instanceName'),
+                      headers: {'apikey': apiKey},
+                    ).timeout(const Duration(seconds: 4));
+
+                    // If instance not created yet, create it with token
+                    if (response.statusCode != 200 && response.statusCode != 201) {
                       await http.post(
                         Uri.parse('$url/instance/create'),
                         headers: {'apikey': apiKey, 'Content-Type': 'application/json'},
                         body: jsonEncode({
                           'instanceName': instanceName,
+                          'token': apiKey,
                           'qrcode': true,
                           'integration': 'WHATSAPP-BAILEYS',
                         }),
                       ).timeout(const Duration(seconds: 4));
-                    } catch (_) {}
 
-                    final response = await http.get(
-                      Uri.parse('$url/instance/connect/$instanceName'),
-                      headers: {'apikey': apiKey},
-                    ).timeout(const Duration(seconds: 5));
+                      response = await http.get(
+                        Uri.parse('$url/instance/connect/$instanceName'),
+                        headers: {'apikey': apiKey},
+                      ).timeout(const Duration(seconds: 4));
+                    }
 
                     if (response.statusCode == 200 || response.statusCode == 201) {
                       res = response;
