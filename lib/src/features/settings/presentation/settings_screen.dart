@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
@@ -1945,53 +1944,17 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
               });
 
               try {
-                const candidateUrls = [
-                  'https://evo.37.27.31.127.sslip.io',
-                  'http://evo.37.27.31.127.sslip.io',
-                  'http://37.27.31.127:8081',
-                ];
-                const apiKey = 'EyadatyEvoSecretKey2026!';
+                final phone = _whatsappPhoneController.text.replaceAll(RegExp(r'[^0-9]'), '');
+                final res = await Supabase.instance.client.rpc(
+                  'fetch_evolution_qr',
+                  params: {
+                    'p_instance_name': instanceName,
+                    'p_phone': phone,
+                  },
+                );
 
-                http.Response? res;
-                for (final url in candidateUrls) {
-                  try {
-                    final phone = _whatsappPhoneController.text.replaceAll(RegExp(r'[^0-9]'), '');
-                    final queryParam = phone.isNotEmpty ? '?number=$phone' : '';
-
-                    // Try fetching connection QR / Pairing Code first
-                    var response = await http.get(
-                      Uri.parse('$url/instance/connect/$instanceName$queryParam'),
-                      headers: {'apikey': apiKey},
-                    ).timeout(const Duration(seconds: 4));
-
-                    // If instance not created yet, create it with token
-                    if (response.statusCode != 200 && response.statusCode != 201) {
-                      await http.post(
-                        Uri.parse('$url/instance/create'),
-                        headers: {'apikey': apiKey, 'Content-Type': 'application/json'},
-                        body: jsonEncode({
-                          'instanceName': instanceName,
-                          'token': apiKey,
-                          'qrcode': true,
-                          'integration': 'WHATSAPP-BAILEYS',
-                        }),
-                      ).timeout(const Duration(seconds: 4));
-
-                      response = await http.get(
-                        Uri.parse('$url/instance/connect/$instanceName$queryParam'),
-                        headers: {'apikey': apiKey},
-                      ).timeout(const Duration(seconds: 4));
-                    }
-
-                    if (response.statusCode == 200 || response.statusCode == 201) {
-                      res = response;
-                      break;
-                    }
-                  } catch (_) {}
-                }
-
-                if (res != null && (res.statusCode == 200 || res.statusCode == 201)) {
-                  final data = jsonDecode(res.body);
+                if (res != null && res is Map) {
+                  final data = res as Map<String, dynamic>;
                   String? fetchedQr;
                   String? fetchedPairing;
 
@@ -2007,23 +1970,32 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                     fetchedPairing = data['pairing_code'] as String;
                   }
 
-                  setDialogState(() {
-                    qrBase64 = fetchedQr;
-                    pairingCode = fetchedPairing;
-                    isLoadingQr = false;
-                  });
+                  if (data['qrcode'] != null && data['qrcode']['base64'] != null) {
+                    fetchedQr = data['qrcode']['base64'] as String;
+                  }
+
+                  if (fetchedQr != null || fetchedPairing != null) {
+                    setDialogState(() {
+                      qrBase64 = fetchedQr;
+                      pairingCode = fetchedPairing;
+                      isLoadingQr = false;
+                    });
+                  } else {
+                    setDialogState(() {
+                      isLoadingQr = false;
+                      qrError = data['error'] != null ? '${data['error']}' : 'في انتظار تهيئة الجلسة بالبوابة...';
+                    });
+                  }
                 } else {
                   setDialogState(() {
                     isLoadingQr = false;
-                    qrError = res != null 
-                        ? 'لم يتوفر رمز QR حالياً (كود: ${res.statusCode})'
-                        : 'يتطلب تفعيل نطاق HTTPS في Coolify للاتصال الآمن';
+                    qrError = 'لم يتم الحصول على بيانات الجلسة';
                   });
                 }
               } catch (e) {
                 setDialogState(() {
                   isLoadingQr = false;
-                  qrError = 'تعذر الاتصال بالسيرفر: $e';
+                  qrError = 'خطأ في الاتصال بالبوابة: $e';
                 });
               }
             }
