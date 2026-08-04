@@ -118,11 +118,12 @@ services:
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - N8N_SECURE_COOKIE=false
-      - WEBHOOK_URL=http://37.27.31.127:5679/
+      - N8N_WEBHOOK_URL=http://37.27.31.127:5679/
+      - N8N_RUNNERS_ENABLED=false
+      - NODE_OPTIONS=--max-old-space-size=2048
       - GENERIC_TIMEZONE=${TIMEZONE}
       - EXECUTIONS_DATA_PRUNE=true
       - EXECUTIONS_DATA_MAX_AGE=24
-      - EXECUTIONS_DATA_PRUNE_TIMEOUT=3600
     volumes:
       - n8n_data:/home/node/.n8n
     networks:
@@ -130,7 +131,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1024M
     logging:
       driver: "json-file"
       options:
