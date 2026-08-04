@@ -1922,20 +1922,79 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
   void _simulateQrScan() {
     final user = ref.read(currentUserProvider);
     final instanceName = user != null ? 'clinic_${user.clinicId.replaceAll('-', '_').substring(0, 8)}' : 'clinic_default';
+    Timer? pollTimer;
+    bool isConnectedSuccess = false;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        final theme = Theme.of(context);
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
         int selectedMethodTab = 0;
         String? qrBase64;
         String? pairingCode;
         bool isLoadingQr = true;
         String? qrError;
+        String? activeInstanceName;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            void checkStatus() async {
+              if (activeInstanceName == null || isConnectedSuccess) return;
+              try {
+                final statusRes = await Supabase.instance.client.rpc(
+                  'check_evolution_status',
+                  params: {'p_instance_name': activeInstanceName},
+                );
+                if (statusRes != null && statusRes is Map && statusRes['connectionStatus'] == 'open') {
+                  isConnectedSuccess = true;
+                  pollTimer?.cancel();
+
+                  String connectedPhone = _whatsappPhoneController.text;
+                  if (statusRes['phone'] != null) {
+                    String p = statusRes['phone'].toString();
+                    if (p.startsWith('201') && p.length == 12) {
+                      connectedPhone = '01${p.substring(3)}';
+                    } else {
+                      connectedPhone = p;
+                    }
+                  }
+
+                  if (user != null) {
+                    await Supabase.instance.client
+                        .from('clinics')
+                        .update({
+                          'whatsapp_status': 'connected',
+                          'whatsapp_enabled': true,
+                          'whatsapp_instance_name': activeInstanceName,
+                          'whatsapp_phone': connectedPhone,
+                        })
+                        .eq('id', user.clinicId);
+                  }
+
+                  setState(() {
+                    _whatsappStatus = 'connected';
+                    _whatsappEnabled = true;
+                    _whatsappInstanceNameController.text = activeInstanceName!;
+                    _whatsappPhoneController.text = connectedPhone;
+                  });
+
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(this.context)..clearSnackBars()..showSnackBar(
+                      SnackBar(
+                        duration: const Duration(seconds: 3),
+                        content: Text(connectedPhone.isNotEmpty
+                            ? 'تم ربط حساب الواتساب بنجاح! رقم العيادة: $connectedPhone'
+                            : 'تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
+                        backgroundColor: AppTheme.success,
+                      ),
+                    );
+                  }
+                }
+              } catch (_) {}
+            }
+
             void loadQr() async {
               setDialogState(() {
                 isLoadingQr = true;
@@ -1973,12 +2032,25 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                     fetchedQr = data['qrcode']['base64'] as String;
                   }
 
+                  if (user != null) {
+                    final clinicRow = await Supabase.instance.client
+                        .from('clinics')
+                        .select('whatsapp_instance_name')
+                        .eq('id', user.clinicId)
+                        .maybeSingle();
+                    if (clinicRow != null && clinicRow['whatsapp_instance_name'] != null) {
+                      activeInstanceName = clinicRow['whatsapp_instance_name'] as String;
+                    }
+                  }
+
                   if (fetchedQr != null || fetchedPairing != null) {
                     setDialogState(() {
                       qrBase64 = fetchedQr;
                       pairingCode = fetchedPairing;
                       isLoadingQr = false;
                     });
+                    pollTimer?.cancel();
+                    pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => checkStatus());
                   } else {
                     setDialogState(() {
                       isLoadingQr = false;
@@ -2004,236 +2076,242 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
               loadQr();
             }
 
-            return Directionality(
-              textDirection: TextDirection.rtl,
-              child: AlertDialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                title: Text(
-                  'ربط حساب الواتساب الخاص بالعيادة',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
-                  textAlign: TextAlign.center,
-                ),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceDim,
-                          borderRadius: BorderRadius.circular(12),
+            return PopScope(
+              onPopInvokedWithResult: (_, __) => pollTimer?.cancel(),
+              child: Directionality(
+                textDirection: TextDirection.rtl,
+                child: AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  title: Text(
+                    'ربط حساب الواتساب الخاص بالعيادة',
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceDim,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setDialogState(() => selectedMethodTab = 0),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: selectedMethodTab == 0 ? theme.colorScheme.primary : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      'رمز QR (كمبيوتر)',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: selectedMethodTab == 0 ? Colors.white : theme.textTheme.bodyMedium?.color,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setDialogState(() => selectedMethodTab = 1),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: selectedMethodTab == 1 ? theme.colorScheme.primary : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      'كود رقمي (نفس الموبايل)',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: selectedMethodTab == 1 ? Colors.white : theme.textTheme.bodyMedium?.color,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => setDialogState(() => selectedMethodTab = 0),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: selectedMethodTab == 0 ? theme.colorScheme.primary : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    'رمز QR (كمبيوتر)',
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: selectedMethodTab == 0 ? Colors.white : theme.textTheme.bodyMedium?.color,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                        const SizedBox(height: 20),
+
+                        if (selectedMethodTab == 0) ...[
+                          Text(
+                            'امسح الرمز المربع من تطبيق WhatsApp بهاتفك (الأجهزة المرتبطة > ربط جهاز)',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.cairo(fontSize: 12, color: theme.hintColor),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            width: 200,
+                            height: 200,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
                             ),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => setDialogState(() => selectedMethodTab = 1),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: selectedMethodTab == 1 ? theme.colorScheme.primary : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    'كود رقمي (نفس الموبايل)',
-                                    textAlign: TextAlign.center,
+                            child: isLoadingQr
+                                ? const Center(child: CircularProgressIndicator())
+                                : (qrBase64 != null && qrBase64!.isNotEmpty)
+                                    ? Image.memory(
+                                        base64Decode(qrBase64!.replaceFirst(RegExp(r'data:image\/[a-zA-Z]+;base64,'), '')),
+                                        fit: BoxFit.contain,
+                                      )
+                                    : Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.qr_code_2_rounded, size: 64, color: Colors.grey),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            qrError ?? 'اضغط لإعادة التوليد',
+                                            style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          IconButton(
+                                            onPressed: loadQr,
+                                            icon: const Icon(Icons.refresh_rounded, color: AppTheme.primary),
+                                          ),
+                                        ],
+                                      ),
+                          ),
+                        ] else ...[
+                          Text(
+                            'افتح تطبيق WhatsApp من هاتفك (الأجهزة المرتبطة > الربط برقم الهاتف) وادخل الكود التالي:',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.cairo(fontSize: 12, color: theme.hintColor),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                            ),
+                            child: isLoadingQr
+                                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                                : Text(
+                                    pairingCode ?? '1234 - 5678',
                                     style: GoogleFonts.cairo(
-                                      fontSize: 12,
+                                      fontSize: 24,
                                       fontWeight: FontWeight.bold,
-                                      color: selectedMethodTab == 1 ? Colors.white : theme.textTheme.bodyMedium?.color,
+                                      letterSpacing: 2,
+                                      color: theme.colorScheme.primary,
                                     ),
                                   ),
-                                ),
-                              ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              onPressed: loadQr,
+                              icon: const Icon(Icons.refresh_rounded, size: 18),
+                              tooltip: 'تحديث الرمز',
+                            ),
+                            Text(
+                              selectedMethodTab == 0 ? 'في انتظار مسح الرمز المربع...' : 'في انتظار إدخال الكود بالهاتف...',
+                              style: GoogleFonts.cairo(fontSize: 12, color: theme.colorScheme.primary),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      if (selectedMethodTab == 0) ...[
-                        Text(
-                          'امسح الرمز المربع من تطبيق WhatsApp بهاتفك (الأجهزة المرتبطة > ربط جهاز)',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.cairo(fontSize: 12, color: theme.hintColor),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          width: 200,
-                          height: 200,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
-                          ),
-                          child: isLoadingQr
-                              ? const Center(child: CircularProgressIndicator())
-                              : (qrBase64 != null && qrBase64!.isNotEmpty)
-                                  ? Image.memory(
-                                      base64Decode(qrBase64!.replaceFirst(RegExp(r'data:image\/[a-zA-Z]+;base64,'), '')),
-                                      fit: BoxFit.contain,
-                                    )
-                                  : Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.qr_code_2_rounded, size: 64, color: Colors.grey),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          qrError ?? 'اضغط لإعادة التوليد',
-                                          style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        IconButton(
-                                          onPressed: loadQr,
-                                          icon: const Icon(Icons.refresh_rounded, color: AppTheme.primary),
-                                        ),
-                                      ],
-                                    ),
-                        ),
-                      ] else ...[
-                        Text(
-                          'افتح تطبيق WhatsApp من هاتفك (الأجهزة المرتبطة > الربط برقم الهاتف) وادخل الكود التالي:',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.cairo(fontSize: 12, color: theme.hintColor),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
-                          ),
-                          child: isLoadingQr
-                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                              : Text(
-                                  pairingCode ?? '1234 - 5678',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 2,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                ),
-                        ),
                       ],
-
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            onPressed: loadQr,
-                            icon: const Icon(Icons.refresh_rounded, size: 18),
-                            tooltip: 'تحديث الرمز',
-                          ),
-                          Text(
-                            selectedMethodTab == 0 ? 'في انتظار مسح الرمز المربع...' : 'في انتظار إدخال الكود بالهاتف...',
-                            style: GoogleFonts.cairo(fontSize: 12, color: theme.colorScheme.primary),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('إلغاء', style: GoogleFonts.cairo()),
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      String realInstanceName = instanceName;
-                      String connectedPhone = _whatsappPhoneController.text;
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        pollTimer?.cancel();
+                        Navigator.pop(dialogContext);
+                      },
+                      child: Text('إلغاء', style: GoogleFonts.cairo()),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        pollTimer?.cancel();
+                        String realInstanceName = activeInstanceName ?? instanceName;
+                        String connectedPhone = _whatsappPhoneController.text;
 
-                      if (user != null) {
-                        try {
-                          final clinicRow = await Supabase.instance.client
-                              .from('clinics')
-                              .select('whatsapp_instance_name, whatsapp_phone')
-                              .eq('id', user.clinicId)
-                              .maybeSingle();
-                          if (clinicRow != null && clinicRow['whatsapp_instance_name'] != null) {
-                            realInstanceName = clinicRow['whatsapp_instance_name'] as String;
-                          }
-                          if (clinicRow != null && clinicRow['whatsapp_phone'] != null) {
-                            connectedPhone = clinicRow['whatsapp_phone'] as String;
-                          }
-                        } catch (_) {}
-
-                        // Query Evolution API for connected owner phone
-                        try {
-                          final statusRes = await Supabase.instance.client.rpc(
-                            'check_evolution_status',
-                            params: {'p_instance_name': realInstanceName},
-                          );
-                          if (statusRes != null && statusRes is Map && statusRes['phone'] != null) {
-                            String p = statusRes['phone'].toString();
-                            if (p.startsWith('201') && p.length == 12) {
-                              connectedPhone = '01${p.substring(3)}';
-                            } else {
-                              connectedPhone = p;
+                        if (user != null) {
+                          try {
+                            final clinicRow = await Supabase.instance.client
+                                .from('clinics')
+                                .select('whatsapp_instance_name, whatsapp_phone')
+                                .eq('id', user.clinicId)
+                                .maybeSingle();
+                            if (clinicRow != null && clinicRow['whatsapp_instance_name'] != null) {
+                              realInstanceName = clinicRow['whatsapp_instance_name'] as String;
                             }
-                          }
-                        } catch (_) {}
+                            if (clinicRow != null && clinicRow['whatsapp_phone'] != null) {
+                              connectedPhone = clinicRow['whatsapp_phone'] as String;
+                            }
+                          } catch (_) {}
 
-                        await Supabase.instance.client
-                            .from('clinics')
-                            .update({
-                              'whatsapp_status': 'connected',
-                              'whatsapp_enabled': true,
-                              'whatsapp_instance_name': realInstanceName,
-                              'whatsapp_phone': connectedPhone,
-                            })
-                            .eq('id', user.clinicId);
-                      }
+                          try {
+                            final statusRes = await Supabase.instance.client.rpc(
+                              'check_evolution_status',
+                              params: {'p_instance_name': realInstanceName},
+                            );
+                            if (statusRes != null && statusRes is Map && statusRes['phone'] != null) {
+                              String p = statusRes['phone'].toString();
+                              if (p.startsWith('201') && p.length == 12) {
+                                connectedPhone = '01${p.substring(3)}';
+                              } else {
+                                connectedPhone = p;
+                              }
+                            }
+                          } catch (_) {}
 
-                      setState(() {
-                        _whatsappStatus = 'connected';
-                        _whatsappEnabled = true;
-                        _whatsappInstanceNameController.text = realInstanceName;
-                        _whatsappPhoneController.text = connectedPhone;
-                      });
+                          await Supabase.instance.client
+                              .from('clinics')
+                              .update({
+                                'whatsapp_status': 'connected',
+                                'whatsapp_enabled': true,
+                                'whatsapp_instance_name': realInstanceName,
+                                'whatsapp_phone': connectedPhone,
+                              })
+                              .eq('id', user.clinicId);
+                        }
 
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                          SnackBar(
-                            duration: const Duration(seconds: 3),
-                            content: Text(connectedPhone.isNotEmpty
-                                ? 'تم ربط الواتساب بنجاح وتفعيل الأتمتة على الرقم: $connectedPhone'
-                                : 'تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
-                            backgroundColor: AppTheme.success,
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
-                    child: Text('تم المسح والربط', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-                  ),
-                ],
+                        setState(() {
+                          _whatsappStatus = 'connected';
+                          _whatsappEnabled = true;
+                          _whatsappInstanceNameController.text = realInstanceName;
+                          _whatsappPhoneController.text = connectedPhone;
+                        });
+
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                          ScaffoldMessenger.of(this.context)..clearSnackBars()..showSnackBar(
+                            SnackBar(
+                              duration: const Duration(seconds: 3),
+                              content: Text(connectedPhone.isNotEmpty
+                                  ? 'تم ربط الواتساب بنجاح! رقم العيادة: $connectedPhone'
+                                  : 'تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
+                              backgroundColor: AppTheme.success,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
+                      child: Text('تم المسح والربط', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
               ),
             );
           },
