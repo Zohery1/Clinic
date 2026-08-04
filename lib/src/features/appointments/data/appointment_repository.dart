@@ -4,9 +4,14 @@ import '../domain/appointment_model.dart';
 import '../domain/service_model.dart';
 import '../domain/appointment_service_model.dart';
 
+import '../../settings/data/whatsapp_service.dart';
+
 // مزود مستودع المواعيد لجعله متاحاً للاستخدام
 final appointmentRepositoryProvider = Provider<AppointmentRepository>((ref) {
-  return AppointmentRepository(Supabase.instance.client);
+  return AppointmentRepository(
+    Supabase.instance.client,
+    ref.watch(whatsappServiceProvider),
+  );
 });
 
 // مزود لجلب الخدمات الإضافية المتاحة بالعيادة
@@ -16,8 +21,9 @@ final availableServicesProvider = FutureProvider.family.autoDispose<List<Service
 
 class AppointmentRepository {
   final SupabaseClient _supabase;
+  final WhatsAppService _whatsAppService;
 
-  AppointmentRepository(this._supabase);
+  AppointmentRepository(this._supabase, this._whatsAppService);
 
   // جلب مواعيد تاريخ محدد لعيادة محددة (clinicId) مرتبة زمنياً تصاعدياً
   Future<List<AppointmentModel>> getAppointmentsByDate(String clinicId, DateTime date) async {
@@ -73,6 +79,13 @@ class AppointmentRepository {
 
         await _supabase.from('appointment_services').insert(servicesData);
       }
+
+      // إرسال رسالة واتساب
+      await _whatsAppService.sendBookingMessage(
+        clinicId: clinicId,
+        patientId: patientId,
+        appointmentDate: appointmentDate,
+      );
     } catch (e) {
       rethrow;
     }
@@ -85,6 +98,22 @@ class AppointmentRepository {
           .from('appointments')
           .update({'status': status})
           .eq('id', appointmentId);
+
+      if (status == 'cancelled_by_clinic' || status == 'cancelled_by_patient') {
+        final appointmentData = await _supabase
+            .from('appointments')
+            .select('clinic_id, patient_id, appointment_date')
+            .eq('id', appointmentId)
+            .maybeSingle();
+
+        if (appointmentData != null) {
+          await _whatsAppService.sendCancellationMessage(
+            clinicId: appointmentData['clinic_id'],
+            patientId: appointmentData['patient_id'],
+            appointmentDate: DateTime.parse(appointmentData['appointment_date']).toLocal(),
+          );
+        }
+      }
     } catch (e) {
       rethrow;
     }
@@ -169,6 +198,15 @@ class AppointmentRepository {
       final start = DateTime(date.year, date.month, date.day).toUtc().toIso8601String();
       final end = DateTime(date.year, date.month, date.day, 23, 59, 59).toUtc().toIso8601String();
 
+      // جلب المواعيد التي سيتم إلغاؤها لإرسال الواتساب
+      final appointmentsToCancel = await _supabase
+          .from('appointments')
+          .select('id, patient_id, appointment_date')
+          .eq('clinic_id', clinicId)
+          .eq('status', 'confirmed')
+          .gte('appointment_date', start)
+          .lte('appointment_date', end);
+
       await _supabase
           .from('appointments')
           .update({'status': 'cancelled_by_clinic'})
@@ -176,6 +214,15 @@ class AppointmentRepository {
           .eq('status', 'confirmed') // فقط اللي في الانتظار، لا يمس المبدوءة
           .gte('appointment_date', start)
           .lte('appointment_date', end);
+
+      // إرسال رسائل الإلغاء
+      for (var app in appointmentsToCancel) {
+        await _whatsAppService.sendCancellationMessage(
+          clinicId: clinicId,
+          patientId: app['patient_id'],
+          appointmentDate: DateTime.parse(app['appointment_date']).toLocal(),
+        );
+      }
     } catch (e) {
       rethrow;
     }
