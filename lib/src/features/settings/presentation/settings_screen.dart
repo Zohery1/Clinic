@@ -1955,9 +1955,12 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                 http.Response? res;
                 for (final url in candidateUrls) {
                   try {
-                    // Try fetching connection QR first
+                    final phone = _whatsappPhoneController.text.replaceAll(RegExp(r'[^0-9]'), '');
+                    final queryParam = phone.isNotEmpty ? '?number=$phone' : '';
+
+                    // Try fetching connection QR / Pairing Code first
                     var response = await http.get(
-                      Uri.parse('$url/instance/connect/$instanceName'),
+                      Uri.parse('$url/instance/connect/$instanceName$queryParam'),
                       headers: {'apikey': apiKey},
                     ).timeout(const Duration(seconds: 4));
 
@@ -1975,7 +1978,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                       ).timeout(const Duration(seconds: 4));
 
                       response = await http.get(
-                        Uri.parse('$url/instance/connect/$instanceName'),
+                        Uri.parse('$url/instance/connect/$instanceName$queryParam'),
                         headers: {'apikey': apiKey},
                       ).timeout(const Duration(seconds: 4));
                     }
@@ -2012,7 +2015,9 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                 } else {
                   setDialogState(() {
                     isLoadingQr = false;
-                    qrError = 'لم يتوفر رمز QR حالياً (كود: ${res?.statusCode ?? 500})';
+                    qrError = res != null 
+                        ? 'لم يتوفر رمز QR حالياً (كود: ${res.statusCode})'
+                        : 'يتطلب تفعيل نطاق HTTPS في Coolify للاتصال الآمن';
                   });
                 }
               } catch (e) {
