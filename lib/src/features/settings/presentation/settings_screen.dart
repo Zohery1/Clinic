@@ -2166,15 +2166,36 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                   ElevatedButton(
                     onPressed: () async {
                       String realInstanceName = instanceName;
+                      String connectedPhone = _whatsappPhoneController.text;
+
                       if (user != null) {
                         try {
                           final clinicRow = await Supabase.instance.client
                               .from('clinics')
-                              .select('whatsapp_instance_name')
+                              .select('whatsapp_instance_name, whatsapp_phone')
                               .eq('id', user.clinicId)
                               .maybeSingle();
                           if (clinicRow != null && clinicRow['whatsapp_instance_name'] != null) {
                             realInstanceName = clinicRow['whatsapp_instance_name'] as String;
+                          }
+                          if (clinicRow != null && clinicRow['whatsapp_phone'] != null) {
+                            connectedPhone = clinicRow['whatsapp_phone'] as String;
+                          }
+                        } catch (_) {}
+
+                        // Query Evolution API for connected owner phone
+                        try {
+                          final statusRes = await Supabase.instance.client.rpc(
+                            'check_evolution_status',
+                            params: {'p_instance_name': realInstanceName},
+                          );
+                          if (statusRes != null && statusRes is Map && statusRes['phone'] != null) {
+                            String p = statusRes['phone'].toString();
+                            if (p.startsWith('201') && p.length == 12) {
+                              connectedPhone = '01${p.substring(3)}';
+                            } else {
+                              connectedPhone = p;
+                            }
                           }
                         } catch (_) {}
 
@@ -2184,6 +2205,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                               'whatsapp_status': 'connected',
                               'whatsapp_enabled': true,
                               'whatsapp_instance_name': realInstanceName,
+                              'whatsapp_phone': connectedPhone,
                             })
                             .eq('id', user.clinicId);
                       }
@@ -2192,14 +2214,17 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                         _whatsappStatus = 'connected';
                         _whatsappEnabled = true;
                         _whatsappInstanceNameController.text = realInstanceName;
+                        _whatsappPhoneController.text = connectedPhone;
                       });
 
                       if (context.mounted) {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                          const SnackBar(
-                            duration: Duration(seconds: 2),
-                            content: Text('تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
+                          SnackBar(
+                            duration: const Duration(seconds: 3),
+                            content: Text(connectedPhone.isNotEmpty
+                                ? 'تم ربط الواتساب بنجاح وتفعيل الأتمتة على الرقم: $connectedPhone'
+                                : 'تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
                             backgroundColor: AppTheme.success,
                           ),
                         );
