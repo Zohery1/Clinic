@@ -1945,29 +1945,42 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
               });
 
               try {
-                const evoUrl = 'http://37.27.31.127:8081';
+                const candidateUrls = [
+                  'https://evo.37.27.31.127.sslip.io',
+                  'http://evo.37.27.31.127.sslip.io',
+                  'http://37.27.31.127:8081',
+                ];
                 const apiKey = 'EyadatyEvoSecretKey2026!';
 
-                // 1. Create instance if needed
-                try {
-                  await http.post(
-                    Uri.parse('$evoUrl/instance/create'),
-                    headers: {'apikey': apiKey, 'Content-Type': 'application/json'},
-                    body: jsonEncode({
-                      'instanceName': instanceName,
-                      'qrcode': true,
-                      'integration': 'WHATSAPP-BAILEYS',
-                    }),
-                  );
-                } catch (_) {}
+                http.Response? res;
+                for (final url in candidateUrls) {
+                  try {
+                    // Create instance if needed
+                    try {
+                      await http.post(
+                        Uri.parse('$url/instance/create'),
+                        headers: {'apikey': apiKey, 'Content-Type': 'application/json'},
+                        body: jsonEncode({
+                          'instanceName': instanceName,
+                          'qrcode': true,
+                          'integration': 'WHATSAPP-BAILEYS',
+                        }),
+                      ).timeout(const Duration(seconds: 4));
+                    } catch (_) {}
 
-                // 2. Fetch connection QR / Pairing Code
-                final res = await http.get(
-                  Uri.parse('$evoUrl/instance/connect/$instanceName'),
-                  headers: {'apikey': apiKey},
-                );
+                    final response = await http.get(
+                      Uri.parse('$url/instance/connect/$instanceName'),
+                      headers: {'apikey': apiKey},
+                    ).timeout(const Duration(seconds: 5));
 
-                if (res.statusCode == 200 || res.statusCode == 201) {
+                    if (response.statusCode == 200 || response.statusCode == 201) {
+                      res = response;
+                      break;
+                    }
+                  } catch (_) {}
+                }
+
+                if (res != null && (res.statusCode == 200 || res.statusCode == 201)) {
                   final data = jsonDecode(res.body);
                   String? fetchedQr;
                   String? fetchedPairing;
@@ -1992,7 +2005,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                 } else {
                   setDialogState(() {
                     isLoadingQr = false;
-                    qrError = 'لم يتوفر رمز QR حالياً (كود: ${res.statusCode})';
+                    qrError = 'لم يتوفر رمز QR حالياً (كود: ${res?.statusCode ?? 500})';
                   });
                 }
               } catch (e) {
