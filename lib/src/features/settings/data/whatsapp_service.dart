@@ -3,6 +3,10 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../main.dart';
+import '../../../core/theme/app_theme.dart';
 
 final whatsappServiceProvider = Provider<WhatsAppService>((ref) {
   return WhatsAppService(Supabase.instance.client);
@@ -123,6 +127,66 @@ class WhatsAppService {
     }
   }
 
+  void _showErrorToast(String message) {
+    final state = rootScaffoldMessengerKey.currentState;
+    if (state == null) return;
+    state.clearSnackBars();
+    state.showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        dismissDirection: DismissDirection.up,
+        backgroundColor: AppTheme.error,
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: GoogleFonts.cairo(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessToast(String message) {
+    final state = rootScaffoldMessengerKey.currentState;
+    if (state == null) return;
+    state.clearSnackBars();
+    state.showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        dismissDirection: DismissDirection.up,
+        backgroundColor: AppTheme.success,
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: GoogleFonts.cairo(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _sendMessageToEvo({
     required String instanceName,
     required String phone,
@@ -130,29 +194,53 @@ class WhatsAppService {
   }) async {
     final url = Uri.parse('$_evoBaseUrl/message/sendText/$instanceName');
     
-    // Convert local number to international format if starts with 01
-    // Usually in Egypt it starts with 01 (e.g. 010, 011) - EVO needs country code
-    String formattedPhone = phone;
-    if (formattedPhone.startsWith('01') && formattedPhone.length == 11) {
+    // Format the phone number properly
+    String formattedPhone = phone.replaceAll(RegExp(r'\D'), '');
+    if (formattedPhone.startsWith('00')) {
+      formattedPhone = formattedPhone.substring(2);
+    } else if (formattedPhone.startsWith('01') && formattedPhone.length == 11) {
       formattedPhone = '2$formattedPhone';
     }
 
-    final response = await http.post(
-      url,
-      headers: {
-        'apikey': _evoApiKey,
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        "number": formattedPhone,
-        "text": message,
-      }),
-    );
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'apikey': _evoApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          "number": formattedPhone,
+          "text": message,
+        }),
+      );
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      print('WhatsApp message sent successfully: ${response.body}');
-    } else {
-      print('Failed to send WhatsApp message: ${response.statusCode} - ${response.body}');
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        print('WhatsApp message sent successfully: ${response.body}');
+        _showSuccessToast('تم إرسال رسالة واتساب بنجاح');
+      } else {
+        String err = response.body;
+        try {
+          final decoded = jsonDecode(response.body);
+          final msg = decoded['response']?['message'];
+          if (msg is List) {
+            err = msg.join(', ');
+          } else if (msg != null) {
+            err = msg.toString();
+          } else if (decoded['error'] != null) {
+            err = decoded['error'].toString();
+          } else if (decoded['message'] != null) {
+            err = decoded['message'].toString();
+          }
+        } catch (_) {}
+        
+        print('Failed to send WhatsApp message: ${response.statusCode} - ${response.body}');
+        _showErrorToast('فشل واتساب: $err');
+      }
+    } catch (e) {
+      print('Exception sending WhatsApp message: $e');
+      _showErrorToast('خطأ في الاتصال بسيرفر واتساب');
     }
   }
 }
+

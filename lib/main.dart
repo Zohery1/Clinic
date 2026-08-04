@@ -14,6 +14,8 @@ import 'src/features/dashboard/presentation/dashboard_screen.dart';
 
 import 'package:intl/date_symbol_data_local.dart';
 
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -41,6 +43,7 @@ class MyApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Eyadaty | عيادتي',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
