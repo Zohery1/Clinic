@@ -2165,21 +2165,34 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                   ),
                   ElevatedButton(
                     onPressed: () async {
-                      setState(() {
-                        _whatsappStatus = 'connected';
-                        _whatsappEnabled = true;
-                        _whatsappInstanceNameController.text = instanceName;
-                      });
-
+                      String realInstanceName = instanceName;
                       if (user != null) {
+                        try {
+                          final clinicRow = await Supabase.instance.client
+                              .from('clinics')
+                              .select('whatsapp_instance_name')
+                              .eq('id', user.clinicId)
+                              .maybeSingle();
+                          if (clinicRow != null && clinicRow['whatsapp_instance_name'] != null) {
+                            realInstanceName = clinicRow['whatsapp_instance_name'] as String;
+                          }
+                        } catch (_) {}
+
                         await Supabase.instance.client
                             .from('clinics')
                             .update({
                               'whatsapp_status': 'connected',
                               'whatsapp_enabled': true,
+                              'whatsapp_instance_name': realInstanceName,
                             })
                             .eq('id', user.clinicId);
                       }
+
+                      setState(() {
+                        _whatsappStatus = 'connected';
+                        _whatsappEnabled = true;
+                        _whatsappInstanceNameController.text = realInstanceName;
+                      });
 
                       if (context.mounted) {
                         Navigator.pop(context);
