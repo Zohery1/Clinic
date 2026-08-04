@@ -112,13 +112,13 @@ services:
     container_name: clinic_n8n
     restart: always
     ports:
-      - "${N8N_PORT}:5678"
+      - "5679:5678"
     environment:
       - N8N_HOST=${N8N_DOMAIN}
       - N8N_PORT=5678
       - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
       - NODE_ENV=production
-      - WEBHOOK_URL=${WEBHOOK_URL:-http://${N8N_DOMAIN}:${N8N_PORT}/}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://${N8N_DOMAIN}:5679/}
       - GENERIC_TIMEZONE=${TIMEZONE}
       - EXECUTIONS_DATA_PRUNE=${EXECUTIONS_DATA_PRUNE}
       - EXECUTIONS_DATA_MAX_AGE=${EXECUTIONS_DATA_MAX_AGE}
