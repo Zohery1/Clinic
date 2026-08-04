@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
@@ -1920,15 +1922,92 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
   }
 
   void _simulateQrScan() {
+    final user = ref.read(currentUserProvider);
+    final instanceName = user != null ? 'clinic_${user.clinicId.replaceAll('-', '_').substring(0, 8)}' : 'clinic_default';
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
         final theme = Theme.of(context);
-        int selectedMethodTab = 0; // 0 for QR, 1 for Pairing Code
+        int selectedMethodTab = 0;
+        String? qrBase64;
+        String? pairingCode;
+        bool isLoadingQr = true;
+        String? qrError;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            void loadQr() async {
+              setDialogState(() {
+                isLoadingQr = true;
+                qrError = null;
+              });
+
+              try {
+                const evoUrl = 'http://37.27.31.127:8081';
+                const apiKey = 'EyadatyEvoSecretKey2026!';
+
+                // 1. Create instance if needed
+                try {
+                  await http.post(
+                    Uri.parse('$evoUrl/instance/create'),
+                    headers: {'apikey': apiKey, 'Content-Type': 'application/json'},
+                    body: jsonEncode({
+                      'instanceName': instanceName,
+                      'qrcode': true,
+                      'integration': 'WHATSAPP-BAILEYS',
+                    }),
+                  );
+                } catch (_) {}
+
+                // 2. Fetch connection QR / Pairing Code
+                final res = await http.get(
+                  Uri.parse('$evoUrl/instance/connect/$instanceName'),
+                  headers: {'apikey': apiKey},
+                );
+
+                if (res.statusCode == 200 || res.statusCode == 201) {
+                  final data = jsonDecode(res.body);
+                  String? fetchedQr;
+                  String? fetchedPairing;
+
+                  if (data['base64'] != null) {
+                    fetchedQr = data['base64'] as String;
+                  } else if (data['code'] != null) {
+                    fetchedQr = data['code'] as String;
+                  }
+
+                  if (data['pairingCode'] != null) {
+                    fetchedPairing = data['pairingCode'] as String;
+                  } else if (data['pairing_code'] != null) {
+                    fetchedPairing = data['pairing_code'] as String;
+                  }
+
+                  setDialogState(() {
+                    qrBase64 = fetchedQr;
+                    pairingCode = fetchedPairing;
+                    isLoadingQr = false;
+                  });
+                } else {
+                  setDialogState(() {
+                    isLoadingQr = false;
+                    qrError = 'لم يتوفر رمز QR حالياً (كود: ${res.statusCode})';
+                  });
+                }
+              } catch (e) {
+                setDialogState(() {
+                  isLoadingQr = false;
+                  qrError = 'تعذر الاتصال بالسيرفر: $e';
+                });
+              }
+            }
+
+            // Load on open once
+            if (isLoadingQr && qrBase64 == null && qrError == null) {
+              loadQr();
+            }
+
             return Directionality(
               textDirection: TextDirection.rtl,
               child: AlertDialog(
@@ -1942,7 +2021,6 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Segmented control for choosing linking method
                       Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
@@ -2006,21 +2084,41 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                         ),
                         const SizedBox(height: 16),
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          width: 200,
+                          height: 200,
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
                           ),
-                          child: Icon(
-                            Icons.qr_code_2_rounded,
-                            size: 160,
-                            color: Colors.grey[800],
-                          ),
+                          child: isLoadingQr
+                              ? const Center(child: CircularProgressIndicator())
+                              : (qrBase64 != null && qrBase64!.isNotEmpty)
+                                  ? Image.memory(
+                                      base64Decode(qrBase64!.replaceFirst(RegExp(r'data:image\/[a-zA-Z]+;base64,'), '')),
+                                      fit: BoxFit.contain,
+                                    )
+                                  : Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.qr_code_2_rounded, size: 64, color: Colors.grey),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          qrError ?? 'اضغط لإعادة التوليد',
+                                          style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        IconButton(
+                                          onPressed: loadQr,
+                                          icon: const Icon(Icons.refresh_rounded, color: AppTheme.primary),
+                                        ),
+                                      ],
+                                    ),
                         ),
                       ] else ...[
                         Text(
-                          'افتخ تطبيق WhatsApp من هاتفك (الأجهزة المرتبطة > الربط برقم الهاتف) وادخل الكود التالي:',
+                          'افتح تطبيق WhatsApp من هاتفك (الأجهزة المرتبطة > الربط برقم الهاتف) وادخل الكود التالي:',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.cairo(fontSize: 12, color: theme.hintColor),
                         ),
@@ -2032,28 +2130,29 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                           ),
-                          child: Text(
-                            '7B8K - 92ML',
-                            style: GoogleFonts.cairo(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
+                          child: isLoadingQr
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                              : Text(
+                                  pairingCode ?? '1234 - 5678',
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 2,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
                         ),
                       ],
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const SizedBox(
-                            width: 12,
-                            height: 12,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                          IconButton(
+                            onPressed: loadQr,
+                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                            tooltip: 'تحديث الرمز',
                           ),
-                          const SizedBox(width: 8),
                           Text(
                             selectedMethodTab == 0 ? 'في انتظار مسح الرمز المربع...' : 'في انتظار إدخال الكود بالهاتف...',
                             style: GoogleFonts.cairo(fontSize: 12, color: theme.colorScheme.primary),
@@ -2070,8 +2169,6 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                   ),
                   ElevatedButton(
                     onPressed: () async {
-                      final user = ref.read(currentUserProvider);
-                      final instanceName = user != null ? 'clinic_${user.clinicId.substring(0, 8)}' : '';
                       setState(() {
                         _whatsappStatus = 'connected';
                         _whatsappEnabled = true;
@@ -2093,7 +2190,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                           const SnackBar(
-                            duration: Duration(seconds: 2), 
+                            duration: Duration(seconds: 2),
                             content: Text('تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
                             backgroundColor: AppTheme.success,
                           ),
@@ -2101,7 +2198,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                       }
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
-                    child: Text('تأكيد التفعيل (اختبار)', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                    child: Text('تم المسح والربط', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
