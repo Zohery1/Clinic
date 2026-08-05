@@ -1937,12 +1937,12 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
         String? pairingCode;
         bool isLoadingQr = true;
         String? qrError;
-        String? activeInstanceName;
+        String activeInstanceName = instanceName;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
             void checkStatus() async {
-              if (activeInstanceName == null || isConnectedSuccess) return;
+              if (isConnectedSuccess) return;
               try {
                 final statusRes = await ref.read(whatsappServiceProvider).checkEvolutionStatus(activeInstanceName!);
                 if (statusRes != null && statusRes['connectionStatus'] == 'open') {
@@ -2022,17 +2022,6 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
 
                   if (data['qrcode'] != null && data['qrcode']['base64'] != null) {
                     fetchedQr = data['qrcode']['base64'] as String;
-                  }
-
-                  if (user != null) {
-                    final clinicRow = await Supabase.instance.client
-                        .from('clinics')
-                        .select('whatsapp_instance_name')
-                        .eq('id', user.clinicId)
-                        .maybeSingle();
-                    if (clinicRow != null && clinicRow['whatsapp_instance_name'] != null) {
-                      activeInstanceName = clinicRow['whatsapp_instance_name'] as String;
-                    }
                   }
 
                   if (fetchedQr != null || fetchedPairing != null) {
@@ -2235,19 +2224,16 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                     ElevatedButton(
                       onPressed: () async {
                         pollTimer?.cancel();
-                        String realInstanceName = activeInstanceName ?? instanceName;
+                        String realInstanceName = instanceName;
                         String connectedPhone = _whatsappPhoneController.text;
 
                         if (user != null) {
                           try {
                             final clinicRow = await Supabase.instance.client
                                 .from('clinics')
-                                .select('whatsapp_instance_name, whatsapp_phone')
+                                .select('whatsapp_phone')
                                 .eq('id', user.clinicId)
                                 .maybeSingle();
-                            if (clinicRow != null && clinicRow['whatsapp_instance_name'] != null) {
-                              realInstanceName = clinicRow['whatsapp_instance_name'] as String;
-                            }
                             if (clinicRow != null && clinicRow['whatsapp_phone'] != null) {
                               connectedPhone = clinicRow['whatsapp_phone'] as String;
                             }
