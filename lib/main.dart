@@ -10,6 +10,7 @@ import 'src/features/auth/presentation/login_controller.dart';
 import 'src/features/auth/presentation/subscription_gate_screen.dart';
 import 'src/features/auth/presentation/top_up_subscription_screen.dart';
 import 'src/features/auth/presentation/pending_activation_screen.dart';
+import 'src/features/auth/presentation/reset_password_screen.dart';
 import 'src/features/dashboard/presentation/dashboard_screen.dart';
 
 import 'package:intl/date_symbol_data_local.dart';
@@ -79,7 +80,19 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     super.initState();
     _checkInitialSession();
     _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+      final event = data.event;
       final session = data.session;
+
+      if (event == AuthChangeEvent.passwordRecovery && mounted) {
+        // إذا ضغط المستخدم على رابط إعادة التعيين المستلم في الإيميل
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (ctx) => const ResetPasswordScreen(isUpdateMode: true),
+          ),
+        );
+        return;
+      }
+
       if (session != null) {
         final success = await ref.read(loginControllerProvider.notifier).tryAutoLogin();
         if (success) {
