@@ -54,13 +54,12 @@ class WhatsAppService {
 
   WhatsAppService(this._supabase);
 
-  /// Enqueues a message send operation. Guarantees sequential
-  /// processing per instance with anti-ban delays.
-  ///
-  /// If 50 messages arrive at once, they are chained:
-  /// msg1 → wait 5-8s → msg2 → wait 5-8s → msg3 → ...
-  ///
-  /// Total time for 50 messages: ~4-7 minutes (safe for WhatsApp)
+  /// Enqueues a message send operation.
+  /// 
+  /// 1. Per-Instance Queue: Messages for the SAME clinic are sent sequentially
+  ///    with a 5-8s random delay (anti-ban protection).
+  /// 2. Global Throttle: Messages for DIFFERENT clinics run in parallel,
+  ///    but with a short 500ms delay between HTTP requests to protect CPU.
   Future<void> _enqueueMessage({
     required String instanceName,
     required String phone,
@@ -68,26 +67,30 @@ class WhatsAppService {
   }) async {
     final completer = Completer<void>();
 
-    // Chain onto the instance-specific queue
+    // 1) Get the previous future for THIS specific clinic
     final previousInstanceFuture = _instanceQueue[instanceName] ?? Future.value();
     _instanceQueue[instanceName] = completer.future;
 
-    // Chain onto the global queue (CPU protection)
-    final previousGlobalFuture = _globalQueue;
-    _globalQueue = completer.future;
-
-    // Wait for previous messages to finish
+    // Wait for THIS clinic's previous message to finish
     await previousInstanceFuture.catchError((_) {});
-    await previousGlobalFuture.catchError((_) {});
 
     try {
-      // Anti-ban delay: 5-8 seconds (randomized for human-like behavior)
+      // 2) Per-clinic Anti-Ban Delay: 5-8 seconds
       final delayMs = (_minDelaySecondsPerInstance * 1000) +
           _random.nextInt(_maxExtraDelaySeconds * 1000);
-      print('[AntiSpam] Queued message for $instanceName. Waiting ${delayMs}ms...');
+      print('[AntiSpam] Instance $instanceName waiting ${delayMs}ms anti-ban delay...');
       await Future.delayed(Duration(milliseconds: delayMs));
 
-      // Now send the actual message
+      // 3) Global CPU Throttle: Ensure at least 500ms between ANY HTTP request
+      final previousGlobal = _globalQueue;
+      final globalCompleter = Completer<void>();
+      _globalQueue = globalCompleter.future;
+
+      await previousGlobal.catchError((_) {});
+      await Future.delayed(const Duration(milliseconds: 500));
+      globalCompleter.complete();
+
+      // 4) Send the actual message
       await _sendMessageToEvo(
         instanceName: instanceName,
         phone: phone,
