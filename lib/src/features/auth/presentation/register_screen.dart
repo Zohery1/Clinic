@@ -277,8 +277,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                             if (value == null || value.isEmpty) {
                               return 'يرجى إدخال كلمة المرور';
                             }
-                            if (value.length < 6) {
-                              return 'يجب ألا تقل كلمة المرور عن 6 أحرف';
+                            if (value.length < 8) {
+                              return 'يجب ألا تقل كلمة المرور عن 8 أحرف';
+                            }
+                            if (!RegExp(r'^(?=.*[A-Za-z])(?=.*\d)').hasMatch(value)) {
+                              return 'كلمة المرور ضعيفة (يجب أن تحتوي على حروف وأرقام)';
                             }
                             return null;
                           },

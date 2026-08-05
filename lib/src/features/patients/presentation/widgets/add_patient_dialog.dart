@@ -155,7 +155,12 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
         prefixIcon: Icons.phone_outlined,
         controller: _phoneController,
         keyboardType: TextInputType.phone,
-        validator: (v) => (v == null || v.trim().isEmpty) ? 'يرجى إدخال رقم الهاتف' : null,
+        validator: (v) {
+          if (v == null || v.trim().isEmpty) return 'يرجى إدخال رقم الهاتف';
+          final clean = v.replaceAll(RegExp(r'\D'), '');
+          if (clean.length < 11) return 'صيغة رقم الهاتف خاطئة (أقل من 11 رقم)';
+          return null;
+        },
       ),
       const SizedBox(height: 14),
       Row(

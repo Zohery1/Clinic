@@ -58,6 +58,29 @@ class AppointmentRepository {
     List<ServiceModel> selectedServices = const [],
   }) async {
     try {
+      // 1) فحص التاريخ والوقت القديم
+      if (appointmentDate.isBefore(DateTime.now().subtract(const Duration(minutes: 5)))) {
+        throw 'اختيار تاريخ أو وقت قديم انتهى';
+      }
+
+      // 2) فحص تكرار حجز نفس المريض في نفس اليوم
+      final startOfDay = DateTime(appointmentDate.year, appointmentDate.month, appointmentDate.day).toUtc().toIso8601String();
+      final endOfDay = DateTime(appointmentDate.year, appointmentDate.month, appointmentDate.day, 23, 59, 59).toUtc().toIso8601String();
+
+      final existingAppointments = await _supabase
+          .from('appointments')
+          .select('id, status')
+          .eq('clinic_id', clinicId)
+          .eq('patient_id', patientId)
+          .gte('appointment_date', startOfDay)
+          .lte('appointment_date', endOfDay)
+          .neq('status', 'cancelled_by_clinic')
+          .neq('status', 'cancelled_by_patient');
+
+      if (existingAppointments.isNotEmpty) {
+        throw 'المريض لديه حجز آخر في نفس اليوم';
+      }
+
       final response = await _supabase.from('appointments').insert({
         'clinic_id': clinicId,
         'patient_id': patientId,
