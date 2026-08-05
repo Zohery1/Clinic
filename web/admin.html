@@ -426,6 +426,14 @@
     function initRealtimeSubscription() {
       if (realtimeChannel) return;
 
+      // Auto refresh table stats every 60 seconds so time-remaining countdowns update automatically
+      setInterval(() => {
+        if (allClinics.length > 0) {
+          updateKPIStats();
+          filterClinics();
+        }
+      }, 60000);
+
       realtimeChannel = supabaseClient
         .channel('admin-dashboard-realtime')
         .on(
@@ -579,9 +587,14 @@
         // Badge Status Styling
         let statusBadge = '';
         const isPending = clinic.subscription_status === 'pending_activation';
+        const isExistingRenewal = isPending && (clinic.patientCount > 0 || clinic.appointmentCount > 0 || (endDate && endDate.getTime() > 0));
         
         if (isPending) {
-          statusBadge = `<span class="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[11px] font-extrabold animate-pulse">بانتظار التفعيل ⏳</span>`;
+          if (isExistingRenewal) {
+            statusBadge = `<span class="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[11px] font-extrabold animate-pulse">تجديد اشتراك 🔄</span>`;
+          } else {
+            statusBadge = `<span class="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[11px] font-extrabold animate-pulse">عيادة جديدة ⏳</span>`;
+          }
         } else if (!clinic.is_active || clinic.subscription_status === 'suspended') {
           statusBadge = `<span class="px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-[11px] font-bold">معطلة 🔴</span>`;
         } else if (isExpired) {
@@ -626,7 +639,7 @@
                 <div>
                   <div class="font-extrabold text-slate-900 text-sm flex items-center gap-2">
                     <span>${clinic.name}</span>
-                    ${isPending ? '<span class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-black">جديدة</span>' : ''}
+                    ${isPending ? (isExistingRenewal ? '<span class="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-black">تجديد</span>' : '<span class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-black">جديدة</span>') : ''}
                   </div>
                   <div class="text-[11px] font-semibold text-slate-400">د/ ${doctorName} ${doctorEmail ? `<span class="text-slate-400">(${doctorEmail})</span>` : ''}</div>
                   <div class="text-[10px] text-slate-400 mt-0.5">مرضى: <span class="font-bold text-slate-600">${clinic.patientCount || 0}</span> | حجوزات: <span class="font-bold text-slate-600">${clinic.appointmentCount || 0}</span></div>
@@ -672,10 +685,10 @@
               <div class="flex items-center justify-center gap-2">
                 ${isPending ? `
                   <!-- Approve & Activate Button -->
-                  <button onclick="activateClinicNow('${clinic.id}', '${clinic.name}')"
-                    class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1">
+                  <button onclick="activateClinicNow('${clinic.id}', '${clinic.name}', ${isExistingRenewal})"
+                    class="px-3 py-1.5 ${isExistingRenewal ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white font-black rounded-xl text-xs shadow-md transition-all flex items-center gap-1">
                     <i class="fa-solid fa-check text-[11px]"></i>
-                    <span>تفعيل الآن ⚡</span>
+                    <span>${isExistingRenewal ? 'تجديد الاشتراك 🔄' : 'تفعيل العيادة ⚡'}</span>
                   </button>
                 ` : ''}
 
@@ -826,16 +839,20 @@
       }
     }
 
-    // 1-Click Activate Pending Clinic
-    async function activateClinicNow(clinicId, clinicName) {
+    // 1-Click Activate / Renew Pending Clinic
+    async function activateClinicNow(clinicId, clinicName, isRenewal = false) {
+      const actionTitle = isRenewal ? `تجديد اشتراك عيادة "${clinicName}"؟` : `تفعيل اشتراك عيادة جديدة "${clinicName}"؟`;
+      const actionText = isRenewal ? 'سيتم تمديد اشتراك العيادة رسمياً لمدة 30 يوماً إضافية من الآن' : 'سيتم تفعيل العيادة الجديدة رسمياً لمدة 30 يوماً من الآن';
+      const btnText = isRenewal ? 'نعم، تجديد الاشتراك الآن 🔄' : 'نعم، تفعيل العيادة الآن ⚡';
+
       const confirm = await Swal.fire({
-        title: `تفعيل اشتراك عيادة "${clinicName}"؟`,
-        text: 'سيتم تفعيل الاشتراك رسمياً وتجديده لمدة 30 يوماً من الآن',
+        title: actionTitle,
+        text: actionText,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#059669',
+        confirmButtonColor: isRenewal ? '#2563EB' : '#059669',
         cancelButtonColor: '#64748B',
-        confirmButtonText: 'نعم، تفعيل الاشتراك الآن ⚡',
+        confirmButtonText: btnText,
         cancelButtonText: 'إلغاء'
       });
 
@@ -862,8 +879,8 @@
 
           Swal.fire({
             icon: 'success',
-            title: 'تم تفعيل العيادة بنجاح! ⚡',
-            text: `تمت تفعيل اشتراك "${clinicName}" لمدة 30 يوماً`,
+            title: isRenewal ? 'تم تجديد الاشتراك بنجاح! 🔄' : 'تم تفعيل العيادة بنجاح! ⚡',
+            text: `تم تمديد اشتراك "${clinicName}" لمدة 30 يوماً`,
             timer: 2000,
             showConfirmButton: false
           });

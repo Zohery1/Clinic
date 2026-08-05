@@ -153,9 +153,19 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         if (now.isAfter(end) || now.isAtSameMomentAs(end)) {
           print('[Subscription] 🚨 Heartbeat detected expiration! Auto-switching to TopUpSubscriptionScreen');
           timer.cancel();
-          setState(() {
-            _subscriptionStatus = 'expired';
-          });
+          if (_subscriptionStatus != 'expired') {
+            setState(() {
+              _subscriptionStatus = 'expired';
+            });
+            if (_clinicId.isNotEmpty) {
+              Supabase.instance.client
+                  .from('clinics')
+                  .update({'subscription_status': 'expired'})
+                  .eq('id', _clinicId)
+                  .then((_) {})
+                  .catchError((_) {});
+            }
+          }
         }
       });
     }
