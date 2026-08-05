@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,17 +20,18 @@ class WhatsAppService {
   final String _evoApiKey = "EyadatyEvoSecretKey2026!";
 
   // ══════════════════════════════════════════════════════════════
-  // Anti-Ban Rate Limiter
+  // Anti-Ban Message Queue
   // ══════════════════════════════════════════════════════════════
-  // Tracks the last send time per instance to enforce a minimum
-  // delay between messages. This prevents WhatsApp from flagging
-  // the number as a spammer/bot.
+  // Uses Future-chaining to guarantee messages are sent ONE AT A
+  // TIME per instance. Even if 50 cancellations fire at once,
+  // they queue up and send sequentially with 5-8s random delays.
   //
-  // Per-instance: min 5 seconds between messages (anti-ban)
-  // Global:       min 2 seconds between ANY messages (CPU protection)
+  // Per-instance: 5-8s random delay between messages (anti-ban)
+  // Global:       2s minimum between ANY messages (CPU protection)  
   // ══════════════════════════════════════════════════════════════
-  static final Map<String, DateTime> _lastSendTime = {};
-  static DateTime _lastGlobalSendTime = DateTime(2000);
+  static final Map<String, Future<void>> _instanceQueue = {};
+  static Future<void> _globalQueue = Future.value();
+  static final _random = Random();
 
   /// Minimum delay per instance (anti-ban)
   static const int _minDelaySecondsPerInstance = 5;
@@ -51,36 +54,48 @@ class WhatsAppService {
 
   WhatsAppService(this._supabase);
 
-  /// Waits the appropriate anti-ban delay before sending a message.
-  /// Returns a randomized delay between 5-8 seconds per instance,
-  /// and at least 2 seconds globally.
-  Future<void> _waitForRateLimit(String instanceName) async {
-    final now = DateTime.now();
+  /// Enqueues a message send operation. Guarantees sequential
+  /// processing per instance with anti-ban delays.
+  ///
+  /// If 50 messages arrive at once, they are chained:
+  /// msg1 → wait 5-8s → msg2 → wait 5-8s → msg3 → ...
+  ///
+  /// Total time for 50 messages: ~4-7 minutes (safe for WhatsApp)
+  Future<void> _enqueueMessage({
+    required String instanceName,
+    required String phone,
+    required String message,
+  }) async {
+    final completer = Completer<void>();
 
-    // 1) Global rate limit (CPU protection — 2s between any messages)
-    final globalElapsed = now.difference(_lastGlobalSendTime).inMilliseconds;
-    final globalMinMs = _minGlobalDelaySeconds * 1000;
-    if (globalElapsed < globalMinMs) {
-      await Future.delayed(Duration(milliseconds: globalMinMs - globalElapsed));
+    // Chain onto the instance-specific queue
+    final previousInstanceFuture = _instanceQueue[instanceName] ?? Future.value();
+    _instanceQueue[instanceName] = completer.future;
+
+    // Chain onto the global queue (CPU protection)
+    final previousGlobalFuture = _globalQueue;
+    _globalQueue = completer.future;
+
+    // Wait for previous messages to finish
+    await previousInstanceFuture.catchError((_) {});
+    await previousGlobalFuture.catchError((_) {});
+
+    try {
+      // Anti-ban delay: 5-8 seconds (randomized for human-like behavior)
+      final delayMs = (_minDelaySecondsPerInstance * 1000) +
+          _random.nextInt(_maxExtraDelaySeconds * 1000);
+      print('[AntiSpam] Queued message for $instanceName. Waiting ${delayMs}ms...');
+      await Future.delayed(Duration(milliseconds: delayMs));
+
+      // Now send the actual message
+      await _sendMessageToEvo(
+        instanceName: instanceName,
+        phone: phone,
+        message: message,
+      );
+    } finally {
+      completer.complete();
     }
-
-    // 2) Per-instance rate limit (anti-ban — 5-8s between messages for same instance)
-    final lastTime = _lastSendTime[instanceName];
-    if (lastTime != null) {
-      final elapsed = DateTime.now().difference(lastTime).inMilliseconds;
-      // Random delay between 5000ms and 8000ms for human-like behavior
-      final randomDelayMs = (_minDelaySecondsPerInstance * 1000) +
-          (DateTime.now().millisecondsSinceEpoch % (_maxExtraDelaySeconds * 1000));
-      if (elapsed < randomDelayMs) {
-        final waitMs = randomDelayMs - elapsed;
-        print('[AntiSpam] Waiting ${waitMs}ms before sending next message for $instanceName');
-        await Future.delayed(Duration(milliseconds: waitMs));
-      }
-    }
-
-    // Update timestamps
-    _lastSendTime[instanceName] = DateTime.now();
-    _lastGlobalSendTime = DateTime.now();
   }
 
   Future<void> sendBookingMessage({
@@ -134,7 +149,7 @@ class WhatsAppService {
           .replaceAll('[date]', dateStr)
           .replaceAll('[time]', timeStr);
 
-      await _sendMessageToEvo(
+      await _enqueueMessage(
         instanceName: instanceName,
         phone: phone,
         message: message,
@@ -189,7 +204,7 @@ class WhatsAppService {
           .replaceAll('[date]', dateStr)
           .replaceAll('[time]', timeStr);
 
-      await _sendMessageToEvo(
+      await _enqueueMessage(
         instanceName: instanceName,
         phone: phone,
         message: message,
@@ -265,8 +280,7 @@ class WhatsAppService {
     required String message,
     int retryCount = 0,
   }) async {
-    // ── Anti-Ban: wait for rate limit before sending ──
-    await _waitForRateLimit(instanceName);
+    // Format the phone number properly
 
     // Format the phone number properly
     String formattedPhone = phone.replaceAll(RegExp(r'\D'), '');
