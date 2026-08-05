@@ -60,7 +60,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
   }
 
-  // الخطوة الأولى: إرسال رمز OTP للبريد الإلكتروني
+  // الخطوة الأولى: إرسال رمز OTP المكون من 6 أرقام للبريد الإلكتروني
   Future<void> _sendResetOtp() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
@@ -72,36 +72,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     try {
       final email = _emailController.text.trim();
       
-      bool sent = false;
-      try {
-        await Supabase.instance.client.auth.resend(
-          email: email,
-          type: OtpType.recovery,
-        );
-        sent = true;
-      } catch (_) {}
-
-      if (!sent) {
-        try {
-          await Supabase.instance.client.auth.resetPasswordForEmail(email);
-          sent = true;
-        } catch (_) {}
-      }
-
-      if (!sent) {
-        await Supabase.instance.client.auth.signInWithOtp(
-          email: email,
-          shouldCreateUser: false,
-        );
-      }
+      // إرسال رمز OTP المكون من 6 أرقام للإيميل مباشرة (بدون روابط)
+      await Supabase.instance.client.auth.signInWithOtp(
+        email: email,
+        shouldCreateUser: false,
+      );
 
       setState(() {
         _step = 1;
         _successMessage = 'تم إرسال رمز التحقق المكون من 6 أرقام إلى بريدك الإلكتروني: $email';
       });
     } catch (e) {
+      String errStr = e.toString().replaceAll('Exception:', '').trim();
+      if (errStr.contains('User not found') || errStr.contains('user_not_found')) {
+        errStr = 'البريد الإلكتروني غير مسجل بالمنظومة.';
+      }
       setState(() {
-        _errorMessage = 'فشل إرسال رمز التحقق: ${e.toString().replaceAll('Exception:', '')}';
+        _errorMessage = 'فشل إرسال رمز التحقق: $errStr';
       });
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -125,14 +112,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         await Supabase.instance.client.auth.verifyOTP(
           email: email,
           token: token,
-          type: OtpType.recovery,
+          type: OtpType.email,
         );
       } catch (_) {
         try {
           await Supabase.instance.client.auth.verifyOTP(
             email: email,
             token: token,
-            type: OtpType.email,
+            type: OtpType.recovery,
           );
         } catch (_) {
           await Supabase.instance.client.auth.verifyOTP(
