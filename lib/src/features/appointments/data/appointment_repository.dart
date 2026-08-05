@@ -122,7 +122,7 @@ class AppointmentRepository {
           .update({'status': status})
           .eq('id', appointmentId);
 
-      if (status == 'cancelled_by_clinic' || status == 'cancelled_by_patient') {
+      if (status == 'cancelled_by_clinic') {
         final appointmentData = await _supabase
             .from('appointments')
             .select('clinic_id, patient_id, appointment_date')
