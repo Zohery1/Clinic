@@ -108,12 +108,46 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
   Future<void> _confirmTransfer() async {
     setState(() => _isSubmitting = true);
     try {
-      await Supabase.instance.client
+      final res = await Supabase.instance.client
           .from('clinics')
-          .update({'subscription_status': 'pending_activation'})
-          .eq('id', widget.clinicId);
-      if (mounted && Navigator.canPop(context)) Navigator.of(context).pop();
-      widget.onRefresh();
+          .select('subscription_end_date, subscription_status')
+          .eq('id', widget.clinicId)
+          .single();
+
+      final endDateStr = res['subscription_end_date'] as String?;
+      final endDate = endDateStr != null ? DateTime.tryParse(endDateStr) : null;
+      final statusStr = (res['subscription_status'] as String? ?? 'active').toLowerCase();
+
+      final isAlreadyExpired = statusStr == 'expired' || 
+          statusStr == 'pending_activation' ||
+          (endDate != null && endDate.toUtc().isBefore(DateTime.now().toUtc()));
+
+      if (isAlreadyExpired) {
+        // إذا كان الاشتراك منتهياً بالفعل، يتم التحديث بطلب تفعيل لينتقل لشاشة الانتظار
+        await Supabase.instance.client
+            .from('clinics')
+            .update({'subscription_status': 'pending_activation'})
+            .eq('id', widget.clinicId);
+
+        if (mounted && Navigator.canPop(context)) Navigator.of(context).pop();
+        widget.onRefresh();
+      } else {
+        // إذا كان الاشتراك ما زال سارياً وجدد مبكراً، نترك الحالة active ونعرض رسالة نجاح ليكمل عمله فوراً
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+              'تم إرسال طلب التجديد للإدارة بنجاح. يمكنك مواصلة عملك بشكل طبيعي لحين مراجعة الإدارة وتمديد الاشتراك.',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: AppTheme.success,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ));
+          if (Navigator.canPop(context)) {
+            Navigator.of(context).pop();
+          }
+        }
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
