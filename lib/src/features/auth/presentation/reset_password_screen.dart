@@ -47,8 +47,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     try {
       final email = _emailController.text.trim();
       final redirectUrl = kIsWeb
-          ? (Uri.base.origin.contains('localhost') ? 'https://eyadaty.vercel.app' : Uri.base.origin)
-          : 'https://eyadaty.vercel.app';
+          ? (Uri.base.origin.contains('localhost') ? 'https://eyadaty.vercel.app/reset' : '${Uri.base.origin}/reset')
+          : 'https://eyadaty.vercel.app/reset';
 
       await Supabase.instance.client.auth.resetPasswordForEmail(
         email,

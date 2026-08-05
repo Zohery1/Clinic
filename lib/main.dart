@@ -48,7 +48,19 @@ class MyApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      home: const AuthGate(),
+      onGenerateRoute: (settings) {
+        final name = settings.name ?? '/';
+        if (name.contains('/reset')) {
+          return MaterialPageRoute(
+            builder: (context) => const ResetPasswordScreen(isUpdateMode: true),
+            settings: settings,
+          );
+        }
+        return MaterialPageRoute(
+          builder: (context) => const AuthGate(),
+          settings: settings,
+        );
+      },
     );
   }
 }
