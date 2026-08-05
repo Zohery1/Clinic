@@ -143,16 +143,23 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       final now = DateTime.now().toUtc();
       final end = _subscriptionEndDate!.toUtc();
       if (end.isAfter(now)) {
-        final duration = end.difference(now);
-        print('[Subscription] ⏰ Scheduled exact expiration timer in ${duration.inSeconds}s');
-        _expirationTimer = Timer(duration, () {
-          if (mounted) {
-            print('[Subscription] 🚨 Subscription expired! Auto-switching to TopUpSubscriptionScreen');
-            setState(() {
-              _subscriptionStatus = 'expired';
-            });
-          }
-        });
+        var duration = end.difference(now);
+        
+        // Fix for Flutter Web (JS setTimeout) 32-bit int overflow (~24.8 days)
+        if (duration.inDays > 14) {
+          print('[Subscription] ⏰ Expiration is in ${duration.inDays} days. Scheduling 14-day chunk timer to prevent overflow.');
+          _expirationTimer = Timer(const Duration(days: 14), _scheduleExpirationTimer);
+        } else {
+          print('[Subscription] ⏰ Scheduled exact expiration timer in ${duration.inSeconds}s');
+          _expirationTimer = Timer(duration, () {
+            if (mounted) {
+              print('[Subscription] 🚨 Subscription expired! Auto-switching to TopUpSubscriptionScreen');
+              setState(() {
+                _subscriptionStatus = 'expired';
+              });
+            }
+          });
+        }
       }
     }
   }
@@ -302,7 +309,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       }
 
       // 3. حالة الانتهاء وعدم الدفع (Top Up)
-      final isExpired = _subscriptionEndDate != null && _subscriptionEndDate!.isBefore(DateTime.now());
+      final isExpired = _subscriptionEndDate != null && _subscriptionEndDate!.toUtc().isBefore(DateTime.now().toUtc());
       if (_subscriptionStatus == 'expired' || isExpired) {
         return TopUpSubscriptionScreen(
           clinicName: _clinicName,
