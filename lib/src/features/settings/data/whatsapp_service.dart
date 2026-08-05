@@ -206,6 +206,7 @@ class WhatsAppService {
     required String instanceName,
     required String phone,
     required String message,
+    bool isRetry = false,
   }) async {
     // Format the phone number properly
     String formattedPhone = phone.replaceAll(RegExp(r'\D'), '');
@@ -247,9 +248,34 @@ class WhatsAppService {
           }
         } catch (_) {}
 
-        String userFriendlyError = 'فشل واتساب: $err';
         final errLower = err.toLowerCase();
-        if (errLower.contains('connection closed') || errLower.contains('not connected')) {
+        final isConnectionClosed = errLower.contains('connection closed') || errLower.contains('not connected');
+
+        if (isConnectionClosed && !isRetry) {
+          print('WhatsApp session is closed (sleeping). Attempting auto-wakeup for instance $instanceName...');
+          try {
+            await http.get(
+              Uri.parse('$_evoBaseUrl/instance/connect/$instanceName'),
+              headers: {'apikey': _evoApiKey},
+            ).timeout(const Duration(seconds: 5));
+          } catch (e) {
+            print('Error waking up WhatsApp instance: $e');
+          }
+
+          // Wait 3 seconds for session to restore from saved credentials
+          await Future.delayed(const Duration(seconds: 3));
+
+          // Retry sending message
+          return _sendMessageToEvo(
+            instanceName: instanceName,
+            phone: phone,
+            message: message,
+            isRetry: true,
+          );
+        }
+
+        String userFriendlyError = 'فشل واتساب: $err';
+        if (isConnectionClosed) {
           userFriendlyError = 'واتساب غير متصل بالموبيل، يرجى فتح الإعدادات ومسح الـ QR Code لربط الرقم';
         } else if (errLower.contains('not found') || errLower.contains('does not exist')) {
           userFriendlyError = 'جلسة الواتساب غير موجودة، يرجى إعادة الربط من الإعدادات';
