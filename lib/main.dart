@@ -140,27 +140,24 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   void _scheduleExpirationTimer() {
     _expirationTimer?.cancel();
     if (_subscriptionEndDate != null) {
-      final now = DateTime.now().toUtc();
-      final end = _subscriptionEndDate!.toUtc();
-      if (end.isAfter(now)) {
-        var duration = end.difference(now);
+      // Heartbeat Timer: يشتغل كل دقيقة يتأكد من الوقت عشان يتفادى أي مشاكل في وضع السكون أو الـ Browser Limits
+      _expirationTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+        if (!mounted || _subscriptionEndDate == null) {
+          timer.cancel();
+          return;
+        }
         
-        // Fix for Flutter Web (JS setTimeout) 32-bit int overflow (~24.8 days)
-        if (duration.inDays > 14) {
-          print('[Subscription] ⏰ Expiration is in ${duration.inDays} days. Scheduling 14-day chunk timer to prevent overflow.');
-          _expirationTimer = Timer(const Duration(days: 14), _scheduleExpirationTimer);
-        } else {
-          print('[Subscription] ⏰ Scheduled exact expiration timer in ${duration.inSeconds}s');
-          _expirationTimer = Timer(duration, () {
-            if (mounted) {
-              print('[Subscription] 🚨 Subscription expired! Auto-switching to TopUpSubscriptionScreen');
-              setState(() {
-                _subscriptionStatus = 'expired';
-              });
-            }
+        final now = DateTime.now().toUtc();
+        final end = _subscriptionEndDate!.toUtc();
+        
+        if (now.isAfter(end) || now.isAtSameMomentAs(end)) {
+          print('[Subscription] 🚨 Heartbeat detected expiration! Auto-switching to TopUpSubscriptionScreen');
+          timer.cancel();
+          setState(() {
+            _subscriptionStatus = 'expired';
           });
         }
-      }
+      });
     }
   }
 
