@@ -71,7 +71,30 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     try {
       final email = _emailController.text.trim();
-      await Supabase.instance.client.auth.resetPasswordForEmail(email);
+      
+      bool sent = false;
+      try {
+        await Supabase.instance.client.auth.resend(
+          email: email,
+          type: OtpType.recovery,
+        );
+        sent = true;
+      } catch (_) {}
+
+      if (!sent) {
+        try {
+          await Supabase.instance.client.auth.resetPasswordForEmail(email);
+          sent = true;
+        } catch (_) {}
+      }
+
+      if (!sent) {
+        await Supabase.instance.client.auth.signInWithOtp(
+          email: email,
+          shouldCreateUser: false,
+        );
+      }
+
       setState(() {
         _step = 1;
         _successMessage = 'تم إرسال رمز التحقق المكون من 6 أرقام إلى بريدك الإلكتروني: $email';
@@ -105,16 +128,24 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           type: OtpType.recovery,
         );
       } catch (_) {
-        await Supabase.instance.client.auth.verifyOTP(
-          email: email,
-          token: token,
-          type: OtpType.email,
-        );
+        try {
+          await Supabase.instance.client.auth.verifyOTP(
+            email: email,
+            token: token,
+            type: OtpType.email,
+          );
+        } catch (_) {
+          await Supabase.instance.client.auth.verifyOTP(
+            email: email,
+            token: token,
+            type: OtpType.magiclink,
+          );
+        }
       }
 
       setState(() {
         _step = 2;
-        _successMessage = 'تم التحقق من رمز OTP بنجاح! أدخل كلمة المرور الجديدة الان.';
+        _successMessage = 'تم التحقق من رمز OTP بنجاح! أدخل كلمة المرور الجديدة الآن.';
       });
     } catch (e) {
       setState(() {
