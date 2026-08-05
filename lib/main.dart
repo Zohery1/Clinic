@@ -185,7 +185,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
             final statusStr = (res['subscription_status'] as String? ?? 'active').toLowerCase();
             final endDate = endDateStr != null ? DateTime.tryParse(endDateStr) : null;
 
-            final isExpired = endDate != null && endDate.toUtc().isBefore(DateTime.now().toUtc());
+            final isExpired = statusStr == 'active' && endDate != null && endDate.toUtc().isBefore(DateTime.now().toUtc());
             final finalStatus = isExpired ? 'expired' : statusStr;
 
             setState(() {
@@ -217,7 +217,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         final statusStr = (res['subscription_status'] as String? ?? 'active').toLowerCase();
         final endDate = endDateStr != null ? DateTime.tryParse(endDateStr) : null;
 
-        final isExpired = endDate != null && endDate.toUtc().isBefore(DateTime.now().toUtc());
+        final isExpired = statusStr == 'active' && endDate != null && endDate.toUtc().isBefore(DateTime.now().toUtc());
         final finalStatus = isExpired ? 'expired' : statusStr;
 
         if (mounted) {
@@ -316,7 +316,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       }
 
       // 3. حالة الانتهاء وعدم الدفع (Top Up)
-      final isExpired = _subscriptionEndDate != null && _subscriptionEndDate!.toUtc().isBefore(DateTime.now().toUtc());
+      final isExpired = _subscriptionStatus == 'active' && _subscriptionEndDate != null && _subscriptionEndDate!.toUtc().isBefore(DateTime.now().toUtc());
       if (_subscriptionStatus == 'expired' || isExpired) {
         return TopUpSubscriptionScreen(
           clinicName: _clinicName,
