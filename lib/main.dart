@@ -72,17 +72,12 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
   late final StreamSubscription<AuthState> _authSubscription;
   StreamSubscription<List<Map<String, dynamic>>>? _clinicStreamSubscription;
-  Timer? _liveClockTimer;
+  Timer? _expirationTimer;
 
   @override
   void initState() {
     super.initState();
     _checkInitialSession();
-    _liveClockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && _isLoggedIn) {
-        setState(() {});
-      }
-    });
     _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       final session = data.session;
       if (session != null) {
@@ -98,6 +93,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         }
       } else {
         _clinicStreamSubscription?.cancel();
+        _expirationTimer?.cancel();
         if (mounted) {
           setState(() {
             _isLoggedIn = false;
@@ -110,10 +106,31 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
   @override
   void dispose() {
-    _liveClockTimer?.cancel();
+    _expirationTimer?.cancel();
     _authSubscription.cancel();
     _clinicStreamSubscription?.cancel();
     super.dispose();
+  }
+
+  void _scheduleExpirationTimer() {
+    _expirationTimer?.cancel();
+    if (_subscriptionEndDate != null) {
+      final now = DateTime.now();
+      if (_subscriptionEndDate!.isAfter(now)) {
+        final duration = _subscriptionEndDate!.difference(now);
+        print('[Subscription] ⏰ Scheduled exact expiration timer in ${duration.inSeconds}s');
+        _expirationTimer = Timer(duration, () {
+          if (mounted) {
+            print('[Subscription] 🚨 Subscription expired! Auto-switching to TopUpSubscriptionScreen');
+            setState(() {
+              _subscriptionStatus = 'expired';
+            });
+          }
+        });
+      } else {
+        _subscriptionStatus = 'expired';
+      }
+    }
   }
 
   void _listenToClinicRealtime(String clinicId) {
@@ -137,6 +154,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
               _subscriptionEndDate = endDate;
               _subscriptionStatus = statusStr;
             });
+            _scheduleExpirationTimer();
           }
         });
   }
@@ -163,6 +181,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         _isClinicActive = isActive;
         _subscriptionEndDate = endDate;
         _subscriptionStatus = statusStr;
+        _scheduleExpirationTimer();
       }
     } catch (_) {
       // وفي حالة وجود خطأ نعتمد الحالة الافتراضية

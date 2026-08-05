@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -45,9 +46,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     try {
       final email = _emailController.text.trim();
+      final redirectUrl = kIsWeb
+          ? (Uri.base.origin.contains('localhost') ? 'https://eyadaty.vercel.app' : Uri.base.origin)
+          : 'https://eyadaty.vercel.app';
+
       await Supabase.instance.client.auth.resetPasswordForEmail(
         email,
-        redirectTo: Uri.base.origin,
+        redirectTo: redirectUrl,
       );
       setState(() {
         _successMessage = 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني بنجاح. يرجى مراجعة البريد.';
