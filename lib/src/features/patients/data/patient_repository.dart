@@ -43,12 +43,39 @@ class PatientRepository {
     String? medicalHistory,
   }) async {
     try {
+      // 1) فحص وجود رقم الهاتف مسبقاً في العيادة
+      if (phone != null && phone.trim().isNotEmpty) {
+        final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+        final existingByPhone = await _supabase
+            .from('patients')
+            .select('id, full_name, phone')
+            .eq('clinic_id', clinicId)
+            .or('phone.eq.$phone,phone.eq.$cleanPhone')
+            .maybeSingle();
+
+        if (existingByPhone != null) {
+          throw 'يوجد مريض آخر مسجل بنفس رقم الهاتف في هذه العيادة';
+        }
+      }
+
+      // 2) فحص تكرار الاسم الكامل ورقم التليفون
+      final existingByName = await _supabase
+          .from('patients')
+          .select('id, full_name')
+          .eq('clinic_id', clinicId)
+          .ilike('full_name', fullName.trim())
+          .maybeSingle();
+
+      if (existingByName != null) {
+        throw 'المريض لديه ملف بالفعل باسم آخر مطابق في العيادة';
+      }
+
       final response = await _supabase
           .from('patients')
           .insert({
             'clinic_id': clinicId,
-            'full_name': fullName,
-            if (phone != null && phone.isNotEmpty) 'phone': phone,
+            'full_name': fullName.trim(),
+            if (phone != null && phone.isNotEmpty) 'phone': phone.trim(),
             if (gender != null) 'gender': gender,
             if (birthDate != null) 'birth_date': birthDate.toIso8601String().substring(0, 10),
             if (address != null && address.isNotEmpty) 'address': address,

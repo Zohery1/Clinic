@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import 'login_controller.dart';
 import 'register_screen.dart';
+import 'reset_password_screen.dart';
 import '../../dashboard/presentation/dashboard_screen.dart';
 import 'verify_otp_screen.dart';
 
@@ -204,7 +206,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             return null;
                           },
                         ),
-                        const SizedBox(height: 28),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (ctx) => const ResetPasswordScreen(isUpdateMode: false),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'نسيت كلمة المرور؟',
+                              style: GoogleFonts.cairo(
+                                color: AppTheme.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
 
                         // زر تسجيل الدخول
                         ElevatedButton(
