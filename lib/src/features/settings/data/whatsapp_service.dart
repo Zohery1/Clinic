@@ -17,6 +17,31 @@ class WhatsAppService {
   final SupabaseClient _supabase;
   final String _evoApiKey = "EyadatyEvoSecretKey2026!";
 
+  // ══════════════════════════════════════════════════════════════
+  // Anti-Ban Rate Limiter
+  // ══════════════════════════════════════════════════════════════
+  // Tracks the last send time per instance to enforce a minimum
+  // delay between messages. This prevents WhatsApp from flagging
+  // the number as a spammer/bot.
+  //
+  // Per-instance: min 5 seconds between messages (anti-ban)
+  // Global:       min 2 seconds between ANY messages (CPU protection)
+  // ══════════════════════════════════════════════════════════════
+  static final Map<String, DateTime> _lastSendTime = {};
+  static DateTime _lastGlobalSendTime = DateTime(2000);
+
+  /// Minimum delay per instance (anti-ban)
+  static const int _minDelaySecondsPerInstance = 5;
+
+  /// Maximum random extra delay (human-like behavior)
+  static const int _maxExtraDelaySeconds = 3;
+
+  /// Minimum global delay between ANY message (CPU protection)
+  static const int _minGlobalDelaySeconds = 2;
+
+  /// Max retry attempts for wake-up
+  static const int _maxRetries = 2;
+
   String get _evoBaseUrl {
     if (kIsWeb) {
       return "${Uri.base.origin}/api/evo";
@@ -25,6 +50,38 @@ class WhatsAppService {
   }
 
   WhatsAppService(this._supabase);
+
+  /// Waits the appropriate anti-ban delay before sending a message.
+  /// Returns a randomized delay between 5-8 seconds per instance,
+  /// and at least 2 seconds globally.
+  Future<void> _waitForRateLimit(String instanceName) async {
+    final now = DateTime.now();
+
+    // 1) Global rate limit (CPU protection — 2s between any messages)
+    final globalElapsed = now.difference(_lastGlobalSendTime).inMilliseconds;
+    final globalMinMs = _minGlobalDelaySeconds * 1000;
+    if (globalElapsed < globalMinMs) {
+      await Future.delayed(Duration(milliseconds: globalMinMs - globalElapsed));
+    }
+
+    // 2) Per-instance rate limit (anti-ban — 5-8s between messages for same instance)
+    final lastTime = _lastSendTime[instanceName];
+    if (lastTime != null) {
+      final elapsed = DateTime.now().difference(lastTime).inMilliseconds;
+      // Random delay between 5000ms and 8000ms for human-like behavior
+      final randomDelayMs = (_minDelaySecondsPerInstance * 1000) +
+          (DateTime.now().millisecondsSinceEpoch % (_maxExtraDelaySeconds * 1000));
+      if (elapsed < randomDelayMs) {
+        final waitMs = randomDelayMs - elapsed;
+        print('[AntiSpam] Waiting ${waitMs}ms before sending next message for $instanceName');
+        await Future.delayed(Duration(milliseconds: waitMs));
+      }
+    }
+
+    // Update timestamps
+    _lastSendTime[instanceName] = DateTime.now();
+    _lastGlobalSendTime = DateTime.now();
+  }
 
   Future<void> sendBookingMessage({
     required String clinicId,
@@ -206,8 +263,11 @@ class WhatsAppService {
     required String instanceName,
     required String phone,
     required String message,
-    bool isRetry = false,
+    int retryCount = 0,
   }) async {
+    // ── Anti-Ban: wait for rate limit before sending ──
+    await _waitForRateLimit(instanceName);
+
     // Format the phone number properly
     String formattedPhone = phone.replaceAll(RegExp(r'\D'), '');
     if (formattedPhone.startsWith('00')) {
@@ -234,7 +294,7 @@ class WhatsAppService {
       final body = response.body;
 
       if (status >= 200 && status < 300) {
-        print('WhatsApp message sent successfully: $body');
+        print('[WhatsApp] ✅ Message sent to $formattedPhone via $instanceName');
         _showSuccessToast('تم إرسال رسالة واتساب بنجاح');
       } else {
         String err = body;
@@ -249,28 +309,30 @@ class WhatsAppService {
         } catch (_) {}
 
         final errLower = err.toLowerCase();
-        final isConnectionClosed = errLower.contains('connection closed') || errLower.contains('not connected');
+        final isConnectionClosed = errLower.contains('connection closed') ||
+            errLower.contains('not connected') ||
+            errLower.contains('disconnected');
 
-        if (isConnectionClosed && !isRetry) {
-          print('WhatsApp session is closed (sleeping). Attempting auto-wakeup for instance $instanceName...');
+        if (isConnectionClosed && retryCount < _maxRetries) {
+          print('[WhatsApp] ⚡ Session closed for $instanceName. Auto-wakeup attempt ${retryCount + 1}/$_maxRetries...');
           try {
             await http.get(
               Uri.parse('$_evoBaseUrl/instance/connect/$instanceName'),
               headers: {'apikey': _evoApiKey},
             ).timeout(const Duration(seconds: 5));
           } catch (e) {
-            print('Error waking up WhatsApp instance: $e');
+            print('[WhatsApp] ⚠️ Error waking up instance: $e');
           }
 
-          // Wait 3 seconds for session to restore from saved credentials
-          await Future.delayed(const Duration(seconds: 3));
+          // Wait 5 seconds for session to restore from Redis-saved credentials
+          await Future.delayed(const Duration(seconds: 5));
 
           // Retry sending message
           return _sendMessageToEvo(
             instanceName: instanceName,
             phone: phone,
             message: message,
-            isRetry: true,
+            retryCount: retryCount + 1,
           );
         }
 
@@ -281,11 +343,11 @@ class WhatsAppService {
           userFriendlyError = 'جلسة الواتساب غير موجودة، يرجى إعادة الربط من الإعدادات';
         }
 
-        print('Failed to send WhatsApp message: $status - $body');
+        print('[WhatsApp] ❌ Failed: $status - $body');
         _showErrorToast(userFriendlyError);
       }
     } catch (e) {
-      print('Exception sending WhatsApp message directly: $e');
+      print('[WhatsApp] ❌ Exception: $e');
       _showErrorToast('خطأ في الاتصال بسيرفر واتساب');
     }
   }
