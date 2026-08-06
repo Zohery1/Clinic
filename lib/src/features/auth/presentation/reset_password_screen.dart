@@ -143,6 +143,36 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
   }
 
+  // إعادة إرسال رمز الـ OTP بدون التحقق من حقل الرمز (لأنه فاضي أصلاً)
+  Future<void> _resendOtp() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+
+    try {
+      await Supabase.instance.client.auth.signInWithOtp(
+        email: email,
+        shouldCreateUser: false,
+      );
+      // مسح حقل الـ OTP لإدخال الرمز الجديد
+      _otpController.clear();
+      setState(() {
+        _successMessage = 'تم إعادة إرسال رمز التحقق إلى بريدك: $email';
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'فشل إعادة إرسال الرمز. حاول مرة أخرى بعد قليل.';
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   // الخطوة الثالثة: تحديث كلمة المرور وتسجيل الخروج للعودة لصفحة الدخول
   Future<void> _updatePassword() async {
     if (!_formKey.currentState!.validate()) return;
@@ -408,7 +438,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ),
                     const SizedBox(height: 12),
                     TextButton(
-                      onPressed: _isLoading ? null : _sendResetOtp,
+                      onPressed: _isLoading ? null : _resendOtp,
                       child: Text(
                         'لم يصلك الرمز؟ إعادة إرسال OTP',
                         style: GoogleFonts.cairo(

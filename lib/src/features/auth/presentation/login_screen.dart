@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../main.dart';
 import '../../../core/theme/app_theme.dart';
 import 'login_controller.dart';
 import 'register_screen.dart';
@@ -67,7 +68,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ),
           );
         } else if (loginState.isSuccess) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const AuthGate()),
+            (route) => false,
+          );
         }
       }
     }
