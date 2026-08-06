@@ -2104,7 +2104,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
               final phoneInput = pairingPhoneController.text.trim();
               if (phoneInput.isEmpty) {
                 setDialogState(() {
-                  pairingError = 'يرجى كتابة رقم هاتف العيادة على الواتساب أولاً (مثال: 01090671474)';
+                  pairingError = 'يرجى كتابة رقم هاتف العيادة على الواتساب أولاً';
                 });
                 return;
               }
@@ -2295,7 +2295,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                                   style: GoogleFonts.cairo(fontSize: 13),
                                   decoration: InputDecoration(
                                     labelText: 'رقم هاتف الواتساب',
-                                    hintText: '01090671474',
+                                    hintText: 'أدخل رقم الهاتف...',
                                     isDense: true,
                                     prefixIcon: const Icon(Icons.phone_rounded, size: 18),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -2633,7 +2633,22 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
+                      if (!isConnected) ...[
+                        TextFormField(
+                          controller: _whatsappPhoneController,
+                          keyboardType: TextInputType.phone,
+                          style: GoogleFonts.cairo(fontSize: 13),
+                          decoration: InputDecoration(
+                            labelText: 'رقم هاتف الواتساب الخاص بالعيادة',
+                            hintText: 'أدخل رقم الهاتف...',
+                            isDense: true,
+                            prefixIcon: const Icon(Icons.phone_rounded, size: 18, color: Color(0xFF10B981)),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
                       if (isDoctor)
                         ElevatedButton(
                           onPressed: isConnected ? _disconnectWhatsapp : _simulateQrScan,
@@ -2643,7 +2658,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           child: Text(
-                            isConnected ? 'إلغاء ربط الواتساب' : 'ربط الواتساب الآن (مسح الرمز)',
+                            isConnected ? 'إلغاء ربط الواتساب' : 'ربط الواتساب الآن (رمز QR / كود رقمي)',
                             style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                         ),
