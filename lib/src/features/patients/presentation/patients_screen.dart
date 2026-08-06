@@ -10,7 +10,6 @@ import '../data/patient_repository.dart';
 import '../domain/patient_model.dart';
 import '../../appointments/presentation/book_appointment_dialog.dart';
 import 'patient_details_dialog.dart';
-import '../../../core/widgets/send_whatsapp_dialog.dart';
 import 'widgets/add_patient_dialog.dart';
 import 'widgets/edit_patient_dialog.dart';
 import '../../../core/widgets/clinic_toast.dart';
@@ -648,23 +647,11 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                         ),
                         if (patient.phone != null && patient.phone!.isNotEmpty) ...[
                           const SizedBox(height: 2),
-                          InkWell(
-                            onTap: () => showSendWhatsAppDialog(context, ref, phone: patient.phone!, patientName: patient.fullName),
-                            borderRadius: BorderRadius.circular(4),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.chat_bubble_outline_rounded, size: 12, color: Color(0xFF10B981)),
-                                const SizedBox(width: 4),
-                                Text(
-                                  patient.phone!,
-                                  style: const TextStyle(
-                                    color: Color(0xFF10B981),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                          Text(
+                            patient.phone!,
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                              fontSize: 11,
                             ),
                           ),
                         ],
@@ -823,27 +810,13 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           if (patient.phone != null && patient.phone!.isNotEmpty)
-                            InkWell(
-                              onTap: () => showSendWhatsAppDialog(context, ref, phone: patient.phone!, patientName: patient.fullName),
-                              borderRadius: BorderRadius.circular(6),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.chat_bubble_outline_rounded, size: 14, color: Color(0xFF10B981)),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      patient.phone!,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF10B981),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.phone_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+                                const SizedBox(width: 6),
+                                Text(patient.phone!, style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
+                              ],
                             ),
                           if (displayAddress.isNotEmpty)
                             Row(
