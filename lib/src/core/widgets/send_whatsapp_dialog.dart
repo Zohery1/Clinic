@@ -37,6 +37,7 @@ class SendWhatsAppDialog extends ConsumerStatefulWidget {
 
 class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
   late TextEditingController _messageController;
+  late TextEditingController _phoneController;
   bool _isSending = false;
 
   final List<String> _quickTemplates = [
@@ -50,11 +51,13 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
   void initState() {
     super.initState();
     _messageController = TextEditingController(text: '');
+    _phoneController = TextEditingController(text: widget.phone);
   }
 
   @override
   void dispose() {
     _messageController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -69,7 +72,9 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
   }
 
   Future<void> _openInWhatsAppApp() async {
-    final clean = _cleanPhone(widget.phone);
+    final targetPhone = _phoneController.text.trim();
+    if (targetPhone.isEmpty) return;
+    final clean = _cleanPhone(targetPhone);
     final text = Uri.encodeComponent(_messageController.text.trim());
     final url = Uri.parse('https://wa.me/$clean?text=$text');
     if (await canLaunchUrl(url)) {
@@ -84,6 +89,14 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
   }
 
   Future<void> _sendViaApi() async {
+    final targetPhone = _phoneController.text.trim();
+    if (targetPhone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى إدخال رقم الهاتف')),
+      );
+      return;
+    }
+
     final msg = _messageController.text.trim();
     if (msg.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -112,7 +125,7 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
     if (user != null && user.clinicId.isNotEmpty) {
       final success = await ref.read(whatsappServiceProvider).sendCustomMessage(
             clinicId: user.clinicId,
-            phone: widget.phone,
+            phone: targetPhone,
             message: msg,
           );
 
@@ -187,6 +200,42 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
                   ],
                 ),
                 const SizedBox(height: 16),
+
+                // Phone number field
+                Text(
+                  'رقم الهاتف المراد الإرسال إليه:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  style: GoogleFonts.cairo(fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'أدخل رقم الواتساب...',
+                    isDense: true,
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    prefixIcon: const Icon(Icons.phone_rounded, size: 18, color: Color(0xFF10B981)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
 
                 // Quick template chips
                 Text(
