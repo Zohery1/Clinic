@@ -650,34 +650,42 @@ class PatientDetailsDialog extends ConsumerWidget {
                     style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8)),
                   ),
                   const SizedBox(height: 1),
-                  Text(
-                    value,
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          value,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (onActionTap != null) ...[
+                        const SizedBox(width: 6),
+                        Tooltip(
+                          message: actionTooltip ?? '',
+                          child: InkWell(
+                            onTap: onActionTap,
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: (actionColor ?? const Color(0xFF10B981)).withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Icon(
+                                actionIcon ?? Icons.chat_bubble_outline_rounded,
+                                color: actionColor ?? const Color(0xFF10B981),
+                                size: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
             ),
-            if (onActionTap != null)
-              Tooltip(
-                message: actionTooltip ?? '',
-                child: InkWell(
-                  onTap: onActionTap,
-                  borderRadius: BorderRadius.circular(6),
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: (actionColor ?? const Color(0xFF10B981)).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Icon(
-                      actionIcon ?? Icons.chat_bubble_outline_rounded,
-                      color: actionColor ?? const Color(0xFF10B981),
-                      size: 16,
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

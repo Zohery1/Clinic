@@ -10,6 +10,7 @@ import '../data/patient_repository.dart';
 import '../domain/patient_model.dart';
 import '../../appointments/presentation/book_appointment_dialog.dart';
 import 'patient_details_dialog.dart';
+import '../../../core/widgets/send_whatsapp_dialog.dart';
 import 'widgets/add_patient_dialog.dart';
 import 'widgets/edit_patient_dialog.dart';
 import '../../../core/widgets/clinic_toast.dart';
@@ -894,7 +895,16 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             builder: (context, profileConstraints) {
               final isWide = profileConstraints.maxWidth >= 700;
               final items = [
-                _buildClinicalMetaItem('رقم الهاتف', patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير مسجل', Icons.phone_rounded, Colors.blue),
+                _buildClinicalMetaItem(
+                  'رقم الهاتف',
+                  patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير مسجل',
+                  Icons.phone_rounded,
+                  Colors.blue,
+                  onActionTap: (patient.phone != null && patient.phone!.isNotEmpty)
+                      ? () => showSendWhatsAppDialog(context, ref, phone: patient.phone!, patientName: patient.fullName)
+                      : null,
+                  actionTooltip: 'إرسال رسالة واتساب للمريض',
+                ),
                 _buildClinicalMetaItem('العنوان', displayAddress.isNotEmpty ? displayAddress : 'غير مسجل', Icons.location_on_outlined, Colors.teal),
                 _buildClinicalMetaItem('العمر', age != null ? '$age سنة' : 'غير مسجل', Icons.cake_outlined, Colors.orange),
                 _buildClinicalMetaItem('رقم الملف', fileNo, Icons.badge_rounded, Colors.purple),
@@ -994,7 +1004,17 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
     );
   }
 
-  Widget _buildClinicalMetaItem(String title, String value, IconData icon, Color color, {bool useExpanded = true}) {
+  Widget _buildClinicalMetaItem(
+    String title,
+    String value,
+    IconData icon,
+    Color color, {
+    bool useExpanded = true,
+    VoidCallback? onActionTap,
+    IconData? actionIcon,
+    Color? actionColor,
+    String? actionTooltip,
+  }) {
     final content = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -1021,10 +1041,38 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                   style: TextStyle(fontSize: 10, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        value,
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (onActionTap != null) ...[
+                      const SizedBox(width: 6),
+                      Tooltip(
+                        message: actionTooltip ?? '',
+                        child: InkWell(
+                          onTap: onActionTap,
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: (actionColor ?? const Color(0xFF10B981)).withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(
+                              actionIcon ?? Icons.chat_bubble_outline_rounded,
+                              color: actionColor ?? const Color(0xFF10B981),
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
