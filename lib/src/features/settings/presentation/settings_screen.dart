@@ -694,23 +694,27 @@ class SettingsScreen extends ConsumerWidget {
               ),
               onPressed: () async {
                 final user = ref.read(currentUserProvider);
+                Navigator.of(context).pop(); // إغلاق المربع الحواري أولاً
                 if (user != null) {
-                  // إلغاء ربط المساعد بالعيادة كلياً
-                  await Supabase.instance.client.from('users').update({
-                    'clinic_id': null,
-                    'is_active': true,
-                    'can_delete_appointments': false,
-                    'can_view_reports': false,
-                    'can_edit_services': false,
-                    'can_view_medical_history': false,
-                    'can_edit_medical_notes': false,
-                  }).eq('id', user.id);
+                  try {
+                    // إلغاء ربط المساعد بالعيادة كلياً في الداتابيز
+                    await Supabase.instance.client.from('users').update({
+                      'clinic_id': null,
+                      'is_active': true,
+                      'can_delete_appointments': false,
+                      'can_view_reports': false,
+                      'can_edit_services': false,
+                      'can_view_medical_history': false,
+                      'can_edit_medical_notes': false,
+                    }).eq('id', user.id);
 
-                  final updatedUser = await ref.read(authRepositoryProvider).getUserProfile(user.id);
-                  ref.read(currentUserProvider.notifier).state = updatedUser;
+                    final updatedUser = await ref.read(authRepositoryProvider).getUserProfile(user.id);
+                    ref.read(currentUserProvider.notifier).state = updatedUser;
+                  } catch (e) {
+                    print('Error unlinking clinic: $e');
+                  }
 
                   if (context.mounted) {
-                    Navigator.of(context).pop();
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(
                         builder: (_) => JoinClinicScreen(
