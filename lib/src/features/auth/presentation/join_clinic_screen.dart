@@ -59,6 +59,13 @@ class _JoinClinicScreenState extends ConsumerState<JoinClinicScreen> {
     if (mounted) {
       setState(() => _isJoining = false);
       if (res['success'] == true) {
+        // تحديث بروفايل المستخدم فوراً في Riverpod لتفادي الحاجة لأي Refresh
+        final sessionUser = Supabase.instance.client.auth.currentUser;
+        if (sessionUser != null) {
+          final updatedProfile = await ref.read(authRepositoryProvider).getUserProfile(sessionUser.id);
+          ref.read(currentUserProvider.notifier).state = updatedProfile;
+        }
+
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
           SnackBar(
             content: Text(res['message'] ?? 'تم الانضمام للعيادة بنجاح'),
