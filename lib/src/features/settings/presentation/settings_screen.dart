@@ -2062,10 +2062,9 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                     fetchedQr = data['code'] as String;
                   }
 
-                  if (data['pairingCode'] != null) {
-                    fetchedPairing = data['pairingCode'] as String;
-                  } else if (data['pairing_code'] != null) {
-                    fetchedPairing = data['pairing_code'] as String;
+                  final rawPairing = (data['pairingCode'] ?? data['pairing_code'])?.toString();
+                  if (rawPairing != null && rawPairing.trim().length <= 12 && !rawPairing.contains('/') && !rawPairing.contains('=')) {
+                    fetchedPairing = rawPairing.trim();
                   }
 
                   if (data['qrcode'] != null && data['qrcode']['base64'] != null) {
@@ -2074,7 +2073,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
 
                   if (fetchedQr != null || fetchedPairing != null) {
                     setDialogState(() {
-                      qrBase64 = fetchedQr;
+                      if (fetchedQr != null) qrBase64 = fetchedQr;
                       if (fetchedPairing != null) pairingCode = fetchedPairing;
                       isLoadingQr = false;
                     });

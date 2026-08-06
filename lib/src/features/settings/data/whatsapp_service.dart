@@ -463,6 +463,19 @@ class WhatsAppService {
         return {'error': 'يرجى إدخال رقم الهاتف المربوط بالواتساب'};
       }
 
+      String? extractCode(dynamic data) {
+        if (data is Map<String, dynamic>) {
+          String? candidate = data['pairingCode']?.toString() ??
+              data['pairing_code']?.toString() ??
+              data['qrcode']?['pairingCode']?.toString();
+
+          if (candidate != null && candidate.trim().length <= 12 && !candidate.contains('/') && !candidate.contains('=')) {
+            return candidate.trim();
+          }
+        }
+        return null;
+      }
+
       final connectUrl = Uri.parse('$_evoBaseUrl/instance/connect/$instanceName?number=$cleanPhone');
       print('[WhatsApp] 🔑 Requesting pairing code for $instanceName ($cleanPhone)...');
 
@@ -473,20 +486,9 @@ class WhatsAppService {
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
         final data = jsonDecode(res.body);
-        if (data is Map<String, dynamic>) {
-          String? pCode;
-          if (data['pairingCode'] != null) {
-            pCode = data['pairingCode'].toString();
-          } else if (data['code'] != null) {
-            pCode = data['code'].toString();
-          } else if (data['qrcode'] != null && data['qrcode']['pairingCode'] != null) {
-            pCode = data['qrcode']['pairingCode'].toString();
-          }
-
-          if (pCode != null && pCode.isNotEmpty) {
-            return {'pairingCode': pCode};
-          }
-          return data;
+        final code = extractCode(data);
+        if (code != null) {
+          return {'pairingCode': code};
         }
       }
 
@@ -508,29 +510,22 @@ class WhatsAppService {
 
       if (createRes.statusCode >= 200 && createRes.statusCode < 300) {
         final data = jsonDecode(createRes.body);
-        if (data is Map<String, dynamic>) {
-          String? pCode;
-          if (data['pairingCode'] != null) {
-            pCode = data['pairingCode'].toString();
-          } else if (data['qrcode'] != null && data['qrcode']['pairingCode'] != null) {
-            pCode = data['qrcode']['pairingCode'].toString();
-          }
+        final code = extractCode(data);
+        if (code != null) {
+          return {'pairingCode': code};
+        }
 
-          if (pCode != null && pCode.isNotEmpty) {
-            return {'pairingCode': pCode};
-          }
+        // Re-try connect after create
+        final retryRes = await http.get(
+          connectUrl,
+          headers: {'apikey': _evoApiKey},
+        ).timeout(const Duration(seconds: 10));
 
-          // Re-try connect after create
-          final retryRes = await http.get(
-            connectUrl,
-            headers: {'apikey': _evoApiKey},
-          ).timeout(const Duration(seconds: 10));
-
-          if (retryRes.statusCode >= 200 && retryRes.statusCode < 300) {
-            final retryData = jsonDecode(retryRes.body);
-            if (retryData is Map<String, dynamic>) {
-              return retryData;
-            }
+        if (retryRes.statusCode >= 200 && retryRes.statusCode < 300) {
+          final retryData = jsonDecode(retryRes.body);
+          final code = extractCode(retryData);
+          if (code != null) {
+            return {'pairingCode': code};
           }
         }
       }
@@ -538,7 +533,7 @@ class WhatsAppService {
       print('Error fetching pairing code from Evolution API: $e');
       return {'error': 'خطأ في الاتصال بسيرفر واتساب: $e'};
     }
-    return null;
+    return {'error': 'لم يتم تلقي كود الاقتران. تأكد من صحة رقم الهاتف'};
   }
 
   Future<Map<String, dynamic>?> checkEvolutionStatus(String instanceName) async {
