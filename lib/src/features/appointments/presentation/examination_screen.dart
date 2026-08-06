@@ -224,6 +224,7 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
 
     final currentUser = ref.watch(currentUserProvider);
     final isDoctor = currentUser?.role == UserRole.doctor;
+    final canEditNotes = isDoctor || (currentUser?.canEditMedicalNotes ?? false);
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
     // تهيئة الخدمات
@@ -254,19 +255,16 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'جلسة فحص: ${widget.patientName}',
+                'التقرير الطبي والخدمات - ${widget.patientName}',
                 style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).textTheme.titleMedium?.color,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               Text(
-                isDoctor ? 'الطبيب — صلاحية التحرير كاملة' : 'المساعد — عرض فقط',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Theme.of(context).hintColor,
-                ),
+                'إدخال وتعديل التقرير والتشخيص الطبي والخدمات',
+                style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor),
               ),
             ],
           ),
@@ -307,9 +305,9 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
             }
 
             if (isDesktop) {
-              return _buildDesktopLayout(context, isDoctor, availableServicesAsync);
+              return _buildDesktopLayout(context, canEditNotes, availableServicesAsync);
             } else {
-              return _buildMobileLayout(context, isDoctor, availableServicesAsync);
+              return _buildMobileLayout(context, canEditNotes, availableServicesAsync);
             }
           },
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -415,7 +413,53 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
   }
 
   // ─── شريط الحفظ السفلي ───
-  Widget _buildBottomBar(BuildContext context) {
+  Widget _buildBottomBar(BuildContext context, {required bool isDoctor}) {
+    if (!isDoctor) {
+      // بالنسبة للسكرتيرة: زر رئيسي واحد فقط "حفظ التقرير فقط" بدون خيار إنهاء الكشف
+      return Container(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 12,
+          bottom: 12 + MediaQuery.of(context).padding.bottom,
+        ),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _isSaving ? null : () => _save(andComplete: false),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.save_rounded, size: 18),
+            label: Text(
+              _isSaving ? 'جاري الحفظ...' : 'حفظ التقرير فقط',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.only(
         left: 16,

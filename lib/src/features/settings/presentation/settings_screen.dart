@@ -1159,6 +1159,28 @@ class StaffPermissionsPage extends ConsumerWidget {
                                             canViewReports: staff.canViewReports,
                                             canEditServices: staff.canEditServices,
                                             canViewMedicalHistory: val,
+                                            canEditMedicalNotes: staff.canEditMedicalNotes,
+                                            canCancelAppointments: staff.canCancelAppointments,
+                                          );
+                                      ref.invalidate(staffListProvider);
+                                  },
+                          ),
+                          _buildPermissionTile(
+                            title: 'كتابة وتعديل التقرير والتشخيص الطبي',
+                            subtitle: 'إدخال وتعديل التقرير والتشخيص والتعليمات الخاصة بالزيارات',
+                            icon: Icons.edit_note_rounded,
+                            value: staff.canEditMedicalNotes,
+                            onChanged: !staff.isActive
+                                ? null
+                                : (val) async {
+                                      await ref.read(authRepositoryProvider).updateUserPermissions(
+                                            userId: staff.id,
+                                            isActive: staff.isActive,
+                                            canDeleteAppointments: staff.canDeleteAppointments,
+                                            canViewReports: staff.canViewReports,
+                                            canEditServices: staff.canEditServices,
+                                            canViewMedicalHistory: staff.canViewMedicalHistory,
+                                            canEditMedicalNotes: val,
                                             canCancelAppointments: staff.canCancelAppointments,
                                           );
                                       ref.invalidate(staffListProvider);
@@ -1187,6 +1209,7 @@ class StaffPermissionsPage extends ConsumerWidget {
                                             canViewReports: val,
                                             canEditServices: staff.canEditServices,
                                             canViewMedicalHistory: staff.canViewMedicalHistory,
+                                            canEditMedicalNotes: staff.canEditMedicalNotes,
                                             canCancelAppointments: staff.canCancelAppointments,
                                           );
                                       ref.invalidate(staffListProvider);

@@ -27,6 +27,7 @@ class UserModel {
   final bool canViewReports;              // صلاحية رؤية التقارير المالية
   final bool canEditServices;             // صلاحية إدخال وتعديل الخدمات والأسعار
   final bool canViewMedicalHistory;       // صلاحية رؤية التقرير الطبي والروشتة
+  final bool canEditMedicalNotes;         // صلاحية كتابة وتعديل التقرير الطبي
   final bool canCancelAppointments;       // صلاحية إلغاء المواعيد والاعتذار
   final DateTime createdAt;
 
@@ -40,6 +41,7 @@ class UserModel {
     required this.canViewReports,
     this.canEditServices = false,
     this.canViewMedicalHistory = false,
+    this.canEditMedicalNotes = false,
     this.canCancelAppointments = true,
     required this.createdAt,
   });
@@ -56,6 +58,7 @@ class UserModel {
       canViewReports: json['can_view_reports'] as bool? ?? false,
       canEditServices: json['can_edit_services'] as bool? ?? false,
       canViewMedicalHistory: json['can_view_medical_history'] as bool? ?? false,
+      canEditMedicalNotes: json['can_edit_medical_notes'] as bool? ?? false,
       canCancelAppointments: json['can_cancel_appointments'] as bool? ?? true,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
@@ -73,6 +76,7 @@ class UserModel {
       'can_view_reports': canViewReports,
       'can_edit_services': canEditServices,
       'can_view_medical_history': canViewMedicalHistory,
+      'can_edit_medical_notes': canEditMedicalNotes,
       'can_cancel_appointments': canCancelAppointments,
       'created_at': createdAt.toIso8601String(),
     };

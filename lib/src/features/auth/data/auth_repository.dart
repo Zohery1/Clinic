@@ -129,6 +129,7 @@ class AuthRepository {
     required bool canViewReports,
     bool canEditServices = false,
     bool canViewMedicalHistory = false,
+    bool canEditMedicalNotes = false,
     bool canCancelAppointments = true,
   }) async {
     try {
@@ -138,10 +139,10 @@ class AuthRepository {
         'can_view_reports': canViewReports,
         'can_edit_services': canEditServices,
         'can_view_medical_history': canViewMedicalHistory,
+        'can_edit_medical_notes': canEditMedicalNotes,
         'can_cancel_appointments': canCancelAppointments,
       }).eq('id', userId);
     } catch (e) {
-      // إذا كانت الأعمدة الجديدة لم تُضف بعد في Supabase، يتم التحديث بالأعمدة الأساسية
       await _supabase.from('users').update({
         'is_active': isActive,
         'can_delete_appointments': canDeleteAppointments,

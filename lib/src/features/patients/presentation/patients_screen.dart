@@ -1433,7 +1433,7 @@ class _TimelineAppointmentCardState extends ConsumerState<_TimelineAppointmentCa
                                 appointmentId: widget.app.id,
                                 patientId: widget.patient.id,
                                 patientName: widget.patient.fullName,
-                                 isDoctor: widget.user.role == UserRole.doctor || widget.user.canViewMedicalHistory,
+                                 isDoctor: widget.user.role == UserRole.doctor || widget.user.canEditMedicalNotes,
                               ),
                             ),
                             IconButton(
