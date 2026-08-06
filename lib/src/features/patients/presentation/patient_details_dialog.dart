@@ -708,7 +708,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                     time: time,
                     clinicId: clinicId,
                     patient: patient,
-                    isDoctor: isDoctor,
+                    isDoctor: isDoctor || (currentUser?.canViewMedicalHistory ?? false),
                     getStatusColor: _getStatusColor,
                     translateStatus: _translateStatus,
                   ),
