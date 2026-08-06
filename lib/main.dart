@@ -13,6 +13,7 @@ import 'src/features/auth/presentation/pending_activation_screen.dart';
 import 'src/features/auth/presentation/account_blocked_screen.dart';
 import 'src/features/auth/presentation/join_clinic_screen.dart';
 import 'src/features/auth/presentation/reset_password_screen.dart';
+import 'src/features/auth/domain/user_model.dart';
 import 'src/features/dashboard/presentation/dashboard_screen.dart';
 
 import 'package:intl/date_symbol_data_local.dart';
