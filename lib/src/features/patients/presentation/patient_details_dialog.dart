@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/send_whatsapp_dialog.dart';
 import '../../appointments/data/appointment_repository.dart';
 import '../../appointments/domain/appointment_model.dart';
 import '../../appointments/domain/appointment_service_model.dart';
@@ -208,7 +209,19 @@ class PatientDetailsDialog extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      _buildClinicalMetaItem(context, 'رقم الهاتف', patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير مسجل', Icons.phone_rounded, Colors.blue),
+                      _buildClinicalMetaItem(
+                        context,
+                        'رقم الهاتف',
+                        patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير مسجل',
+                        Icons.phone_rounded,
+                        Colors.blue,
+                        onActionTap: (patient.phone != null && patient.phone!.isNotEmpty)
+                            ? () => showSendWhatsAppDialog(context, ref, phone: patient.phone!, patientName: patient.fullName)
+                            : null,
+                        actionIcon: Icons.chat_bubble_outline_rounded,
+                        actionColor: const Color(0xFF10B981),
+                        actionTooltip: 'إرسال رسالة واتساب للمريض',
+                      ),
                       const SizedBox(width: 8),
                       _buildClinicalMetaItem(context, 'العنوان', displayAddress.isNotEmpty ? displayAddress : 'غير مسجل', Icons.location_on_outlined, Colors.teal),
                     ],
@@ -480,7 +493,19 @@ class PatientDetailsDialog extends ConsumerWidget {
                       // ─── Patient Demographics Grid ───
                       Row(
                         children: [
-                          _buildClinicalMetaItem(context, 'رقم الهاتف', patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير مسجل', Icons.phone_rounded, Colors.blue),
+                          _buildClinicalMetaItem(
+                        context,
+                        'رقم الهاتف',
+                        patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير مسجل',
+                        Icons.phone_rounded,
+                        Colors.blue,
+                        onActionTap: (patient.phone != null && patient.phone!.isNotEmpty)
+                            ? () => showSendWhatsAppDialog(context, ref, phone: patient.phone!, patientName: patient.fullName)
+                            : null,
+                        actionIcon: Icons.chat_bubble_outline_rounded,
+                        actionColor: const Color(0xFF10B981),
+                        actionTooltip: 'إرسال رسالة واتساب للمريض',
+                      ),
                           const SizedBox(width: 8),
                           _buildClinicalMetaItem(context, 'العنوان', displayAddress.isNotEmpty ? displayAddress : 'غير مسجل', Icons.location_on_outlined, Colors.teal),
                         ],
@@ -587,7 +612,17 @@ class PatientDetailsDialog extends ConsumerWidget {
     );
   }
 
-  Widget _buildClinicalMetaItem(BuildContext context, String title, String value, IconData icon, Color color) {
+  Widget _buildClinicalMetaItem(
+    BuildContext context,
+    String title,
+    String value,
+    IconData icon,
+    Color color, {
+    VoidCallback? onActionTap,
+    IconData? actionIcon,
+    Color? actionColor,
+    String? actionTooltip,
+  }) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -623,6 +658,26 @@ class PatientDetailsDialog extends ConsumerWidget {
                 ],
               ),
             ),
+            if (onActionTap != null)
+              Tooltip(
+                message: actionTooltip ?? '',
+                child: InkWell(
+                  onTap: onActionTap,
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: (actionColor ?? const Color(0xFF10B981)).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(
+                      actionIcon ?? Icons.chat_bubble_outline_rounded,
+                      color: actionColor ?? const Color(0xFF10B981),
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

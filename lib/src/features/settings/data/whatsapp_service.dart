@@ -217,6 +217,40 @@ class WhatsAppService {
     }
   }
 
+  /// إرسال رسالة واتساب مخصصة لأي مريض عبر الخدمة
+  Future<bool> sendCustomMessage({
+    required String clinicId,
+    required String phone,
+    required String message,
+  }) async {
+    try {
+      final clinicRes = await _supabase
+          .from('clinics')
+          .select('whatsapp_enabled, whatsapp_instance_name')
+          .eq('id', clinicId)
+          .maybeSingle();
+
+      if (clinicRes == null || clinicRes['whatsapp_enabled'] != true) {
+        return false;
+      }
+
+      final instanceName = clinicRes['whatsapp_instance_name'] as String?;
+      if (instanceName == null || instanceName.isEmpty) {
+        return false;
+      }
+
+      await _enqueueMessage(
+        instanceName: instanceName,
+        phone: phone,
+        message: message,
+      );
+      return true;
+    } catch (e) {
+      print('Error sending custom WhatsApp message: $e');
+      return false;
+    }
+  }
+
   void _showErrorToast(String message) {
     final state = rootScaffoldMessengerKey.currentState;
     if (state == null) return;

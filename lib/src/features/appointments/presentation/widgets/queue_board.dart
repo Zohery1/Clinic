@@ -11,6 +11,7 @@ import '../../../auth/domain/user_model.dart';
 import '../examination_screen.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
 import '../../../../core/widgets/clinic_toast.dart';
+import '../../../../core/widgets/send_whatsapp_dialog.dart';
 import '../book_appointment_dialog.dart';
 import '../edit_appointment_dialog.dart';
 import 'admission_confirmation_sheet.dart';
@@ -435,11 +436,34 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
                             ],
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            appt.patient.phone ?? 'بدون رقم هاتف',
-                            style: TextStyle(fontSize: 11, color: theme.hintColor),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          if (appt.patient.phone != null && appt.patient.phone!.isNotEmpty)
+                            InkWell(
+                              onTap: () => showSendWhatsAppDialog(
+                                context,
+                                ref,
+                                phone: appt.patient.phone!,
+                                patientName: appt.patient.fullName,
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.chat_bubble_outline_rounded, size: 12, color: Color(0xFF10B981)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    appt.patient.phone!,
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF10B981), fontWeight: FontWeight.w600),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Text(
+                              'بدون رقم هاتف',
+                              style: TextStyle(fontSize: 11, color: theme.hintColor),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                         ],
                       ),
                     ),

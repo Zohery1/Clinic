@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/send_whatsapp_dialog.dart';
 import '../../patients/data/patient_repository.dart';
 import '../../patients/domain/patient_model.dart';
 import '../data/appointment_repository.dart';
@@ -539,16 +540,28 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
                     ),
                     const SizedBox(height: 4),
                     if (widget.appointment.patient.phone != null && widget.appointment.patient.phone!.isNotEmpty)
-                      Row(
-                        children: [
-                          Icon(Icons.phone_outlined, size: 14, color: _textSecColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            widget.appointment.patient.phone!,
-                            style: TextStyle(fontSize: 13, color: _textSecColor),
-                            textDirection: TextDirection.ltr,
+                      InkWell(
+                        onTap: () => showSendWhatsAppDialog(
+                          context,
+                          ref,
+                          phone: widget.appointment.patient.phone!,
+                          patientName: widget.appointment.patient.fullName,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.chat_bubble_outline_rounded, size: 14, color: Color(0xFF10B981)),
+                              const SizedBox(width: 6),
+                              Text(
+                                widget.appointment.patient.phone!,
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF10B981)),
+                                textDirection: TextDirection.ltr,
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                   ],
                 ),
