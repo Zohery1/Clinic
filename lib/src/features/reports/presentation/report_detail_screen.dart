@@ -379,10 +379,11 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
 
   Widget _buildSummaryCard(BuildContext context, _SummaryCardData data) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: AppTheme.cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -398,7 +399,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
                   color: data.bgColor,
                   borderRadius: BorderRadius.circular(8),
@@ -407,37 +408,53 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Text(
-                data.value,
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: data.mono ? 'JetBrains Mono' : null,
-                  color: Theme.of(context).textTheme.titleLarge?.color,
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              data.value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: data.mono ? 'JetBrains Mono' : null,
+                color: Theme.of(context).textTheme.titleLarge?.color,
+              ),
+            ),
+          ),
+          if (data.trendText != null && data.trendIsPositive != null) ...[
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444)).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      data.trendIsPositive! ? Icons.arrow_upward : Icons.arrow_downward,
+                      color: data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                      size: 11,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      data.trendText!,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              if (data.trendText != null && data.trendIsPositive != null) ...[
-                const Spacer(),
-                Icon(
-                  data.trendIsPositive! ? Icons.arrow_upward : Icons.arrow_downward,
-                  color: data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  data.trendText!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                  ),
-                ),
-              ],
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );

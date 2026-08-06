@@ -570,9 +570,25 @@ class ReportsRepository {
         comparisonLabel = 'مقارنة بالفترة السابقة';
       }
 
-      // Sorting peak times
+      // ترتيب أوقات الذروة زمنياً (حسب الساعة أو الأيام)
+      int parseTimeKey(String key) {
+        if (key.contains('/')) {
+          final parts = key.split('/');
+          final day = int.tryParse(parts[0]) ?? 0;
+          final month = int.tryParse(parts[1]) ?? 0;
+          return month * 100 + day;
+        } else {
+          final parts = key.trim().split(' ');
+          int h = int.tryParse(parts[0]) ?? 0;
+          final isPm = key.contains('م');
+          if (isPm && h < 12) h += 12;
+          if (!isPm && h == 12) h = 0;
+          return h;
+        }
+      }
+
       final sortedPeakTimes = peakTimes.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
+        ..sort((a, b) => parseTimeKey(a.key).compareTo(parseTimeKey(b.key)));
 
       return {
         'appointmentsByType': appointmentsByType.values.toList(),
