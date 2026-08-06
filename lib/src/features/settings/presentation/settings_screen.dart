@@ -10,7 +10,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/presentation/login_screen.dart';
+import '../../auth/presentation/join_clinic_screen.dart';
 import '../../auth/presentation/top_up_subscription_screen.dart';
+import '../../../../main.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/user_model.dart';
 import '../../reports/presentation/reports_controller.dart';
@@ -693,18 +695,34 @@ class SettingsScreen extends ConsumerWidget {
               onPressed: () async {
                 final user = ref.read(currentUserProvider);
                 if (user != null) {
-                  await Supabase.instance.client
-                      .from('users')
-                      .delete()
-                      .eq('id', user.id);
+                  // إلغاء ربط المساعد بالعيادة كلياً
+                  await Supabase.instance.client.from('users').update({
+                    'clinic_id': null,
+                    'is_active': true,
+                    'can_delete_appointments': false,
+                    'can_view_reports': false,
+                    'can_edit_services': false,
+                    'can_view_medical_history': false,
+                    'can_edit_medical_notes': false,
+                  }).eq('id', user.id);
 
-                  await ref.read(authRepositoryProvider).signOut();
-                  ref.read(currentUserProvider.notifier).state = null;
+                  final updatedUser = await ref.read(authRepositoryProvider).getUserProfile(user.id);
+                  ref.read(currentUserProvider.notifier).state = updatedUser;
 
                   if (context.mounted) {
                     Navigator.of(context).pop();
                     Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => JoinClinicScreen(
+                          userName: user.fullName,
+                          onRefresh: () {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const AuthGate()),
+                              (route) => false,
+                            );
+                          },
+                        ),
+                      ),
                       (route) => false,
                     );
                   }
