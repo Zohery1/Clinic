@@ -10,6 +10,7 @@ import 'src/features/auth/presentation/login_controller.dart';
 import 'src/features/auth/presentation/subscription_gate_screen.dart';
 import 'src/features/auth/presentation/top_up_subscription_screen.dart';
 import 'src/features/auth/presentation/pending_activation_screen.dart';
+import 'src/features/auth/presentation/account_blocked_screen.dart';
 import 'src/features/auth/presentation/reset_password_screen.dart';
 import 'src/features/dashboard/presentation/dashboard_screen.dart';
 
@@ -290,6 +291,20 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     }
 
     if (_isLoggedIn) {
+      final currentUser = ref.watch(currentUserProvider);
+
+      // 0. حساب السكرتير/المساعد معطل من قبل الطبيب
+      if (currentUser != null && !currentUser.isActive) {
+        return AccountBlockedScreen(
+          userName: currentUser.fullName,
+          clinicName: _clinicName,
+          onRefresh: () async {
+            setState(() => _isInitializing = true);
+            await _checkInitialSession();
+          },
+        );
+      }
+
       // 1. حالة الانتظار لحين تفعيل العيادة لأول مرة من الإدارة
       if (_subscriptionStatus == 'pending_activation') {
         return PendingActivationScreen(
