@@ -316,8 +316,8 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ),
-        bottomNavigationBar: isDoctor
-            ? _buildBottomBar(context)
+        bottomNavigationBar: canEditNotes
+            ? _buildBottomBar(context, isDoctor: isDoctor)
             : null,
       ),
     );
