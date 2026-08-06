@@ -588,7 +588,7 @@ class ReportsRepository {
       }
 
       final sortedPeakTimes = peakTimes.entries.toList()
-        ..sort((a, b) => parseTimeKey(a.key).compareTo(parseTimeKey(b.key)));
+        ..sort((a, b) => parseTimeKey(b.key).compareTo(parseTimeKey(a.key)));
 
       return {
         'appointmentsByType': appointmentsByType.values.toList(),
