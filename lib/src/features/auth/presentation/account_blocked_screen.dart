@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import 'login_controller.dart';
 import 'login_screen.dart';
+import 'join_clinic_screen.dart';
 
 class AccountBlockedScreen extends ConsumerStatefulWidget {
   final String userName;
@@ -211,75 +212,34 @@ class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // 🔑 قسم الانضمام لعيادة جديدة في حالة الخروج من العيادة
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                  // 🔑 زر الانتقال لصفحة الانضمام المخصصة لعيادة جديدة
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => JoinClinicScreen(
+                            userName: widget.userName,
+                            onRefresh: widget.onRefresh,
+                          ),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.primary,
+                      side: BorderSide(color: theme.colorScheme.primary),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.vpn_key_rounded, size: 18, color: theme.colorScheme.primary),
-                            const SizedBox(width: 8),
-                            Text(
-                              'الانضمام لعيادة جديدة (كود العيادة)',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'إذا خرجت من هذه العيادة أو ترغب بالربط بعيادة أخرى، أدخل كود العيادة الجديد هنا:',
-                          style: TextStyle(fontSize: 11, color: theme.hintColor),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _inviteCodeController,
-                                decoration: InputDecoration(
-                                  hintText: 'رمز الدعوة (مثال: CL-9X28)',
-                                  hintStyle: const TextStyle(fontSize: 12),
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                  filled: true,
-                                  fillColor: theme.colorScheme.surface,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(color: theme.dividerColor),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: _isJoining ? null : _joinNewClinic,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: theme.colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                elevation: 0,
-                              ),
-                              child: _isJoining
-                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                  : const Text('ربط وتفعيل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                            ),
-                          ],
-                        ),
-                      ],
+                    icon: const Icon(Icons.add_business_rounded, size: 20),
+                    label: Text(
+                      'الخروج من العيادة والربط بعيادة جديدة',
+                      style: GoogleFonts.cairo(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),

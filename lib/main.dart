@@ -11,6 +11,7 @@ import 'src/features/auth/presentation/subscription_gate_screen.dart';
 import 'src/features/auth/presentation/top_up_subscription_screen.dart';
 import 'src/features/auth/presentation/pending_activation_screen.dart';
 import 'src/features/auth/presentation/account_blocked_screen.dart';
+import 'src/features/auth/presentation/join_clinic_screen.dart';
 import 'src/features/auth/presentation/reset_password_screen.dart';
 import 'src/features/dashboard/presentation/dashboard_screen.dart';
 
@@ -293,7 +294,18 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     if (_isLoggedIn) {
       final currentUser = ref.watch(currentUserProvider);
 
-      // 0. حساب السكرتير/المساعد معطل من قبل الطبيب
+      // 0.1 السكرتير/المساعد غير مرتبط بعيادة (خرج من العيادة)
+      if (currentUser != null && currentUser.role == UserRole.secretary && currentUser.clinicId.isEmpty) {
+        return JoinClinicScreen(
+          userName: currentUser.fullName,
+          onRefresh: () async {
+            setState(() => _isInitializing = true);
+            await _checkInitialSession();
+          },
+        );
+      }
+
+      // 0.2 حساب السكرتير/المساعد معطل من قبل الطبيب
       if (currentUser != null && !currentUser.isActive) {
         return AccountBlockedScreen(
           userName: currentUser.fullName,
