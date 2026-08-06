@@ -1981,8 +1981,11 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
         String? qrBase64;
         String? pairingCode;
         bool isLoadingQr = true;
+        bool isLoadingPairing = false;
         String? qrError;
+        String? pairingError;
         String activeInstanceName = instanceName;
+        final pairingPhoneController = TextEditingController(text: _whatsappPhoneController.text);
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -2072,7 +2075,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                   if (fetchedQr != null || fetchedPairing != null) {
                     setDialogState(() {
                       qrBase64 = fetchedQr;
-                      pairingCode = fetchedPairing;
+                      if (fetchedPairing != null) pairingCode = fetchedPairing;
                       isLoadingQr = false;
                     });
                     pollTimer?.cancel();
@@ -2093,6 +2096,63 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                 setDialogState(() {
                   isLoadingQr = false;
                   qrError = 'خطأ في الاتصال بالبوابة: $e';
+                });
+              }
+            }
+
+            void loadPairing() async {
+              final phoneInput = pairingPhoneController.text.trim();
+              if (phoneInput.isEmpty) {
+                setDialogState(() {
+                  pairingError = 'يرجى كتابة رقم هاتف العيادة على الواتساب أولاً (مثال: 01090671474)';
+                });
+                return;
+              }
+
+              setDialogState(() {
+                isLoadingPairing = true;
+                pairingError = null;
+              });
+
+              try {
+                final res = await ref.read(whatsappServiceProvider).fetchEvolutionPairingCode(
+                      instanceName: activeInstanceName,
+                      phone: phoneInput,
+                    );
+
+                if (res != null) {
+                  if (res['pairingCode'] != null) {
+                    String p = res['pairingCode'].toString();
+                    if (p.length == 8) {
+                      p = '${p.substring(0, 4)} - ${p.substring(4)}';
+                    }
+                    setDialogState(() {
+                      pairingCode = p;
+                      isLoadingPairing = false;
+                    });
+                    pollTimer?.cancel();
+                    pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => checkStatus());
+                  } else if (res['error'] != null) {
+                    setDialogState(() {
+                      isLoadingPairing = false;
+                      pairingError = res['error'].toString();
+                    });
+                  } else {
+                    setDialogState(() {
+                      isLoadingPairing = false;
+                      pairingError = 'لم يتم تلقي كود الاقتران من البوابة';
+                    });
+                  }
+                } else {
+                  setDialogState(() {
+                    isLoadingPairing = false;
+                    pairingError = 'تعذر الحصول على كود الاقتران من سيرفر الواتساب';
+                  });
+                }
+              } catch (e) {
+                setDialogState(() {
+                  isLoadingPairing = false;
+                  pairingError = 'خطأ في الاتصال: $e';
                 });
               }
             }
@@ -2148,7 +2208,12 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                               ),
                               Expanded(
                                 child: GestureDetector(
-                                  onTap: () => setDialogState(() => selectedMethodTab = 1),
+                                  onTap: () {
+                                    setDialogState(() => selectedMethodTab = 1);
+                                    if (pairingCode == null && !isLoadingPairing && pairingPhoneController.text.trim().isNotEmpty) {
+                                      loadPairing();
+                                    }
+                                  },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(vertical: 8),
                                     decoration: BoxDecoration(
@@ -2214,30 +2279,121 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                           ),
                         ] else ...[
                           Text(
-                            'افتح تطبيق WhatsApp من هاتفك (الأجهزة المرتبطة > الربط برقم الهاتف) وادخل الكود التالي:',
+                            'افتح تطبيق WhatsApp من هاتفك (الأجهزة المرتبطة > ربط جهاز > الربط برقم الهاتف) وادخل الكود التالي:',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.cairo(fontSize: 12, color: theme.hintColor),
                           ),
+                          const SizedBox(height: 14),
+
+                          // Phone input row
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: pairingPhoneController,
+                                  keyboardType: TextInputType.phone,
+                                  style: GoogleFonts.cairo(fontSize: 13),
+                                  decoration: InputDecoration(
+                                    labelText: 'رقم هاتف الواتساب',
+                                    hintText: '01090671474',
+                                    isDense: true,
+                                    prefixIcon: const Icon(Icons.phone_rounded, size: 18),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: isLoadingPairing ? null : loadPairing,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: theme.colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                child: Text(
+                                  'توليد الكود',
+                                  style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
-                            ),
-                            child: isLoadingQr
-                                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                                : Text(
-                                    pairingCode ?? '1234 - 5678',
+
+                          if (isLoadingPairing)
+                            const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Column(
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 8),
+                                  Text('جاري طلب كود الاقتران من الواتساب...'),
+                                ],
+                              ),
+                            )
+                          else if (pairingCode != null)
+                            Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                                  ),
+                                  child: SelectableText(
+                                    pairingCode!,
                                     style: GoogleFonts.cairo(
-                                      fontSize: 24,
+                                      fontSize: 26,
                                       fontWeight: FontWeight.bold,
-                                      letterSpacing: 2,
+                                      letterSpacing: 3,
                                       color: theme.colorScheme.primary,
                                     ),
                                   ),
-                          ),
+                                ),
+                                const SizedBox(height: 10),
+                                OutlinedButton.icon(
+                                  onPressed: () {
+                                    final cleanCode = pairingCode!.replaceAll(' ', '').replaceAll('-', '');
+                                    Clipboard.setData(ClipboardData(text: cleanCode));
+                                    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                                      const SnackBar(
+                                        content: Text('تم نسخ كود الاقتران إلى الحافظة!'),
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.copy_rounded, size: 16),
+                                  label: Text(
+                                    'نسخ الكود',
+                                    style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else if (pairingError != null)
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                              ),
+                              child: Text(
+                                pairingError!,
+                                style: GoogleFonts.cairo(fontSize: 12, color: Colors.red),
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                          else
+                            Text(
+                              'أدخل رقم الواتساب ثم اضغط "توليد الكود" لربط الهاتف بدون مسح QR',
+                              style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey),
+                              textAlign: TextAlign.center,
+                            ),
                         ],
 
                         const SizedBox(height: 16),
@@ -2245,7 +2401,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             IconButton(
-                              onPressed: loadQr,
+                              onPressed: selectedMethodTab == 0 ? loadQr : loadPairing,
                               icon: const Icon(Icons.refresh_rounded, size: 18),
                               tooltip: 'تحديث الرمز',
                             ),
