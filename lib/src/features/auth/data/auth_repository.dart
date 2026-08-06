@@ -220,4 +220,17 @@ class AuthRepository {
       await _supabase.auth.signInWithOtp(email: email);
     }
   }
+
+  // ربط أو تغير عيادة المساعد بواسطة كود الدعوة
+  Future<Map<String, dynamic>> joinClinicWithInviteCode(String inviteCode) async {
+    try {
+      final response = await _supabase.rpc(
+        'switch_user_clinic',
+        params: {'p_invite_code': inviteCode.trim()},
+      );
+      return Map<String, dynamic>.from(response as Map);
+    } catch (e) {
+      return {'success': false, 'message': 'خطأ في الربط بالعيادة: $e'};
+    }
+  }
 }

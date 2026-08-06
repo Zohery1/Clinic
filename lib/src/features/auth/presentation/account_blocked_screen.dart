@@ -23,7 +23,15 @@ class AccountBlockedScreen extends ConsumerStatefulWidget {
 }
 
 class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
+  final _inviteCodeController = TextEditingController();
   bool _isChecking = false;
+  bool _isJoining = false;
+
+  @override
+  void dispose() {
+    _inviteCodeController.dispose();
+    super.dispose();
+  }
 
   void _handleLogout() async {
     await Supabase.instance.client.auth.signOut();
@@ -42,6 +50,32 @@ class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
     widget.onRefresh();
     if (mounted) {
       setState(() => _isChecking = false);
+    }
+  }
+
+  void _joinNewClinic() async {
+    final code = _inviteCodeController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+        const SnackBar(content: Text('يرجى إدخال كود العيادة الجديد (رمز الدعوة)'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    setState(() => _isJoining = true);
+    final res = await ref.read(authRepositoryProvider).joinClinicWithInviteCode(code);
+    if (mounted) {
+      setState(() => _isJoining = false);
+      if (res['success'] == true) {
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(content: Text(res['message'] ?? 'تم الانضمام للعيادة بنجاح'), backgroundColor: Colors.green),
+        );
+        widget.onRefresh();
+      } else {
+        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+          SnackBar(content: Text(res['message'] ?? 'كود العيادة غير صحيح'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -175,7 +209,80 @@ class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
+
+                  // 🔑 قسم الانضمام لعيادة جديدة في حالة الخروج من العيادة
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.vpn_key_rounded, size: 18, color: theme.colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'الانضمام لعيادة جديدة (كود العيادة)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'إذا خرجت من هذه العيادة أو ترغب بالربط بعيادة أخرى، أدخل كود العيادة الجديد هنا:',
+                          style: TextStyle(fontSize: 11, color: theme.hintColor),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _inviteCodeController,
+                                decoration: InputDecoration(
+                                  hintText: 'رمز الدعوة (مثال: CL-9X28)',
+                                  hintStyle: const TextStyle(fontSize: 12),
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  filled: true,
+                                  fillColor: theme.colorScheme.surface,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(color: theme.dividerColor),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: _isJoining ? null : _joinNewClinic,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                elevation: 0,
+                              ),
+                              child: _isJoining
+                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Text('ربط وتفعيل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
                   // أزرار التفاعل
                   Column(
