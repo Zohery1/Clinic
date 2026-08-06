@@ -467,6 +467,7 @@ class WhatsAppService {
         if (data is Map<String, dynamic>) {
           String? candidate = data['pairingCode']?.toString() ??
               data['pairing_code']?.toString() ??
+              data['code']?.toString() ??
               data['qrcode']?['pairingCode']?.toString();
 
           if (candidate != null && candidate.trim().length <= 12 && !candidate.contains('/') && !candidate.contains('=')) {
@@ -476,11 +477,12 @@ class WhatsAppService {
         return null;
       }
 
-      final connectUrl = Uri.parse('$_evoBaseUrl/instance/connect/$instanceName?number=$cleanPhone');
+      // Method 1: Get pairing code via /instance/connect/pairing-code/$instanceName?number=$cleanPhone
+      final pairingUrl = Uri.parse('$_evoBaseUrl/instance/connect/pairing-code/$instanceName?number=$cleanPhone');
       print('[WhatsApp] 🔑 Requesting pairing code for $instanceName ($cleanPhone)...');
 
       final res = await http.get(
-        connectUrl,
+        pairingUrl,
         headers: {'apikey': _evoApiKey},
       ).timeout(const Duration(seconds: 12));
 
@@ -492,7 +494,22 @@ class WhatsAppService {
         }
       }
 
-      // If instance doesn't exist, create it with number
+      // Method 2: Fallback to /instance/connect/$instanceName?number=$cleanPhone
+      final connectUrl = Uri.parse('$_evoBaseUrl/instance/connect/$instanceName?number=$cleanPhone');
+      final resConnect = await http.get(
+        connectUrl,
+        headers: {'apikey': _evoApiKey},
+      ).timeout(const Duration(seconds: 12));
+
+      if (resConnect.statusCode >= 200 && resConnect.statusCode < 300) {
+        final data = jsonDecode(resConnect.body);
+        final code = extractCode(data);
+        if (code != null) {
+          return {'pairingCode': code};
+        }
+      }
+
+      // Method 3: If instance doesn't exist, create it
       final createUrl = Uri.parse('$_evoBaseUrl/instance/create');
       final createRes = await http.post(
         createUrl,
@@ -515,9 +532,9 @@ class WhatsAppService {
           return {'pairingCode': code};
         }
 
-        // Re-try connect after create
+        // Re-try pairing endpoint after create
         final retryRes = await http.get(
-          connectUrl,
+          pairingUrl,
           headers: {'apikey': _evoApiKey},
         ).timeout(const Duration(seconds: 10));
 
