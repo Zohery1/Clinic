@@ -103,12 +103,14 @@ class AppointmentRepository {
         await _supabase.from('appointment_services').insert(servicesData);
       }
 
-      // إرسال رسالة واتساب
-      await _whatsAppService.sendBookingMessage(
+      // إرسال رسالة تأكيد الحجز في الخلفية
+      _whatsAppService.sendBookingMessage(
         clinicId: clinicId,
         patientId: patientId,
         appointmentDate: appointmentDate,
-      );
+      ).catchError((e) {
+        print('Error sending booking confirmation WhatsApp: $e');
+      });
     } catch (e) {
       rethrow;
     }
@@ -130,11 +132,13 @@ class AppointmentRepository {
             .maybeSingle();
 
         if (appointmentData != null) {
-          await _whatsAppService.sendCancellationMessage(
+          _whatsAppService.sendCancellationMessage(
             clinicId: appointmentData['clinic_id'],
             patientId: appointmentData['patient_id'],
             appointmentDate: DateTime.parse(appointmentData['appointment_date']).toLocal(),
-          );
+          ).catchError((e) {
+            print('Error sending cancellation WhatsApp: $e');
+          });
         }
       }
     } catch (e) {
@@ -238,13 +242,15 @@ class AppointmentRepository {
           .gte('appointment_date', start)
           .lte('appointment_date', end);
 
-      // إرسال رسائل الإلغاء
+      // إرسال رسائل الإلغاء في الخلفية بطابور الأمان دون تعطيل واجهة العيادة
       for (var app in appointmentsToCancel) {
-        await _whatsAppService.sendCancellationMessage(
+        _whatsAppService.sendCancellationMessage(
           clinicId: clinicId,
           patientId: app['patient_id'],
           appointmentDate: DateTime.parse(app['appointment_date']).toLocal(),
-        );
+        ).catchError((e) {
+          print('Error sending bulk cancellation WhatsApp: $e');
+        });
       }
     } catch (e) {
       rethrow;
