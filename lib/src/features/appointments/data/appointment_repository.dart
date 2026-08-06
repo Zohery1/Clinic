@@ -14,8 +14,8 @@ final appointmentRepositoryProvider = Provider<AppointmentRepository>((ref) {
   );
 });
 
-// مزود لجلب الخدمات الإضافية المتاحة بالعيادة
-final availableServicesProvider = FutureProvider.family.autoDispose<List<ServiceModel>, String>((ref, clinicId) async {
+// مزود لجلب الخدمات الإضافية المتاحة بالعيادة (مخزنة في الذاكرة لتنقل فوري)
+final availableServicesProvider = FutureProvider.family<List<ServiceModel>, String>((ref, clinicId) async {
   return ref.watch(appointmentRepositoryProvider).getAvailableServices(clinicId);
 });
 
