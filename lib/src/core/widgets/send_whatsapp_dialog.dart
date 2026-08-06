@@ -49,8 +49,7 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
   @override
   void initState() {
     super.initState();
-    final defaultMsg = _quickTemplates[0].replaceAll('[name]', widget.patientName);
-    _messageController = TextEditingController(text: defaultMsg);
+    _messageController = TextEditingController(text: '');
   }
 
   @override
