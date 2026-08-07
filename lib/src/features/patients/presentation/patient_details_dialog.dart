@@ -138,8 +138,8 @@ class PatientDetailsDialog extends ConsumerWidget {
             icon: Icon(Icons.arrow_back_rounded, color: Theme.of(context).textTheme.titleLarge?.color),
             onPressed: () => Navigator.pop(context),
           ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 _capitalizeName(patient.fullName),
@@ -149,44 +149,24 @@ class PatientDetailsDialog extends ConsumerWidget {
                   color: Theme.of(context).textTheme.titleLarge?.color,
                 ),
               ),
-              Text(
-                'ملف رقم $fileNo',
-                style: GoogleFonts.cairo(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w700,
-                ),
+              const SizedBox(width: 4),
+              IconButton(
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(4),
+                icon: Icon(Icons.edit_outlined, size: 18, color: Theme.of(context).colorScheme.primary),
+                tooltip: 'تعديل البيانات',
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => EditPatientDialog(
+                      clinicId: clinicId,
+                      patient: patient,
+                    ),
+                  );
+                },
               ),
             ],
           ),
-          actions: [
-            TextButton.icon(
-              style: TextButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              icon: Icon(Icons.edit_outlined, size: 16, color: Theme.of(context).colorScheme.primary),
-              label: Text(
-                'تعديل',
-                style: GoogleFonts.cairo(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => EditPatientDialog(
-                    clinicId: clinicId,
-                    patient: patient,
-                  ),
-                );
-              },
-            ),
-            const SizedBox(width: 12),
-          ],
         ),
         body: Column(
           children: [
@@ -211,48 +191,48 @@ class PatientDetailsDialog extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _capitalizeName(patient.fullName),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 18,
-                            color: Theme.of(context).textTheme.titleLarge?.color,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _capitalizeName(patient.fullName),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                  color: Theme.of(context).textTheme.titleLarge?.color,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.all(2),
+                              icon: Icon(Icons.edit_outlined, size: 18, color: Theme.of(context).colorScheme.primary),
+                              tooltip: 'تعديل البيانات',
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => EditPatientDialog(
+                                    clinicId: clinicId,
+                                    patient: patient,
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'الملف الطبي الموحد للمريض',
-                          style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+                          'ملف رقم $fileNo',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: const Icon(Icons.edit_outlined, size: 16),
-                    label: Text(
-                      'تعديل الملف',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => EditPatientDialog(
-                          clinicId: clinicId,
-                          patient: patient,
-                        ),
-                      );
-                    },
                   ),
                 ],
               ),
