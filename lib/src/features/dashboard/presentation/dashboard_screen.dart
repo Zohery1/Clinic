@@ -517,157 +517,173 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
           return Directionality(
             textDirection: TextDirection.rtl,
-            child: AlertDialog(
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+            child: PopScope(
+              onPopInvokedWithResult: (didPop, _) {
+                ref.read(notificationsProvider.notifier).markAllAsRead();
+              },
+              child: AlertDialog(
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(Icons.notifications_active_rounded,
+                              color: theme.colorScheme.primary, size: 20),
                         ),
-                        child: Icon(Icons.notifications_active_rounded,
-                            color: theme.colorScheme.primary, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'التنبيهات والإشعارات',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                          color: theme.textTheme.titleLarge?.color,
+                        const SizedBox(width: 12),
+                        Text(
+                          'التنبيهات والإشعارات',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            color: theme.textTheme.titleLarge?.color,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  if (state.notifications.isNotEmpty)
-                    TextButton(
-                      onPressed: () {
-                        notifier.markAllAsRead();
-                      },
-                      child: Text(
-                        'مسح الكل',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      ],
                     ),
-                ],
-              ),
-              content: SizedBox(
-                width: 400,
-                child: state.isLoading
-                    ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
-                          child: CircularProgressIndicator(),
+                    if (state.notifications.isNotEmpty)
+                      TextButton(
+                        onPressed: () {
+                          notifier.markAllAsRead();
+                        },
+                        child: Text(
+                          'مسح الكل',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      )
-                    : state.notifications.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 32),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.notifications_off_outlined,
-                                      size: 40, color: theme.hintColor),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'لا توجد إشعارات حالياً',
-                                    style: TextStyle(
+                      ),
+                  ],
+                ),
+                content: SizedBox(
+                  width: 400,
+                  child: state.isLoading
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      : state.notifications.isEmpty
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 32),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.notifications_off_outlined,
+                                        size: 40, color: theme.hintColor),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'لا توجد تنبيهات حالياً',
+                                      style: TextStyle(
                                         color: theme.hintColor,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600),
-                                  ),
-                                ],
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          )
-                        : ListView.separated(
-                            shrinkWrap: true,
-                            itemCount: state.notifications.length,
-                            separatorBuilder: (_, __) => const Divider(height: 16),
-                            itemBuilder: (context, index) {
-                              final notification = state.notifications[index];
-                              IconData icon = Icons.info_outline_rounded;
-                              Color color = theme.colorScheme.primary;
-                              
-                              if (notification.title == 'حجز جديد') {
-                                icon = Icons.calendar_today_rounded;
-                                color = AppTheme.success;
-                              } else if (notification.title == 'إضافة خدمة طبية') {
-                                icon = Icons.medical_services_outlined;
-                                color = AppTheme.completed;
-                              }
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: state.notifications.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final notification = state.notifications[index];
+                                IconData icon = Icons.notifications_rounded;
+                                Color color = theme.colorScheme.primary;
 
-                              return InkWell(
-                                onTap: () {
-                                  notifier.markAsRead(notification.id);
-                                },
-                                borderRadius: BorderRadius.circular(8),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Stack(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: color.withValues(alpha: 0.1),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(icon, color: color, size: 18),
+                                if (notification.title == 'حجز جديد') {
+                                  icon = Icons.event_available_rounded;
+                                  color = Colors.blue;
+                                } else if (notification.title == 'إضافة خدمة طبية') {
+                                  icon = Icons.medical_services_rounded;
+                                  color = Colors.purple;
+                                }
+
+                                return InkWell(
+                                  onTap: () {
+                                    notifier.markAsRead(notification.id);
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 8),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: color.withValues(alpha: 0.1),
+                                            shape: BoxShape.circle,
                                           ),
-                                          if (!notification.isRead)
-                                            Positioned(
-                                              top: 0,
-                                              right: 0,
-                                              child: Container(
-                                                width: 8,
-                                                height: 8,
-                                                decoration: BoxDecoration(
-                                                  color: theme.colorScheme.error,
-                                                  shape: BoxShape.circle,
+                                          child: Icon(icon, color: color, size: 18),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    notification.title,
+                                                    style: const TextStyle(
+                                                      fontWeight: FontWeight.w700,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                  if (!notification.isRead)
+                                                    Container(
+                                                      width: 8,
+                                                      height: 8,
+                                                      decoration: BoxDecoration(
+                                                        color: theme.colorScheme.primary,
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                notification.body,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: theme.textTheme.bodyMedium?.color
+                                                      ?.withValues(alpha: 0.8),
                                                 ),
                                               ),
-                                            ),
-                                        ],
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              notification.title,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 13,
-                                                color: theme.textTheme.bodyLarge?.color,
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                _formatTimeAgo(notification.createdAt),
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: theme.hintColor,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              notification.body,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: theme.textTheme.bodyMedium?.color,
-                                                height: 1.4,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              _formatTimeAgo(notification.createdAt),
-                                              style: TextStyle(
-                                                fontSize: 10,
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                                                 color: theme.hintColor,
                                               ),
                                             ),

@@ -157,10 +157,21 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
   }
 
   void markAllAsRead() {
-    // Simply clear the local memory array
+    // 1. Clear local memory array
     state = state.copyWith(
       notifications: [],
     );
+
+    // 2. Wipe database notifications table for this clinic
+    final user = _ref.read(currentUserProvider);
+    if (user != null) {
+      try {
+        Supabase.instance.client
+            .from('notifications')
+            .delete()
+            .eq('clinic_id', user.clinicId);
+      } catch (_) {}
+    }
   }
 
   @override
