@@ -2512,11 +2512,20 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
               onPressed: () async {
                 final user = ref.read(currentUserProvider);
+                final instName = _whatsappInstanceNameController.text.trim().isNotEmpty
+                    ? _whatsappInstanceNameController.text.trim()
+                    : (user != null && user.clinicId.length >= 8 ? 'clinic_${user.clinicId.substring(0, 8)}' : '');
+
                 setState(() {
                   _whatsappStatus = 'disconnected';
                   _whatsappEnabled = false;
                   _whatsappPhoneController.clear();
                 });
+
+                if (instName.isNotEmpty) {
+                  // Delete instance cleanly from Evo Manager, Redis & DB Evo
+                  await ref.read(whatsappServiceProvider).deleteInstance(instName);
+                }
 
                 if (user != null) {
                   await Supabase.instance.client
@@ -2524,6 +2533,8 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                       .update({
                         'whatsapp_status': 'disconnected',
                         'whatsapp_enabled': false,
+                        'whatsapp_phone': null,
+                        'whatsapp_instance_name': null,
                       })
                       .eq('id', user.clinicId);
                 }
@@ -2533,7 +2544,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                   ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                     const SnackBar(
                       duration: Duration(seconds: 2), 
-                      content: Text('تم إلغاء ربط الواتساب بنجاح'),
+                      content: Text('تم إلغاء ربط الواتساب وحذف الجلسة بنجاح'),
                       backgroundColor: AppTheme.error,
                     ),
                   );

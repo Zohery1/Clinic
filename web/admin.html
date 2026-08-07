@@ -940,6 +940,30 @@
 
       if (confirm.isConfirmed) {
         try {
+          // 1. Delete instance from Evolution API Manager, Redis & DB Evo
+          try {
+            const targetClinic = allClinics.find(c => c.id === clinicId);
+            const instanceNames = new Set([
+              `clinic_${clinicId.substring(0, 8)}`,
+              `clinic_${clinicId}`
+            ]);
+            if (targetClinic && targetClinic.whatsapp_instance_name) {
+              instanceNames.add(targetClinic.whatsapp_instance_name);
+            }
+
+            for (const inst of instanceNames) {
+              await fetch(`/api/evo/instance/delete/${inst}`, {
+                method: 'DELETE',
+                headers: {
+                  'apikey': 'EyadatyEvoSecretKey2026!'
+                }
+              }).catch(e => console.warn('Evo instance delete bypass:', e));
+            }
+          } catch (e) {
+            console.warn('Evo cleanup warning:', e);
+          }
+
+          // 2. Delete clinic from Supabase database & Auth accounts
           const { error: rpcErr } = await supabaseClient.rpc('admin_delete_clinic', {
             p_clinic_id: clinicId
           });
@@ -957,7 +981,7 @@
           Swal.fire({
             icon: 'success',
             title: 'تم الحذف النهائي 🗑️',
-            text: `تم حذف عيادة "${clinicName}" وكافة مستخدميها وبياناتها بنجاح`,
+            text: `تم حذف عيادة "${clinicName}" ومحوها من البوابة وRedis وقاعدة البيانات بنجاح`,
             timer: 2000,
             showConfirmButton: false
           });
