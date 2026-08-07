@@ -138,34 +138,13 @@ class PatientDetailsDialog extends ConsumerWidget {
             icon: Icon(Icons.arrow_back_rounded, color: Theme.of(context).textTheme.titleLarge?.color),
             onPressed: () => Navigator.pop(context),
           ),
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _capitalizeName(patient.fullName),
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  color: Theme.of(context).textTheme.titleLarge?.color,
-                ),
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                constraints: const BoxConstraints(),
-                padding: const EdgeInsets.all(4),
-                icon: Icon(Icons.edit_outlined, size: 18, color: Theme.of(context).colorScheme.primary),
-                tooltip: 'تعديل البيانات',
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => EditPatientDialog(
-                      clinicId: clinicId,
-                      patient: patient,
-                    ),
-                  );
-                },
-              ),
-            ],
+          title: Text(
+            'الملف الطبي للمريض',
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              color: Theme.of(context).textTheme.titleLarge?.color,
+            ),
           ),
         ),
         body: Column(
@@ -174,6 +153,7 @@ class PatientDetailsDialog extends ConsumerWidget {
               color: Theme.of(context).colorScheme.surface,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   CircleAvatar(
                     radius: 26,
@@ -191,36 +171,14 @@ class PatientDetailsDialog extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                _capitalizeName(patient.fullName),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 18,
-                                  color: Theme.of(context).textTheme.titleLarge?.color,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            IconButton(
-                              constraints: const BoxConstraints(),
-                              padding: const EdgeInsets.all(2),
-                              icon: Icon(Icons.edit_outlined, size: 18, color: Theme.of(context).colorScheme.primary),
-                              tooltip: 'تعديل البيانات',
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => EditPatientDialog(
-                                    clinicId: clinicId,
-                                    patient: patient,
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
+                        Text(
+                          _capitalizeName(patient.fullName),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                            color: Theme.of(context).textTheme.titleLarge?.color,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -232,6 +190,48 @@ class PatientDetailsDialog extends ConsumerWidget {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => EditPatientDialog(
+                          clinicId: clinicId,
+                          patient: patient,
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.edit_outlined,
+                            size: 15,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'تعديل',
+                            style: GoogleFonts.cairo(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
