@@ -942,21 +942,39 @@
         try {
           // 1. Delete instance from Evolution API Manager, Redis & DB Evo
           try {
-            const targetClinic = allClinics.find(c => c.id === clinicId);
-            const instanceNames = new Set([
+            let instanceNames = new Set([
               `clinic_${clinicId.substring(0, 8)}`,
               `clinic_${clinicId}`
             ]);
+
+            const targetClinic = allClinics.find(c => c.id === clinicId);
             if (targetClinic && targetClinic.whatsapp_instance_name) {
               instanceNames.add(targetClinic.whatsapp_instance_name);
             }
 
+            // Also query database directly to ensure we catch any whatsapp_instance_name
+            const { data: clinicDb } = await supabaseClient
+              .from('clinics')
+              .select('whatsapp_instance_name')
+              .eq('id', clinicId)
+              .maybeSingle();
+
+            if (clinicDb && clinicDb.whatsapp_instance_name) {
+              instanceNames.add(clinicDb.whatsapp_instance_name);
+            }
+
             for (const inst of instanceNames) {
+              if (!inst) continue;
+              // Call logout first to close Baileys socket cleanly
+              await fetch(`/api/evo/instance/logout/${inst}`, {
+                method: 'DELETE',
+                headers: { 'apikey': 'EyadatyEvoSecretKey2026!' }
+              }).catch(e => console.warn('Evo logout bypass:', e));
+
+              // Call delete to completely purge from Manager, Redis, and Evolution DB
               await fetch(`/api/evo/instance/delete/${inst}`, {
                 method: 'DELETE',
-                headers: {
-                  'apikey': 'EyadatyEvoSecretKey2026!'
-                }
+                headers: { 'apikey': 'EyadatyEvoSecretKey2026!' }
               }).catch(e => console.warn('Evo instance delete bypass:', e));
             }
           } catch (e) {
