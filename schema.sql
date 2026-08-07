@@ -576,7 +576,7 @@ CREATE TRIGGER trigger_appointment_status_changed_notify
 -- 11. Audit Logs Table & Security Triggers
 -- ==========================================
 
-CREATE TABLE public.audit_logs (
+CREATE TABLE IF NOT EXISTS public.audit_logs (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
     actor_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
