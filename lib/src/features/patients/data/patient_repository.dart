@@ -49,12 +49,13 @@ class PatientRepository {
 
       // 1) Duplicate check: Reject ONLY if BOTH full_name AND phone match an existing patient in the same clinic
       if (cleanPhone != null && cleanPhone.isNotEmpty) {
+        final safePhone = trimmedPhone.replaceAll(RegExp(r'[^\d+]'), '');
         final existingBoth = await _supabase
             .from('patients')
             .select('id, full_name, phone')
             .eq('clinic_id', clinicId)
             .ilike('full_name', trimmedName)
-            .or('phone.eq.$trimmedPhone,phone.eq.$cleanPhone')
+            .or('phone.eq.$safePhone,phone.eq.$cleanPhone')
             .maybeSingle();
 
         if (existingBoth != null) {
