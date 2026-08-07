@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../../../../main.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/app_logger.dart';
 
 final whatsappServiceProvider = Provider<WhatsAppService>((ref) {
   return WhatsAppService(Supabase.instance.client);
@@ -321,8 +322,6 @@ class WhatsAppService {
     int retryCount = 0,
   }) async {
     // Format the phone number properly
-
-    // Format the phone number properly
     String formattedPhone = phone.replaceAll(RegExp(r'\D'), '');
     if (formattedPhone.startsWith('00')) {
       formattedPhone = formattedPhone.substring(2);
@@ -348,7 +347,7 @@ class WhatsAppService {
       final body = response.body;
 
       if (status >= 200 && status < 300) {
-        print('[WhatsApp] ✅ Message sent to $formattedPhone via $instanceName');
+        AppLogger.info('[WhatsApp] ✅ Message sent to ${AppLogger.maskPhone(formattedPhone)} via $instanceName');
         _showSuccessToast('تم إرسال رسالة واتساب بنجاح');
       } else {
         String err = body;

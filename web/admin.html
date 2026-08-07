@@ -440,8 +440,6 @@
           'postgres_changes',
           { event: '*', schema: 'public', table: 'clinics' },
           (payload) => {
-            console.log('Realtime update received on clinics:', payload);
-            
             if (payload.eventType === 'INSERT') {
               Swal.fire({
                 toast: true,
