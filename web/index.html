@@ -32,6 +32,62 @@
   <title>Eyadaty | عيادتي</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js"></script>
+  <script>
+    // Universal Web Audio Notification Chime & Autoplay Unlocker
+    window.notificationAudioCtx = null;
+
+    function initNotificationAudio() {
+      try {
+        if (!window.notificationAudioCtx) {
+          var AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtxClass) {
+            window.notificationAudioCtx = new AudioCtxClass();
+          }
+        }
+        if (window.notificationAudioCtx && window.notificationAudioCtx.state === 'suspended') {
+          window.notificationAudioCtx.resume();
+        }
+      } catch (e) {}
+    }
+
+    window.addEventListener('click', initNotificationAudio, { capture: true, passive: true });
+    window.addEventListener('touchstart', initNotificationAudio, { capture: true, passive: true });
+    window.addEventListener('keydown', initNotificationAudio, { capture: true, passive: true });
+
+    window.playNotificationChime = function() {
+      try {
+        initNotificationAudio();
+        var ctx = window.notificationAudioCtx;
+        if (!ctx) return;
+
+        var now = ctx.currentTime;
+        var osc1 = ctx.createOscillator();
+        var osc2 = ctx.createOscillator();
+        var gain = ctx.createGain();
+
+        // High-pitched double chime (D6 -> F#6)
+        osc1.type = 'sine';
+        osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(1174.66, now); // D6
+        osc2.frequency.setValueAtTime(1479.98, now + 0.12); // F#6
+
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc1.start(now);
+        osc1.stop(now + 0.12);
+
+        osc2.start(now + 0.12);
+        osc2.stop(now + 0.5);
+      } catch (e) {
+        console.error('Audio chime error:', e);
+      }
+    };
+  </script>
 </head>
 <body>
   <!--
