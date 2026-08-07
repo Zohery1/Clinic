@@ -32,7 +32,6 @@ class PatientRepository {
     }
   }
 
-  // إضافة تسجيل مريض جديد في قاعدة البيانات
   Future<PatientModel> createPatient({
     required String clinicId,
     required String fullName,
@@ -43,39 +42,48 @@ class PatientRepository {
     String? medicalHistory,
   }) async {
     try {
-      // 1) فحص وجود رقم الهاتف مسبقاً في العيادة
-      if (phone != null && phone.trim().isNotEmpty) {
-        final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
-        final existingByPhone = await _supabase
+      final trimmedName = fullName.trim();
+      final trimmedPhone = (phone != null && phone.trim().isNotEmpty) ? phone.trim() : null;
+      final cleanPhone = trimmedPhone != null ? trimmedPhone.replaceAll(RegExp(r'\D'), '') : null;
+
+      // 1) Combined single-roundtrip check for duplicate phone or name
+      if (cleanPhone != null && cleanPhone.isNotEmpty) {
+        final duplicates = await _supabase
             .from('patients')
             .select('id, full_name, phone')
             .eq('clinic_id', clinicId)
-            .or('phone.eq.$phone,phone.eq.$cleanPhone')
+            .or('phone.eq.$trimmedPhone,phone.eq.$cleanPhone,full_name.ilike.$trimmedName')
+            .limit(1);
+
+        if (duplicates.isNotEmpty) {
+          final dup = duplicates.first;
+          final existingPhone = dup['phone']?.toString();
+          if (existingPhone != null && (existingPhone == trimmedPhone || existingPhone == cleanPhone)) {
+            throw 'يوجد مريض آخر مسجل بنفس رقم الهاتف في هذه العيادة';
+          } else {
+            throw 'المريض لديه ملف بالفعل باسم مطابق في العيادة';
+          }
+        }
+      } else {
+        final existingByName = await _supabase
+            .from('patients')
+            .select('id, full_name')
+            .eq('clinic_id', clinicId)
+            .ilike('full_name', trimmedName)
             .maybeSingle();
 
-        if (existingByPhone != null) {
-          throw 'يوجد مريض آخر مسجل بنفس رقم الهاتف في هذه العيادة';
+        if (existingByName != null) {
+          throw 'المريض لديه ملف بالفعل باسم مطابق في العيادة';
         }
       }
 
-      // 2) فحص تكرار الاسم الكامل ورقم التليفون
-      final existingByName = await _supabase
-          .from('patients')
-          .select('id, full_name')
-          .eq('clinic_id', clinicId)
-          .ilike('full_name', fullName.trim())
-          .maybeSingle();
-
-      if (existingByName != null) {
-        throw 'المريض لديه ملف بالفعل باسم آخر مطابق في العيادة';
-      }
-
+      // 2) Insert patient record
       final response = await _supabase
           .from('patients')
           .insert({
             'clinic_id': clinicId,
-            'full_name': fullName.trim(),
-            if (phone != null && phone.isNotEmpty) 'phone': phone.trim(),
+            'full_name': trimmedName,
+            if (trimmedPhone != null) 'phone': trimmedPhone,
             if (gender != null) 'gender': gender,
             if (birthDate != null) 'birth_date': birthDate.toIso8601String().substring(0, 10),
             if (address != null && address.isNotEmpty) 'address': address,

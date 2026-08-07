@@ -369,8 +369,8 @@ class ReportsRepository {
           .toUtc()
           .toIso8601String();
 
-      // جلب المواعيد المكتملة مع بياناتها الكاملة
-      final List<dynamic> appointments = await _supabase
+      // Fire main queries in parallel (1 single network wait)
+      final appointmentsFuture = _supabase
           .from('appointments')
           .select('''
             id,
@@ -387,6 +387,31 @@ class ReportsRepository {
           .eq('status', 'completed')
           .gte('appointment_date', start)
           .lte('appointment_date', end);
+
+      final newPatientsFuture = _supabase
+          .from('patients')
+          .select('id')
+          .eq('clinic_id', clinicId)
+          .gte('created_at', start)
+          .lte('created_at', end);
+
+      final cancelledFuture = _supabase
+          .from('appointments')
+          .select('id, status')
+          .eq('clinic_id', clinicId)
+          .gte('appointment_date', start)
+          .lte('appointment_date', end)
+          .inFilter('status', ['cancelled', 'cancelled_by_clinic', 'cancelled_by_patient']);
+
+      final parallelResults = await Future.wait([
+        appointmentsFuture,
+        newPatientsFuture,
+        cancelledFuture,
+      ]);
+
+      final List<dynamic> appointments = parallelResults[0];
+      final List<dynamic> newPatientsResponse = parallelResults[1];
+      final List<dynamic> cancelledAppointmentsResponse = parallelResults[2];
 
       // تجميع الكشوفات حسب النوع
       final Map<String, Map<String, dynamic>> appointmentsByType = {};
@@ -413,14 +438,12 @@ class ReportsRepository {
         try {
           final appDate = DateTime.parse(app['appointment_date'] as String).toLocal();
           if (isDaily) {
-            // Include AM/PM in hour formatting
             int hour = appDate.hour;
             String amPm = hour >= 12 ? 'م' : 'ص';
             int displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
             final timeKey = '$displayHour $amPm';
             peakTimes[timeKey] = (peakTimes[timeKey] ?? 0) + 1;
           } else {
-            // Format Day: e.g., '15' or 'الاثنين'
             final dayKey = '${appDate.day}/${appDate.month}';
             peakTimes[dayKey] = (peakTimes[dayKey] ?? 0) + 1;
           }
@@ -428,7 +451,6 @@ class ReportsRepository {
           // Ignore parsing errors for peak times
         }
 
-        // تحسيب إجمالي الخدمات فقط (التجميع التفصيلي في اللوب التاني)
         final servicesList = app['appointment_services'] as List<dynamic>? ?? [];
         for (var svc in servicesList) {
           final svcMap = svc as Map<String, dynamic>;
@@ -437,8 +459,6 @@ class ReportsRepository {
         }
       }
 
-      // --- تجميع الخدمات داخل الـ loop بشكل صحيح ---
-      // (نعيد الحساب لتجنب مشكلة المتغير المؤقت)
       final Map<String, Map<String, dynamic>> servicesByType = {};
       for (var app in appointments) {
         final servicesList = app['appointment_services'] as List<dynamic>? ?? [];
@@ -453,30 +473,6 @@ class ReportsRepository {
               (servicesByType[svcName]!['totalCost'] as double) + svcPrice;
         }
       }
-
-      // --- Run remaining queries in parallel ---
-      final newPatientsFuture = _supabase
-          .from('patients')
-          .select('id')
-          .eq('clinic_id', clinicId)
-          .gte('created_at', start)
-          .lte('created_at', end);
-
-      final cancelledFuture = _supabase
-          .from('appointments')
-          .select('id, status')
-          .eq('clinic_id', clinicId)
-          .gte('appointment_date', start)
-          .lte('appointment_date', end)
-          .inFilter('status', ['cancelled', 'cancelled_by_clinic', 'cancelled_by_patient']);
-
-      final results = await Future.wait([
-        newPatientsFuture,
-        cancelledFuture,
-      ]);
-
-      final List<dynamic> newPatientsResponse = results[0];
-      final List<dynamic> cancelledAppointmentsResponse = results[1];
 
       final int newPatientsCount = newPatientsResponse.length;
 
