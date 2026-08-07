@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/auth_repository.dart';
 import '../domain/user_model.dart';
@@ -62,6 +63,7 @@ class LoginController extends StateNotifier<LoginState> {
       state = state.copyWith(isLoading: false, isSuccess: true, isEmailVerificationRequired: false);
     } catch (e) {
       final errMsg = e.toString().toLowerCase();
+
       if (errMsg.contains('email not confirmed') ||
           errMsg.contains('email_not_confirmed') ||
           errMsg.contains('unconfirmed')) {
@@ -71,12 +73,50 @@ class LoginController extends StateNotifier<LoginState> {
           isEmailVerificationRequired: true,
           errorMessage: null,
         );
-      } else {
+      } else if (errMsg.contains('invalid login credentials') ||
+                 errMsg.contains('invalid_credentials') ||
+                 errMsg.contains('invalid_grant')) {
         state = state.copyWith(
           isLoading: false,
           isSuccess: false,
           isEmailVerificationRequired: false,
-          errorMessage: 'فشل تسجيل الدخول: يرجى التحقق من صحة البيانات أو الاتصال بالإنترنت.',
+          errorMessage: 'كلمة المرور أو البريد الإلكتروني غير صحيح، يرجى التأكد من البيانات واعادة المحاولة.',
+        );
+      } else if (errMsg.contains('user not found') ||
+                 errMsg.contains('user_not_found')) {
+        state = state.copyWith(
+          isLoading: false,
+          isSuccess: false,
+          isEmailVerificationRequired: false,
+          errorMessage: 'البريد الإلكتروني المدخل غير مسجل في العيادة.',
+        );
+      } else if (errMsg.contains('too many requests') ||
+                 errMsg.contains('rate limit')) {
+        state = state.copyWith(
+          isLoading: false,
+          isSuccess: false,
+          isEmailVerificationRequired: false,
+          errorMessage: 'تم تجاوز عدد محاولات الدخول المسموح بها، يرجى الانتظار دقيقة وتكرار المحاولة.',
+        );
+      } else if (errMsg.contains('socketexception') ||
+                 errMsg.contains('network') ||
+                 errMsg.contains('failed to connect') ||
+                 errMsg.contains('clientexception')) {
+        state = state.copyWith(
+          isLoading: false,
+          isSuccess: false,
+          isEmailVerificationRequired: false,
+          errorMessage: 'تعذر الاتصال بالسيرفر، يرجى التأكد من اتصال الجهاز بالإنترنت.',
+        );
+      } else {
+        final displayMsg = e is AuthException
+            ? 'خطأ في بيانات الدخول: ${e.message}'
+            : 'كلمة المرور أو البريد الإلكتروني غير صحيح.';
+        state = state.copyWith(
+          isLoading: false,
+          isSuccess: false,
+          isEmailVerificationRequired: false,
+          errorMessage: displayMsg,
         );
       }
     }
