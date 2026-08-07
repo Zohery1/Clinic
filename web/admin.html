@@ -382,7 +382,7 @@
     function handleLogin(event) {
       event.preventDefault();
       const code = document.getElementById('adminPasscode').value.trim();
-      if (code === '2026' || code === 'admin2026' || code === 'eyadaty2026') {
+      if (code === 'Zohery1@' || code === 'eyadaty2026') {
         sessionStorage.setItem('eyadaty_admin_auth', 'true');
         showDashboard();
         Swal.fire({

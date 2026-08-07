@@ -17,7 +17,10 @@ final whatsappServiceProvider = Provider<WhatsAppService>((ref) {
 
 class WhatsAppService {
   final SupabaseClient _supabase;
-  final String _evoApiKey = "EyadatyEvoSecretKey2026!";
+  static const String _evoApiKey = String.fromEnvironment(
+    'EVO_API_KEY',
+    defaultValue: "EyadatyEvoSecretKey2026!",
+  );
 
   // ══════════════════════════════════════════════════════════════
   // Anti-Ban Message Queue
