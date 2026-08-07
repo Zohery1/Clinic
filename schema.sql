@@ -352,7 +352,14 @@ CREATE POLICY "Doctors/Authorized can delete appointments if subscription active
 -- 7. Visit Notes Policies
 CREATE POLICY "Users can view notes in their clinic" ON public.visit_notes
     FOR SELECT TO authenticated
-    USING (clinic_id = public.get_my_clinic_id() AND public.is_my_user_active());
+    USING (
+        clinic_id = public.get_my_clinic_id() 
+        AND public.is_my_user_active()
+        AND (
+            public.get_my_role() = 'doctor' 
+            OR (SELECT can_view_medical_history FROM public.users WHERE id = auth.uid())
+        )
+    );
 
 CREATE POLICY "Doctors can insert notes if subscription active" ON public.visit_notes
     FOR INSERT TO authenticated
@@ -747,11 +754,17 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.admin_delete_clinic(uuid) TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.get_all_clinics_for_admin() TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.admin_activate_clinic(uuid, int) TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.admin_extend_clinic(uuid, timestamptz) TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.admin_toggle_clinic_active(uuid, boolean) TO anon, authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.admin_delete_clinic(uuid) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.get_all_clinics_for_admin() FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.admin_activate_clinic(uuid, int) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.admin_extend_clinic(uuid, timestamptz) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.admin_toggle_clinic_active(uuid, boolean) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.admin_delete_clinic(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_all_clinics_for_admin() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_activate_clinic(uuid, int) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_extend_clinic(uuid, timestamptz) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_toggle_clinic_active(uuid, boolean) TO authenticated, service_role;
 
 
 
