@@ -447,6 +447,17 @@ class WhatsAppService {
     return null;
   }
 
+  Future<void> deleteInstance(String instanceName) async {
+    try {
+      await http.delete(
+        Uri.parse('$_evoBaseUrl/instance/delete/$instanceName'),
+        headers: {'apikey': _evoApiKey},
+      ).timeout(const Duration(seconds: 4));
+    } catch (e) {
+      print('[WhatsApp] Reset instance warning: $e');
+    }
+  }
+
   Future<Map<String, dynamic>?> fetchEvolutionPairingCode({
     required String instanceName,
     required String phone,
@@ -477,40 +488,12 @@ class WhatsAppService {
         return null;
       }
 
-      // Method 1: Get pairing code via /instance/connect/pairing-code/$instanceName?number=$cleanPhone
-      final pairingUrl = Uri.parse('$_evoBaseUrl/instance/connect/pairing-code/$instanceName?number=$cleanPhone');
-      print('[WhatsApp] 🔑 Requesting pairing code for $instanceName ($cleanPhone)...');
+      // 1) Clean reset any existing instance socket (e.g. QR session) to prevent Baileys socket mode conflict
+      await deleteInstance(instanceName);
 
-      final res = await http.get(
-        pairingUrl,
-        headers: {'apikey': _evoApiKey},
-      ).timeout(const Duration(seconds: 12));
-
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        final data = jsonDecode(res.body);
-        final code = extractCode(data);
-        if (code != null) {
-          return {'pairingCode': code};
-        }
-      }
-
-      // Method 2: Fallback to /instance/connect/$instanceName?number=$cleanPhone
-      final connectUrl = Uri.parse('$_evoBaseUrl/instance/connect/$instanceName?number=$cleanPhone');
-      final resConnect = await http.get(
-        connectUrl,
-        headers: {'apikey': _evoApiKey},
-      ).timeout(const Duration(seconds: 12));
-
-      if (resConnect.statusCode >= 200 && resConnect.statusCode < 300) {
-        final data = jsonDecode(resConnect.body);
-        final code = extractCode(data);
-        if (code != null) {
-          return {'pairingCode': code};
-        }
-      }
-
-      // Method 3: If instance doesn't exist, create it
+      // 2) Create fresh instance in pairing mode (qrcode: false) with phone number
       final createUrl = Uri.parse('$_evoBaseUrl/instance/create');
+      print('[WhatsApp] 🔑 Creating fresh pairing instance for $instanceName ($cleanPhone)...');
       final createRes = await http.post(
         createUrl,
         headers: {
@@ -531,19 +514,34 @@ class WhatsAppService {
         if (code != null) {
           return {'pairingCode': code};
         }
+      }
 
-        // Re-try pairing endpoint after create
-        final retryRes = await http.get(
-          pairingUrl,
-          headers: {'apikey': _evoApiKey},
-        ).timeout(const Duration(seconds: 10));
+      // 3) Request pairing code via connect endpoint
+      final pairingUrl = Uri.parse('$_evoBaseUrl/instance/connect/pairing-code/$instanceName?number=$cleanPhone');
+      final res = await http.get(
+        pairingUrl,
+        headers: {'apikey': _evoApiKey},
+      ).timeout(const Duration(seconds: 12));
 
-        if (retryRes.statusCode >= 200 && retryRes.statusCode < 300) {
-          final retryData = jsonDecode(retryRes.body);
-          final code = extractCode(retryData);
-          if (code != null) {
-            return {'pairingCode': code};
-          }
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        final code = extractCode(data);
+        if (code != null) {
+          return {'pairingCode': code};
+        }
+      }
+
+      final connectUrl = Uri.parse('$_evoBaseUrl/instance/connect/$instanceName?number=$cleanPhone');
+      final resConnect = await http.get(
+        connectUrl,
+        headers: {'apikey': _evoApiKey},
+      ).timeout(const Duration(seconds: 12));
+
+      if (resConnect.statusCode >= 200 && resConnect.statusCode < 300) {
+        final data = jsonDecode(resConnect.body);
+        final code = extractCode(data);
+        if (code != null) {
+          return {'pairingCode': code};
         }
       }
     } catch (e) {
