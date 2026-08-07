@@ -14,6 +14,7 @@ import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
 import '../domain/patient_model.dart';
 import '../data/patient_repository.dart';
+import 'widgets/edit_patient_dialog.dart';
 
 // مزود لجلب تاريخ مواعيد المريض بالكامل (منتهية فقط)
 final patientAppointmentsProvider = FutureProvider.family.autoDispose<List<AppointmentModel>, String>((ref, patientId) async {
@@ -158,6 +159,34 @@ class PatientDetailsDialog extends ConsumerWidget {
               ),
             ],
           ),
+          actions: [
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              icon: Icon(Icons.edit_outlined, size: 16, color: Theme.of(context).colorScheme.primary),
+              label: Text(
+                'تعديل',
+                style: GoogleFonts.cairo(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => EditPatientDialog(
+                    clinicId: clinicId,
+                    patient: patient,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(width: 12),
+          ],
         ),
         body: Column(
           children: [
@@ -198,6 +227,32 @@ class PatientDetailsDialog extends ConsumerWidget {
                         ),
                       ],
                     ),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: Text(
+                      'تعديل الملف',
+                      style: GoogleFonts.cairo(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => EditPatientDialog(
+                          clinicId: clinicId,
+                          patient: patient,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
