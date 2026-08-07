@@ -13,6 +13,7 @@ import 'appointments_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../../dashboard/presentation/notifications_controller.dart';
 import '../../../core/widgets/clinic_dialog.dart';
+import '../../../core/utils/arabic_utils.dart';
 
 /// حوار حجز موعد جديد — متوافق مع الهاتف والويب
 class BookAppointmentDialog extends ConsumerStatefulWidget {
@@ -739,12 +740,21 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
           data: (patients) {
             return Autocomplete<PatientModel>(
               optionsBuilder: (TextEditingValue textEditingValue) {
-                if (textEditingValue.text.isEmpty) {
+                final query = textEditingValue.text.trim();
+                if (query.isEmpty) {
                   return const Iterable<PatientModel>.empty();
                 }
+
+                final normQuery = ArabicUtils.normalize(query);
+
                 final matches = patients.where((PatientModel option) {
-                  return option.fullName.contains(textEditingValue.text) ||
-                      (option.phone != null && option.phone!.contains(textEditingValue.text));
+                  final normName = ArabicUtils.normalize(option.fullName);
+                  final phone = option.phone ?? '';
+
+                  return normName.contains(normQuery) ||
+                      normQuery.contains(normName) ||
+                      ArabicUtils.tokenSimilarity(normQuery, normName) >= 0.45 ||
+                      phone.contains(query);
                 }).toList();
 
                 if (matches.isEmpty) {
@@ -757,7 +767,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                     )
                   ];
                 }
-                return matches.take(5);
+                return matches.take(6);
               },
               displayStringForOption: (PatientModel option) => option.fullName,
               fieldViewBuilder: (BuildContext context,
