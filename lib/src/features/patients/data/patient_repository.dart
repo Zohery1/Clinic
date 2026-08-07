@@ -46,34 +46,18 @@ class PatientRepository {
       final trimmedPhone = (phone != null && phone.trim().isNotEmpty) ? phone.trim() : null;
       final cleanPhone = trimmedPhone != null ? trimmedPhone.replaceAll(RegExp(r'\D'), '') : null;
 
-      // 1) Combined single-roundtrip check for duplicate phone or name
+      // 1) Duplicate check: Reject ONLY if BOTH full_name AND phone match an existing patient in the same clinic
       if (cleanPhone != null && cleanPhone.isNotEmpty) {
-        final duplicates = await _supabase
+        final existingBoth = await _supabase
             .from('patients')
             .select('id, full_name, phone')
             .eq('clinic_id', clinicId)
-            .or('phone.eq.$trimmedPhone,phone.eq.$cleanPhone,full_name.ilike.$trimmedName')
-            .limit(1);
-
-        if (duplicates.isNotEmpty) {
-          final dup = duplicates.first;
-          final existingPhone = dup['phone']?.toString();
-          if (existingPhone != null && (existingPhone == trimmedPhone || existingPhone == cleanPhone)) {
-            throw 'يوجد مريض آخر مسجل بنفس رقم الهاتف في هذه العيادة';
-          } else {
-            throw 'المريض لديه ملف بالفعل باسم مطابق في العيادة';
-          }
-        }
-      } else {
-        final existingByName = await _supabase
-            .from('patients')
-            .select('id, full_name')
-            .eq('clinic_id', clinicId)
             .ilike('full_name', trimmedName)
+            .or('phone.eq.$trimmedPhone,phone.eq.$cleanPhone')
             .maybeSingle();
 
-        if (existingByName != null) {
-          throw 'المريض لديه ملف بالفعل باسم مطابق في العيادة';
+        if (existingBoth != null) {
+          throw 'يوجد مريض آخر مسجل بنفس الاسم ونفس رقم الهاتف في هذه العيادة';
         }
       }
 
