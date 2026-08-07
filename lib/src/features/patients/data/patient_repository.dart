@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/patient_model.dart';
+import '../../../core/utils/arabic_utils.dart';
 
 // مزود مستودع المرضى ليكون متاحاً عبر Riverpod
 final patientRepositoryProvider = Provider<PatientRepository>((ref) {
@@ -125,23 +126,65 @@ class PatientRepository {
     }
   }
 
-  // البحث عن المرضى بالاسم أو بالرقم أو العنوان
+  // البحث عن المرضى بالاسم أو بالرقم أو العنوان مع التطبيع العربي
   Future<List<PatientModel>> searchPatients(String clinicId, String query) async {
     try {
-      if (query.trim().isEmpty) {
+      final trimmed = query.trim();
+      if (trimmed.isEmpty) {
         return getPatients(clinicId);
       }
 
-      final List<dynamic> response = await _supabase
-          .from('patients')
-          .select('*')
-          .eq('clinic_id', clinicId)
-          .or('full_name.ilike.%$query%,phone.ilike.%$query%')
-          .order('full_name', ascending: true);
+      final allPatients = await getPatients(clinicId);
+      final normQuery = ArabicUtils.normalize(trimmed);
 
-      return response.map((item) => PatientModel.fromJson(item as Map<String, dynamic>)).toList();
+      return allPatients.where((patient) {
+        final normName = ArabicUtils.normalize(patient.fullName);
+        final phone = patient.phone ?? '';
+        final address = patient.address ?? '';
+
+        return normName.contains(normQuery) ||
+               ArabicUtils.tokenSimilarity(normQuery, normName) >= 0.5 ||
+               phone.contains(trimmed) ||
+               address.contains(trimmed);
+      }).toList();
     } catch (e) {
       rethrow;
+    }
+  }
+
+  // البحث الذكي عن المرضى المشابهين (Fuzzy Matching) للتحذير ومنع التكرار
+  Future<List<PatientModel>> findSimilarPatients(String clinicId, String name, String? phone) async {
+    try {
+      final allPatients = await getPatients(clinicId);
+      final normInputName = ArabicUtils.normalize(name);
+      final cleanPhone = (phone != null && phone.trim().isNotEmpty) ? phone.replaceAll(RegExp(r'\D'), '') : null;
+
+      final List<PatientModel> matches = [];
+
+      for (var patient in allPatients) {
+        final normPatientName = ArabicUtils.normalize(patient.fullName);
+
+        // Check similarity (>= 0.65) or substring token match
+        final similarity = ArabicUtils.tokenSimilarity(normInputName, normPatientName);
+        final isSimilarName = similarity >= 0.65 || (normInputName.length >= 3 && (normPatientName.contains(normInputName) || normInputName.contains(normPatientName)));
+
+        // Check phone match
+        bool isPhoneMatch = false;
+        if (cleanPhone != null && cleanPhone.isNotEmpty && patient.phone != null) {
+          final pCleanPhone = patient.phone!.replaceAll(RegExp(r'\D'), '');
+          if (pCleanPhone == cleanPhone || (cleanPhone.length >= 8 && pCleanPhone.endsWith(cleanPhone.substring(cleanPhone.length - 8)))) {
+            isPhoneMatch = true;
+          }
+        }
+
+        if (isSimilarName || isPhoneMatch) {
+          matches.add(patient);
+        }
+      }
+
+      return matches;
+    } catch (e) {
+      return [];
     }
   }
 }

@@ -260,7 +260,7 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
     );
   }
 
-  Future<void> _savePatient() async {
+  Future<void> _savePatient([bool forceSave = false]) async {
     if (_selectedGender == null) {
       ClinicToast.showWarning(context, 'يرجى اختيار الجنس (ذكر أو أنثى)');
       return;
@@ -268,6 +268,57 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
+      final fullName = _nameController.text.trim();
+      final phone = _phoneController.text.trim();
+
+      // Smart similarity warning check (Solution 4)
+      if (!forceSave) {
+        final similar = await ref.read(patientRepositoryProvider).findSimilarPatients(
+              widget.clinicId,
+              fullName,
+              phone,
+            );
+
+        if (similar.isNotEmpty) {
+          setState(() => _isSaving = false);
+          final first = similar.first;
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => Directionality(
+              textDirection: TextDirection.rtl,
+              child: AlertDialog(
+                title: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.amber.shade700),
+                    const SizedBox(width: 8),
+                    const Text('تنبيه: مريض مشابه مسجل مسبقاً'),
+                  ],
+                ),
+                content: Text(
+                  'عثر النظام على ملف مسجل باسم أو رقم مشابه جداً:\n\n'
+                  '• ${first.fullName} (هاتف: ${first.phone ?? 'غير مسجل'})\n\n'
+                  'هل ترغب في إنشاء ملف جديد أم الاستعانة بالملف القائم؟',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('تراجع / إلغاء'),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('إنشاء ملف جديد على أي حال'),
+                  ),
+                ],
+              ),
+            ),
+          );
+
+          if (confirm != true) return;
+          setState(() => _isSaving = true);
+        }
+      }
+
       final age = int.tryParse(_ageController.text.trim());
       final birthDate = age != null ? DateTime(DateTime.now().year - age, 1, 1) : null;
       final address = _addressController.text.trim();
@@ -275,8 +326,8 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
 
       await ref.read(patientRepositoryProvider).createPatient(
             clinicId: widget.clinicId,
-            fullName: _nameController.text.trim(),
-            phone: _phoneController.text.trim(),
+            fullName: fullName,
+            phone: phone,
             gender: _selectedGender,
             address: address.isNotEmpty ? address : null,
             medicalHistory: medicalHistory.isNotEmpty ? medicalHistory : null,
