@@ -87,7 +87,7 @@ final sixWeeksRevenueProvider = FutureProvider<List<double>>((ref) async {
 });
 
 // مزود إحصائيات الأيام التفصيلية (Family Provider)
-final dailyStatsProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, rangeStr) async {
+final dailyStatsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, rangeStr) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   final parts = rangeStr.split('_');
@@ -109,7 +109,7 @@ final monthlyStatsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) as
 
 // مزود التقرير التفصيلي لفترة زمنية محددة (يوم أو شهر)
 // المفتاح: "startDate_endDate" (مثال: "2025-01-15_2025-01-15")
-final detailedReportProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, String>((ref, rangeStr) async {
+final detailedReportProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, rangeStr) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) {
     return {
