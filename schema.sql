@@ -802,8 +802,10 @@ CREATE INDEX IF NOT EXISTS idx_visit_notes_appointment
 ON public.visit_notes (clinic_id, appointment_id);
 
 -- 4. Notifications & Audit Logs Indexes
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS target_role text;
+
 CREATE INDEX IF NOT EXISTS idx_notifications_clinic_target 
-ON public.notifications (clinic_id, target_role, is_read, created_at DESC);
+ON public.notifications (clinic_id, is_read, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_audit_logs_clinic_created 
 ON public.audit_logs (clinic_id, created_at DESC);
