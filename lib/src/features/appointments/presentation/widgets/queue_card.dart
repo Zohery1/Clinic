@@ -495,6 +495,13 @@ class QueueCard extends ConsumerWidget {
             body: 'تم إلغاء حجز المريض (${appointment.patient.fullName}) بناءً على طلبه',
             targetRole: 'doctor',
           );
+        } else if (status == 'pending') {
+          ref.read(notificationsProvider.notifier).sendBroadcastNotification(
+            title: 'دخول مريض للفحص',
+            body: 'المريض (${appointment.patient.fullName}) في انتظارك الآن بغرفة الكشف',
+            targetRole: 'doctor',
+            playSound: true,
+          );
         } else if (status == 'completed') {
           ref.read(notificationsProvider.notifier).sendBroadcastNotification(
             title: 'إنتهاء موعد',

@@ -84,6 +84,13 @@ class _QueueBoardState extends ConsumerState<QueueBoard> {
             body: 'تم إلغاء حجز المريض (${appt.patient.fullName}) بناءً على طلبه',
             targetRole: 'doctor',
           );
+        } else if (status == 'pending') {
+          ref.read(notificationsProvider.notifier).sendBroadcastNotification(
+            title: 'دخول مريض للفحص',
+            body: 'المريض (${appt.patient.fullName}) في انتظارك الآن بغرفة الكشف',
+            targetRole: 'doctor',
+            playSound: true,
+          );
         } else if (status == 'completed') {
           ref.read(notificationsProvider.notifier).sendBroadcastNotification(
             title: 'إنتهاء موعد',

@@ -691,7 +691,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           );
         },
       ),
-    );
+    ).then((_) {
+      ref.read(notificationsProvider.notifier).markAllAsRead();
+    });
   }
 
   Widget _buildHeaderIconButton(IconData icon, {bool badge = false, VoidCallback? onTap}) {
