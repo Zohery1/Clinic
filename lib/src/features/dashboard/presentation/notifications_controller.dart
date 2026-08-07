@@ -92,12 +92,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
               // Rule 2: Play sound if requested
               final bool playSound = data['play_sound'] == true;
               if (playSound) {
-                try {
-                  SystemSound.play(SystemSoundType.alert);
-                } catch (_) {}
-                try {
-                  FlutterRingtonePlayer().playNotification();
-                } catch (_) {}
+                _playNotificationSound();
               }
 
               state = state.copyWith(
@@ -107,6 +102,18 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
           },
         )
         .subscribe();
+  }
+
+  static void _playNotificationSound() {
+    try {
+      SystemSound.play(SystemSoundType.alert);
+    } catch (_) {}
+    try {
+      FlutterRingtonePlayer().playNotification(
+        volume: 1.0,
+        asAlarm: false,
+      );
+    } catch (_) {}
   }
 
   void sendBroadcastNotification({

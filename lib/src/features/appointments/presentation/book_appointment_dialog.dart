@@ -184,7 +184,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
           title: 'حجز جديد',
           body: 'تم إضافة حجز جديد للمريض ($patientName) الساعة $formattedTime',
           targetRole: 'doctor',
-          playSound: true,
+          playSound: false,
         );
       } catch (_) {}
 
