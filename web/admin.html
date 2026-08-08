@@ -851,16 +851,31 @@
       }
 
       try {
-        let clinics = null;
+        let clinics = [];
 
-        // 1. Primary Query: Direct Select to fetch clinics with all columns and linked users (doctors & secretaries)
-        const { data: tableData, error: tableError } = await supabaseClient
-          .from('clinics')
-          .select('*, users(*)')
-          .order('created_at', { ascending: false });
+        // 1. Primary Query: Call RPC function (SECURITY DEFINER) to bypass RLS and fetch ALL clinics
+        const { data: rpcData, error: rpcError } = await supabaseClient.rpc('get_all_clinics_for_admin');
 
-        if (!tableError && tableData) {
-          clinics = tableData.map(c => {
+        if (!rpcError && rpcData && Array.isArray(rpcData)) {
+          clinics = rpcData.map(c => ({
+            ...c,
+            doctorName: c.doctor_name || 'غير محدد',
+            doctorEmail: c.doctor_email || '',
+            doctorPhone: c.doctor_phone || c.whatsapp_phone || '',
+            patientCount: c.patient_count || 0,
+            appointmentCount: c.appointment_count || 0,
+            users: Array.isArray(c.users_data) ? c.users_data : []
+          }));
+        } else {
+          // 2. Fallback to Direct Select if RPC is not available
+          const { data: tableData, error: tableError } = await supabaseClient
+            .from('clinics')
+            .select('*, users(*)')
+            .order('created_at', { ascending: false });
+
+          if (tableError) throw tableError;
+
+          clinics = (tableData || []).map(c => {
             const docUser = (c.users || []).find(u => u.role === 'doctor') || (c.users || [])[0];
             return {
               ...c,
@@ -868,37 +883,10 @@
               doctorEmail: docUser ? docUser.email : '',
               doctorPhone: (docUser && docUser.phone) ? docUser.phone : (c.whatsapp_phone || ''),
               patientCount: 0,
-              appointmentCount: 0
+              appointmentCount: 0,
+              users: c.users || []
             };
           });
-
-          // Enrich with patient & appointment counts from RPC if available
-          const { data: rpcData } = await supabaseClient.rpc('get_all_clinics_for_admin');
-          if (rpcData && Array.isArray(rpcData)) {
-            const rpcMap = new Map(rpcData.map(r => [r.id, r]));
-            clinics = clinics.map(c => {
-              const r = rpcMap.get(c.id);
-              return {
-                ...c,
-                doctorName: (c.doctorName && c.doctorName !== 'غير محدد') ? c.doctorName : (r ? r.doctor_name : 'غير محدد'),
-                doctorEmail: r ? r.doctor_email : (c.doctorEmail || ''),
-                patientCount: r ? r.patient_count : 0,
-                appointmentCount: r ? r.appointment_count : 0
-              };
-            });
-          }
-        } else {
-          // 2. Fallback to RPC if direct select fails
-          const { data: rpcData, error: rpcError } = await supabaseClient.rpc('get_all_clinics_for_admin');
-          if (rpcError) throw rpcError;
-          clinics = (rpcData || []).map(c => ({
-            ...c,
-            doctorName: c.doctor_name || 'غير محدد',
-            doctorEmail: c.doctor_email || '',
-            doctorPhone: c.whatsapp_phone || '',
-            patientCount: c.patient_count || 0,
-            appointmentCount: c.appointment_count || 0
-          }));
         }
 
         allClinics = clinics || [];

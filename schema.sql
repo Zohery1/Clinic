@@ -649,7 +649,7 @@ CREATE TRIGGER audit_patients_changes
 -- Super Admin RPC Functions (Bypass RLS for Admin Dashboard)
 -- ==========================================
 
--- 1. Get All Clinics for Super Admin Dashboard
+-- 1. Get All Clinics for Super Admin Dashboard (SECURITY DEFINER to bypass RLS)
 CREATE OR REPLACE FUNCTION public.get_all_clinics_for_admin()
 RETURNS TABLE (
     id uuid,
@@ -659,10 +659,13 @@ RETURNS TABLE (
     subscription_status text,
     is_active boolean,
     created_at timestamptz,
+    whatsapp_phone text,
     doctor_name text,
     doctor_email text,
+    doctor_phone text,
     patient_count bigint,
-    appointment_count bigint
+    appointment_count bigint,
+    users_data jsonb
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -677,6 +680,7 @@ BEGIN
         c.subscription_status,
         c.is_active,
         c.created_at,
+        c.whatsapp_phone,
         coalesce((SELECT u.full_name FROM public.users u WHERE u.clinic_id = c.id AND u.role = 'doctor' LIMIT 1), 'غير محدد') as doctor_name,
         coalesce((
           SELECT au.email::text 
@@ -685,8 +689,23 @@ BEGIN
           WHERE u.clinic_id = c.id AND u.role = 'doctor' 
           LIMIT 1
         ), '') as doctor_email,
+        coalesce((SELECT u.phone FROM public.users u WHERE u.clinic_id = c.id AND u.role = 'doctor' AND u.phone IS NOT NULL AND u.phone != '' LIMIT 1), c.whatsapp_phone, '') as doctor_phone,
         (SELECT count(*) FROM public.patients p WHERE p.clinic_id = c.id) as patient_count,
-        (SELECT count(*) FROM public.appointments a WHERE a.clinic_id = c.id) as appointment_count
+        (SELECT count(*) FROM public.appointments a WHERE a.clinic_id = c.id) as appointment_count,
+        coalesce((
+          SELECT jsonb_agg(
+            jsonb_build_object(
+              'id', u.id,
+              'full_name', u.full_name,
+              'role', u.role,
+              'phone', u.phone,
+              'can_delete_appointments', u.can_delete_appointments,
+              'can_view_reports', u.can_view_reports
+            )
+          )
+          FROM public.users u
+          WHERE u.clinic_id = c.id
+        ), '[]'::jsonb) as users_data
     FROM public.clinics c
     ORDER BY c.created_at DESC;
 END;
