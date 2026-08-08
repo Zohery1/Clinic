@@ -1152,6 +1152,238 @@
       }).join('');
     }
 
+    // Open Comprehensive Clinic Dossier / Profile Modal
+    function openClinicDetailsModal(clinicId) {
+      const clinic = allClinics.find(c => c.id === clinicId);
+      if (!clinic) {
+        Swal.fire('خطأ', 'تعذر العثور على بيانات العيادة', 'error');
+        return;
+      }
+
+      const rawDoctorName = clinic.doctorName || ((clinic.users || []).find(u => u.role === 'doctor')?.full_name || 'غير محدد');
+      const rawDoctorPhone = clinic.doctorPhone || (clinic.users && clinic.users[0] && clinic.users[0].phone) || '';
+      const doctorEmail = clinic.doctorEmail || '';
+
+      const cleanDoctorPhone = rawDoctorPhone.replace(/\D/g, '');
+      const formattedWaPhone = cleanDoctorPhone ? (cleanDoctorPhone.startsWith('20') ? cleanDoctorPhone : (cleanDoctorPhone.startsWith('0') ? '2' + cleanDoctorPhone : '20' + cleanDoctorPhone)) : '';
+      const doctorWaLink = formattedWaPhone ? `https://wa.me/${formattedWaPhone}?text=${encodeURIComponent(`مرحباً دكتور ${rawDoctorName}، نتواصل معك من لوحة إدارة منصة عيادتي بخصوص عيادتك (${clinic.name}).`)}` : '';
+
+      // Extract Secretaries & Staff
+      const staffList = (clinic.users || []).filter(u => u.role === 'secretary');
+
+      const now = new Date();
+      const endDate = clinic.subscription_end_date ? new Date(clinic.subscription_end_date) : null;
+      const isExpired = clinic.subscription_status === 'expired' || clinic.subscription_status === 'suspended' || (endDate && endDate < now);
+      const isPending = clinic.subscription_status === 'pending_activation';
+      const isBrandNewPending = isPending && (clinic.patientCount === 0 && clinic.appointmentCount === 0 && (!endDate || endDate.getTime() <= now.getTime() + 86400000));
+
+      let statusBadgeText = 'نشط 🟢';
+      let statusBadgeBg = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+      if (isPending) {
+        if (isBrandNewPending) {
+          statusBadgeText = 'جديدة بانتظار التفعيل ⏳';
+          statusBadgeBg = 'bg-amber-100 text-amber-900 border-amber-300';
+        } else {
+          statusBadgeText = 'طلب تجديد اشتراك 🔄';
+          statusBadgeBg = 'bg-blue-100 text-blue-900 border-blue-300';
+        }
+      } else if (!clinic.is_active || clinic.subscription_status === 'suspended') {
+        statusBadgeText = 'معطلة 🔴';
+        statusBadgeBg = 'bg-slate-100 text-slate-600 border-slate-200';
+      } else if (isExpired) {
+        statusBadgeText = 'اشتراك منتهي 🔴';
+        statusBadgeBg = 'bg-rose-100 text-rose-800 border-rose-300';
+      }
+
+      const planLabel = getSubscriptionPlanLabel(clinic);
+      const monthlyRate = getClinicMonthlyRate(clinic);
+      const formattedEndDate = endDate && clinic.subscription_status !== 'pending_activation' ? endDate.toLocaleString('ar-EG', { dateStyle: 'full', timeStyle: 'short' }) : 'غير محدد';
+      const createdDate = clinic.created_at ? new Date(clinic.created_at).toLocaleDateString('ar-EG', { dateStyle: 'medium' }) : 'غير محدد';
+
+      // Staff HTML list
+      let staffHtml = '';
+      if (staffList.length > 0) {
+        staffHtml = staffList.map(s => `
+          <div class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 bg-purple-100 text-purple-700 rounded-lg flex items-center justify-center font-bold">
+                <i class="fa-solid fa-user-gear"></i>
+              </div>
+              <div>
+                <div class="font-bold text-slate-800">${escapeHtml(s.full_name)}</div>
+                <div class="text-[10px] text-slate-500">${s.phone ? `📱 ${escapeHtml(s.phone)}` : 'لا يوجد هاتف'}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 text-[10px]">
+              ${s.can_delete_appointments ? '<span class="bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded border border-rose-200">حذف مواعيد</span>' : ''}
+              ${s.can_view_reports ? '<span class="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">التقارير</span>' : ''}
+            </div>
+          </div>
+        `).join('');
+      } else {
+        staffHtml = `<div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-400 text-center">لا يوجد مساعدين أو سكرتارية مسجلين بهذه العيادة حتى الآن</div>`;
+      }
+
+      const modalContentHtml = `
+        <div class="text-right space-y-4 font-['Cairo'] dir-rtl">
+          <!-- Header Banner -->
+          <div class="bg-gradient-to-r from-brand-700 via-brand-600 to-indigo-700 p-4 rounded-2xl text-white shadow-md flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center text-2xl font-black">
+                🏥
+              </div>
+              <div>
+                <h3 class="font-black text-lg text-white leading-tight">${escapeHtml(clinic.name)}</h3>
+                <p class="text-xs text-brand-100 opacity-90 mt-0.5">تاريخ الانضمام: ${createdDate}</p>
+              </div>
+            </div>
+            <div class="text-left">
+              <span class="px-3 py-1 text-xs font-black rounded-full border ${statusBadgeBg}">${statusBadgeText}</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 1. Doctor & Identity Card -->
+            <div class="bg-white p-3.5 border border-slate-200 rounded-2xl shadow-sm space-y-2">
+              <h4 class="font-extrabold text-slate-900 text-xs flex items-center gap-1.5 border-b pb-2 text-brand-700">
+                <i class="fa-solid fa-user-doctor text-sm"></i>
+                <span>بيانات الطبيب والتواصل</span>
+              </h4>
+
+              <div class="text-xs space-y-1.5 pt-1">
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-500 font-semibold">اسم الطبيب:</span>
+                  <span class="font-black text-slate-900">د/ ${escapeHtml(rawDoctorName)}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-500 font-semibold">هاتف الطبيب:</span>
+                  <span class="font-bold text-slate-900 dir-ltr">${rawDoctorPhone ? `📱 ${escapeHtml(rawDoctorPhone)}` : '<span class="text-slate-400">غير مسجل</span>'}</span>
+                </div>
+                ${doctorEmail ? `
+                  <div class="flex justify-between items-center">
+                    <span class="text-slate-500 font-semibold">البريد:</span>
+                    <span class="font-medium text-slate-700 text-[11px]">${escapeHtml(doctorEmail)}</span>
+                  </div>
+                ` : ''}
+                <div class="flex justify-between items-center pt-1 border-t border-slate-100">
+                  <span class="text-slate-500 font-semibold">كود الدعوة للعيادة:</span>
+                  <div class="inline-flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded font-mono font-bold text-xs">
+                    <span>${escapeHtml(clinic.invite_code || '--')}</span>
+                    <button onclick="copyToClipboard('${clinic.invite_code}')" title="نسخ الكود" class="text-brand-600 hover:text-brand-800">
+                      <i class="fa-regular fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              ${doctorWaLink ? `
+                <div class="pt-2">
+                  <a href="${doctorWaLink}" target="_blank" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all">
+                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                    <span>تواصل مباشر مع الطبيب عبر الواتساب</span>
+                  </a>
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- 2. Subscription & MRR Card -->
+            <div class="bg-white p-3.5 border border-slate-200 rounded-2xl shadow-sm space-y-2">
+              <h4 class="font-extrabold text-slate-900 text-xs flex items-center gap-1.5 border-b pb-2 text-indigo-700">
+                <i class="fa-solid fa-credit-card text-sm"></i>
+                <span>الاشتراك والترخيص المالي</span>
+              </h4>
+
+              <div class="text-xs space-y-1.5 pt-1">
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-500 font-semibold">خطة الاشتراك:</span>
+                  <span>${planLabel}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-500 font-semibold">تاريخ نهاية الاشتراك:</span>
+                  <span class="font-bold text-slate-800 text-[11px]">${formattedEndDate}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-500 font-semibold">المعدل الشهري الحقيقي:</span>
+                  <span class="font-black text-emerald-700">${Math.round(monthlyRate)} ج.م / شهرياً</span>
+                </div>
+                <div class="flex justify-between items-center border-t border-slate-100 pt-1">
+                  <span class="text-slate-500 font-semibold">حالة الحساب:</span>
+                  <span class="font-black ${clinic.is_active ? 'text-emerald-700' : 'text-rose-600'}">${clinic.is_active ? 'تنشيط كامل 🟢' : 'معطل 🔴'}</span>
+                </div>
+              </div>
+
+              <div class="pt-2 flex gap-2">
+                <button onclick="Swal.close(); openExtendModal('${clinic.id}', '${escapeHtml(clinic.name)}', '${clinic.subscription_end_date || ''}')"
+                  class="flex-1 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition-all">
+                  <i class="fa-solid fa-bolt text-[11px]"></i>
+                  <span>تمديد الاشتراك ⚡</span>
+                </button>
+                <button onclick="Swal.close(); toggleClinicActive('${clinic.id}', ${!clinic.is_active})"
+                  class="py-1.5 px-3 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-xs transition-all">
+                  ${clinic.is_active ? 'تعطيل 🔴' : 'تفعيل 🟢'}
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. Usage & Metrics Card -->
+            <div class="bg-white p-3.5 border border-slate-200 rounded-2xl shadow-sm space-y-2">
+              <h4 class="font-extrabold text-slate-900 text-xs flex items-center gap-1.5 border-b pb-2 text-amber-700">
+                <i class="fa-solid fa-chart-pie text-sm"></i>
+                <span>إحصائيات النشاط والاستخدام</span>
+              </h4>
+
+              <div class="grid grid-cols-2 gap-2 text-center pt-1">
+                <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-xl">
+                  <div class="text-[10px] text-amber-800 font-bold">عدد المرضى المسجلين</div>
+                  <div class="text-xl font-black text-amber-900 mt-0.5">${clinic.patientCount || 0}</div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 p-2.5 rounded-xl">
+                  <div class="text-[10px] text-blue-800 font-bold">إجمالي المواعيد والحجوزات</div>
+                  <div class="text-xl font-black text-blue-900 mt-0.5">${clinic.appointmentCount || 0}</div>
+                </div>
+              </div>
+
+              <div class="pt-1 text-[11px] text-slate-500 flex justify-between items-center border-t border-slate-100">
+                <span>سيرفر الواتساب:</span>
+                <span class="font-bold ${clinic.whatsapp_status === 'connected' ? 'text-emerald-700' : 'text-amber-600'}">
+                  ${clinic.whatsapp_status === 'connected' ? 'متصل ومربوط 🟢' : 'غير متصل بالسيرفر ⚠️'}
+                </span>
+              </div>
+              ${clinic.whatsapp_phone ? `
+                <div class="text-[11px] text-slate-500 flex justify-between items-center">
+                  <span>واتساب السيرفر:</span>
+                  <span class="font-bold text-slate-800 dir-ltr">${escapeHtml(clinic.whatsapp_phone)}</span>
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- 4. Staff & Secretaries Card -->
+            <div class="bg-white p-3.5 border border-slate-200 rounded-2xl shadow-sm space-y-2">
+              <h4 class="font-extrabold text-slate-900 text-xs flex items-center gap-1.5 border-b pb-2 text-purple-700">
+                <i class="fa-solid fa-users text-sm"></i>
+                <span>فريق المساعدين والسكرتارية (${staffList.length})</span>
+              </h4>
+
+              <div class="space-y-1.5 pt-1 max-h-36 overflow-y-auto">
+                ${staffHtml}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      Swal.fire({
+        html: modalContentHtml,
+        width: '680px',
+        padding: '1.25rem',
+        showConfirmButton: false,
+        showCloseButton: true,
+        customClass: {
+          popup: 'rounded-3xl border border-slate-200 shadow-2xl'
+        }
+      });
+    }
+
     // Filter Clinics Function
     function filterClinics() {
       const searchInput = document.getElementById('searchInput');
