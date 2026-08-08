@@ -37,6 +37,7 @@ class AuthRepository {
     required String password,
     required String fullName,
     required String role, // 'doctor' or 'secretary'
+    String? phone,
     String? clinicName,   // required if doctor
     String? inviteCode,   // required if secretary
   }) async {
@@ -47,6 +48,7 @@ class AuthRepository {
         data: {
           'full_name': fullName,
           'role': role,
+          if (phone != null) 'phone': phone,
           if (clinicName != null) 'clinic_name': clinicName,
           if (inviteCode != null) 'invite_code': inviteCode,
         },

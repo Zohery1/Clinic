@@ -127,11 +127,16 @@ class LoginController extends StateNotifier<LoginState> {
     required String password,
     required String fullName,
     required String role,
+    String? phone,
     String? clinicName,
     String? inviteCode,
   }) async {
     if (email.trim().isEmpty || password.trim().isEmpty || fullName.trim().isEmpty) {
       state = LoginState(errorMessage: 'يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+    if (phone != null && phone.trim().isEmpty) {
+      state = LoginState(errorMessage: 'يرجى إدخال رقم الهاتف للتواصل');
       return;
     }
     if (role == 'doctor' && (clinicName == null || clinicName.trim().isEmpty)) {
@@ -151,6 +156,7 @@ class LoginController extends StateNotifier<LoginState> {
         password: password,
         fullName: fullName.trim(),
         role: role,
+        phone: phone?.trim(),
         clinicName: clinicName?.trim(),
         inviteCode: inviteCode?.trim(),
       );

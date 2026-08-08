@@ -187,6 +187,9 @@ $$;
 -- Self-Onboarding Triggers (auth.users -> public.users)
 -- ==========================================
 
+-- Ensure users table has phone column
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone text;
+
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 DECLARE
@@ -195,6 +198,7 @@ DECLARE
   v_full_name text;
   v_clinic_name text;
   v_invite_code text;
+  v_phone text;
   v_is_active boolean;
   v_can_delete_appointments boolean;
   v_can_view_reports boolean;
@@ -205,6 +209,7 @@ BEGIN
   v_full_name := coalesce(new.raw_user_meta_data ->> 'full_name', 'مستخدم جديد');
   v_clinic_name := coalesce(new.raw_user_meta_data ->> 'clinic_name', 'عيادة جديدة');
   v_invite_code := new.raw_user_meta_data ->> 'invite_code';
+  v_phone := coalesce(new.raw_user_meta_data ->> 'phone', new.phone);
 
   -- Default role to doctor if not specified
   IF v_role IS NULL THEN
@@ -218,9 +223,14 @@ BEGIN
 
   -- If still null, create a new clinic (Self-onboarding for doctors)
   IF v_clinic_id IS NULL THEN
-    INSERT INTO public.clinics (name, subscription_status, is_active, subscription_end_date)
-    VALUES (v_clinic_name, 'pending_activation', false, now())
+    INSERT INTO public.clinics (name, whatsapp_phone, subscription_status, is_active, subscription_end_date)
+    VALUES (v_clinic_name, v_phone, 'pending_activation', false, now())
     RETURNING id INTO v_clinic_id;
+  ELSE
+    -- If doctor joining existing clinic, save phone to clinic if missing
+    IF v_role = 'doctor' AND v_phone IS NOT NULL THEN
+      UPDATE public.clinics SET whatsapp_phone = v_phone WHERE id = v_clinic_id AND (whatsapp_phone IS NULL OR whatsapp_phone = '');
+    END IF;
   END IF;
 
   -- Set default permissions based on role
@@ -235,8 +245,8 @@ BEGIN
   END IF;
 
   -- Insert profile
-  INSERT INTO public.users (id, clinic_id, role, full_name, is_active, can_delete_appointments, can_view_reports)
-  VALUES (new.id, v_clinic_id, v_role, v_full_name, v_is_active, v_can_delete_appointments, v_can_view_reports);
+  INSERT INTO public.users (id, clinic_id, role, full_name, phone, is_active, can_delete_appointments, can_view_reports)
+  VALUES (new.id, v_clinic_id, v_role, v_full_name, v_phone, v_is_active, v_can_delete_appointments, v_can_view_reports);
 
   RETURN new;
 END;
