@@ -684,20 +684,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 );
                               },
                             ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('إغلاق'),
                 ),
-              ],
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      notifier.markAllAsRead();
+                      Navigator.pop(context);
+                    },
+                    child: const Text('إغلاق'),
+                  ),
+                ],
+              ),
             ),
           );
         },
