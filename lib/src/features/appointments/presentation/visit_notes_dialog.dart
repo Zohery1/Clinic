@@ -472,11 +472,18 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
                               separatorBuilder: (_, __) => const SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 final hNote = cleanHistory[index];
+                                final parts = hNote.notes.split(_fieldSeparator);
+                                final complaint = parts.isNotEmpty ? parts[0].trim() : '';
+                                final diagnosis = parts.length > 1 ? parts[1].trim() : '';
+                                final instructions = parts.length > 2 ? parts[2].trim() : '';
+                                final hasStructuredFields = complaint.isNotEmpty || diagnosis.isNotEmpty || instructions.isNotEmpty;
+
                                 return Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
                                     color: Theme.of(context).colorScheme.surface,
                                     borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.08)),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withValues(alpha: 0.02),
@@ -502,11 +509,49 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        hNote.notes,
-                                        style: TextStyle(fontSize: 12, color: textPrimaryColor, height: 1.4),
-                                      ),
+                                      const SizedBox(height: 8),
+                                      if (hasStructuredFields) ...[
+                                        if (complaint.isNotEmpty) ...[
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text('🩺 الشكوى: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textSecondaryColor)),
+                                              Expanded(
+                                                child: Text(complaint, style: TextStyle(fontSize: 11.5, color: textPrimaryColor, height: 1.3)),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                        ],
+                                        if (diagnosis.isNotEmpty) ...[
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text('🔬 التشخيص: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textSecondaryColor)),
+                                              Expanded(
+                                                child: Text(diagnosis, style: TextStyle(fontSize: 11.5, color: textPrimaryColor, height: 1.3)),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                        ],
+                                        if (instructions.isNotEmpty) ...[
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text('💊 العلاج: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textSecondaryColor)),
+                                              Expanded(
+                                                child: Text(instructions, style: TextStyle(fontSize: 11.5, color: textPrimaryColor, height: 1.3)),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ] else ...[
+                                        Text(
+                                          hNote.notes,
+                                          style: TextStyle(fontSize: 12, color: textPrimaryColor, height: 1.4),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 );
