@@ -689,7 +689,22 @@ BEGIN
           WHERE u.clinic_id = c.id AND u.role = 'doctor' 
           LIMIT 1
         ), '') as doctor_email,
-        coalesce((SELECT u.phone FROM public.users u WHERE u.clinic_id = c.id AND u.role = 'doctor' AND u.phone IS NOT NULL AND u.phone != '' LIMIT 1), c.whatsapp_phone, '') as doctor_phone,
+        coalesce(
+          (
+            SELECT coalesce(
+              nullif(u.phone, ''),
+              nullif(au.phone::text, ''),
+              nullif(au.raw_user_meta_data ->> 'phone', ''),
+              nullif(au.raw_user_meta_data ->> 'whatsapp_phone', '')
+            )
+            FROM public.users u
+            JOIN auth.users au ON au.id = u.id
+            WHERE u.clinic_id = c.id AND u.role = 'doctor'
+            LIMIT 1
+          ),
+          nullif(c.whatsapp_phone, ''),
+          ''
+        ) as doctor_phone,
         (SELECT count(*) FROM public.patients p WHERE p.clinic_id = c.id) as patient_count,
         (SELECT count(*) FROM public.appointments a WHERE a.clinic_id = c.id) as appointment_count,
         coalesce((
@@ -698,16 +713,36 @@ BEGIN
               'id', u.id,
               'full_name', u.full_name,
               'role', u.role,
-              'phone', u.phone,
+              'phone', coalesce(nullif(u.phone, ''), nullif(au.phone::text, ''), nullif(au.raw_user_meta_data ->> 'phone', '')),
               'can_delete_appointments', u.can_delete_appointments,
               'can_view_reports', u.can_view_reports
             )
           )
           FROM public.users u
+          LEFT JOIN auth.users au ON au.id = u.id
           WHERE u.clinic_id = c.id
         ), '[]'::jsonb) as users_data
     FROM public.clinics c
     ORDER BY c.created_at DESC;
+END;
+$$;
+
+-- 5. Admin Update Doctor Phone Number (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.admin_update_doctor_phone(p_clinic_id uuid, p_phone text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- Update clinic's whatsapp phone
+    UPDATE public.clinics
+    SET whatsapp_phone = p_phone
+    WHERE id = p_clinic_id;
+
+    -- Update doctor's profile phone
+    UPDATE public.users
+    SET phone = p_phone
+    WHERE clinic_id = p_clinic_id AND role = 'doctor';
 END;
 $$;
 

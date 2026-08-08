@@ -1245,7 +1245,13 @@
                 </div>
                 <div class="flex justify-between items-center">
                   <span class="text-slate-500 font-semibold">هاتف الطبيب:</span>
-                  <span class="font-bold text-slate-900 dir-ltr">${rawDoctorPhone ? `📱 ${escapeHtml(rawDoctorPhone)}` : '<span class="text-slate-400">غير مسجل</span>'}</span>
+                  <div class="flex items-center gap-1.5 dir-ltr">
+                    <span class="font-bold text-slate-900">${rawDoctorPhone ? `📱 ${escapeHtml(rawDoctorPhone)}` : '<span class="text-slate-400">غير مسجل</span>'}</span>
+                    <button onclick="Swal.close(); editDoctorPhone('${clinic.id}', '${escapeHtml(rawDoctorPhone)}')" title="إضافة أو تعديل رقم هاتف الطبيب" class="text-brand-600 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 p-1 rounded-md text-[10px] font-bold transition-all">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                      <span>تعديل</span>
+                    </button>
+                  </div>
                 </div>
                 ${doctorEmail ? `
                   <div class="flex justify-between items-center">
@@ -1370,6 +1376,54 @@
           popup: 'rounded-3xl border border-slate-200 shadow-2xl'
         }
       });
+    }
+
+    // Edit / Add Doctor Phone Number
+    async function editDoctorPhone(clinicId, currentPhone) {
+      const { value: newPhone } = await Swal.fire({
+        title: 'تعديل رقم هاتف الطبيب 📱',
+        input: 'text',
+        inputLabel: 'أدخل رقم الهاتف الشخصي للطبيب (أو الواتساب):',
+        inputValue: currentPhone || '',
+        showCancelButton: true,
+        confirmButtonText: 'حفظ الرقم 💾',
+        cancelButtonText: 'إلغاء',
+        inputValidator: (value) => {
+          if (!value || value.trim().length < 8) {
+            return 'يرجى إدخال رقم هاتف صحيح';
+          }
+        }
+      });
+
+      if (newPhone) {
+        try {
+          const trimmedPhone = newPhone.trim();
+          
+          // Call RPC function first
+          const { error: rpcErr } = await supabaseClient.rpc('admin_update_doctor_phone', {
+            p_clinic_id: clinicId,
+            p_phone: trimmedPhone
+          });
+
+          if (rpcErr) {
+            // Direct update fallback
+            await supabaseClient.from('clinics').update({ whatsapp_phone: trimmedPhone }).eq('id', clinicId);
+            await supabaseClient.from('users').update({ phone: trimmedPhone }).eq('clinic_id', clinicId).eq('role', 'doctor');
+          }
+
+          Swal.fire({
+            icon: 'success',
+            title: 'تم حفظ رقم الهاتف بنجاح! 📱',
+            timer: 1800,
+            showConfirmButton: false
+          });
+
+          await loadClinicsData();
+          openClinicDetailsModal(clinicId);
+        } catch (err) {
+          Swal.fire('خطأ أثناء الحفظ', err.message, 'error');
+        }
+      }
     }
 
     // Filter Clinics Function
