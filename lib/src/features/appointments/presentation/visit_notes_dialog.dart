@@ -185,6 +185,7 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
     
     final currentUser = ref.watch(currentUserProvider);
     final isDoctor = currentUser?.role == UserRole.doctor;
+    final canEdit = isDoctor || (currentUser?.canEditMedicalNotes ?? false);
 
     final textPrimaryColor = Theme.of(context).textTheme.bodyLarge?.color;
     final textSecondaryColor = Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7) ?? Theme.of(context).hintColor;
@@ -239,11 +240,11 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
               controller: _complaintController,
               maxLines: isMobile ? 3 : 3,
               minLines: 2,
-              autofocus: isDoctor,
-              readOnly: !isDoctor,
+              autofocus: canEdit,
+              readOnly: !canEdit,
               style: TextStyle(color: textPrimaryColor, fontSize: 13.5),
               decoration: InputDecoration(
-                hintText: isDoctor 
+                hintText: canEdit 
                     ? 'اكتب الشكوى المرضية والتاريخ المرضي هنا...'
                     : 'لا توجد شكوى مدونة.',
                 alignLabelWithHint: true,
@@ -267,10 +268,10 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
               controller: _diagnosisController,
               maxLines: isMobile ? 3 : 3,
               minLines: 2,
-              readOnly: !isDoctor,
+              readOnly: !canEdit,
               style: TextStyle(color: textPrimaryColor, fontSize: 13.5),
               decoration: InputDecoration(
-                hintText: isDoctor 
+                hintText: canEdit 
                     ? 'اكتب التشخيص الطبي ونتائج الفحص والتحاليل...'
                     : 'لا يوجد تشخيص مدون.',
                 alignLabelWithHint: true,
@@ -294,10 +295,10 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
               controller: _instructionsController,
               maxLines: isMobile ? 3 : 3,
               minLines: 2,
-              readOnly: !isDoctor,
+              readOnly: !canEdit,
               style: TextStyle(color: textPrimaryColor, fontSize: 13.5),
               decoration: InputDecoration(
-                hintText: isDoctor 
+                hintText: canEdit 
                     ? 'اكتب العلاج الموصوف، الأدوية، والتعليمات الطبية...'
                     : 'لا يوجد علاج مدون.',
                 alignLabelWithHint: true,
@@ -326,8 +327,8 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
                   );
                 }
 
-                if (!isDoctor) {
-                  // عرض الخدمات المحددة فقط للمساعد
+                if (!canEdit) {
+                  // عرض الخدمات المحددة فقط للمستخدم الذي ليس لديه صلاحية التعديل
                   if (_selectedServices.isEmpty) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -357,7 +358,7 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
                   );
                 }
 
-                // الطبيب يستطيع تحديد وتغيير الخدمات
+                // مستخدم لديه صلاحية التعديل تستطيع تحديد وتغيير الخدمات
                 return Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -570,8 +571,8 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
           );
 
           return ClinicDialog(
-            icon: isDoctor ? Icons.medical_information_outlined : Icons.description_outlined,
-            title: isDoctor ? 'جلسة فحص وتشخيص المريض' : 'التقرير الطبي للمريض',
+            icon: canEdit ? Icons.medical_information_outlined : Icons.description_outlined,
+            title: canEdit ? 'جلسة فحص وتشخيص المريض' : 'التقرير الطبي للمريض',
             subtitle: 'المريض: ${widget.patientName}',
             maxWidth: isMobile ? 500 : 850,
             content: isMobile 
@@ -602,9 +603,9 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
               const Spacer(),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(isDoctor ? 'إلغاء' : 'إغلاق'),
+                child: Text(canEdit ? 'إلغاء' : 'إغلاق'),
               ),
-              if (isDoctor) ...[
+              if (canEdit) ...[
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: _isSaving || _isDeleting ? null : () => _save(hasExisting),
