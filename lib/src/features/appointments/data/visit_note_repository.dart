@@ -6,13 +6,13 @@ final visitNoteRepositoryProvider = Provider<VisitNoteRepository>((ref) {
   return VisitNoteRepository(Supabase.instance.client);
 });
 
-// مزود لجلب ملاحظات موعد معين تلقائياً
-final visitNoteProvider = FutureProvider.family.autoDispose<VisitNoteModel?, String>((ref, appointmentId) async {
+// مزود لجلب ملاحظات موعد معين تلقائياً (مخزن في الذاكرة لتجربة سريعة)
+final visitNoteProvider = FutureProvider.family<VisitNoteModel?, String>((ref, appointmentId) async {
   return ref.watch(visitNoteRepositoryProvider).getVisitNote(appointmentId);
 });
 
-// مزود لجلب كل ملاحظات المريض التاريخية
-final patientVisitNotesProvider = FutureProvider.family.autoDispose<List<VisitNoteModel>, String>((ref, patientId) async {
+// مزود لجلب كل ملاحظات المريض التاريخية (مخزن في الذاكرة)
+final patientVisitNotesProvider = FutureProvider.family<List<VisitNoteModel>, String>((ref, patientId) async {
   return ref.watch(visitNoteRepositoryProvider).getPatientVisitNotes(patientId);
 });
 

@@ -35,7 +35,7 @@ class ClinicSubscriptionInfo {
   });
 }
 
-final clinicSubscriptionProvider = FutureProvider.autoDispose<ClinicSubscriptionInfo>((ref) async {
+final clinicSubscriptionProvider = FutureProvider<ClinicSubscriptionInfo>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) {
     return ClinicSubscriptionInfo(status: 'unknown', clinicName: '');
@@ -63,14 +63,14 @@ final clinicSubscriptionProvider = FutureProvider.autoDispose<ClinicSubscription
 });
 
 // مزود كود الدعوة
-final inviteCodeProvider = FutureProvider.autoDispose<String>((ref) async {
+final inviteCodeProvider = FutureProvider<String>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return '';
   return ref.watch(authRepositoryProvider).getClinicInviteCode(user.clinicId);
 });
 
 // مزود قائمة الموظفين
-final staffListProvider = FutureProvider.autoDispose<List<UserModel>>((ref) async {
+final staffListProvider = FutureProvider<List<UserModel>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   return ref.watch(authRepositoryProvider).getClinicStaff(user.clinicId);

@@ -17,13 +17,13 @@ import '../data/patient_repository.dart';
 import 'widgets/edit_patient_dialog.dart';
 
 // مزود لجلب تاريخ مواعيد المريض بالكامل (منتهية فقط)
-final patientAppointmentsProvider = FutureProvider.family.autoDispose<List<AppointmentModel>, String>((ref, patientId) async {
+final patientAppointmentsProvider = FutureProvider.family<List<AppointmentModel>, String>((ref, patientId) async {
   final all = await ref.watch(appointmentRepositoryProvider).getPatientAppointments(patientId);
   return all.where((app) => app.status == 'completed').toList();
 });
 
 // مزود لجلب الخدمات الطبية الخاصة بالزيارة
-final appointmentServicesProvider = FutureProvider.family.autoDispose<List<AppointmentServiceModel>, String>((ref, appointmentId) async {
+final appointmentServicesProvider = FutureProvider.family<List<AppointmentServiceModel>, String>((ref, appointmentId) async {
   return ref.watch(appointmentRepositoryProvider).getAppointmentServices(appointmentId);
 });
 

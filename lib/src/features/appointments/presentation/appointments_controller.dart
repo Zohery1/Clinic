@@ -8,7 +8,7 @@ import '../domain/appointment_service_model.dart';
 import '../../reports/presentation/reports_controller.dart';
 
 // مزود لجلب الخدمات المقدمة لحجز معين
-final appointmentServicesProvider = FutureProvider.autoDispose.family<List<AppointmentServiceModel>, String>((ref, appointmentId) async {
+final appointmentServicesProvider = FutureProvider.family<List<AppointmentServiceModel>, String>((ref, appointmentId) async {
   final repository = ref.watch(appointmentRepositoryProvider);
   return repository.getAppointmentServices(appointmentId);
 });
@@ -33,7 +33,7 @@ final todayAppointmentsProvider = FutureProvider<List<AppointmentModel>>((ref) a
 });
 
 // مزود لجلب مواعيد تاريخ محدد (لتجنب حجز المواعيد المتعارضة)
-final appointmentsForDateProvider = FutureProvider.autoDispose.family<List<AppointmentModel>, DateTime>((ref, date) async {
+final appointmentsForDateProvider = FutureProvider.family<List<AppointmentModel>, DateTime>((ref, date) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   final repository = ref.watch(appointmentRepositoryProvider);
