@@ -684,11 +684,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 );
                               },
                             ),
-                                                color: theme.hintColor,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
                                       ),
                                     ],
                                   ),
