@@ -27,8 +27,13 @@ class VisitNotesDialog extends ConsumerStatefulWidget {
   ConsumerState<VisitNotesDialog> createState() => _VisitNotesDialogState();
 }
 
+const _fieldSeparator = '\n---\n';
+
 class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
-  final _notesController = TextEditingController();
+  final _complaintController = TextEditingController();
+  final _diagnosisController = TextEditingController();
+  final _instructionsController = TextEditingController();
+
   bool _isSaving = false;
   bool _isDeleting = false;
   bool _initialized = false;
@@ -37,13 +42,36 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
 
   @override
   void dispose() {
-    _notesController.dispose();
+    _complaintController.dispose();
+    _diagnosisController.dispose();
+    _instructionsController.dispose();
     super.dispose();
   }
 
+  void _parseNotes(String rawNotes) {
+    final parts = rawNotes.split(_fieldSeparator);
+    _complaintController.text = parts.isNotEmpty ? parts[0].trim() : '';
+    _diagnosisController.text = parts.length > 1 ? parts[1].trim() : '';
+    _instructionsController.text = parts.length > 2 ? parts[2].trim() : '';
+  }
+
+  String _buildNotesText() {
+    final complaint = _complaintController.text.trim();
+    final diagnosis = _diagnosisController.text.trim();
+    final instructions = _instructionsController.text.trim();
+
+    final parts = [complaint, diagnosis, instructions];
+    return parts.join(_fieldSeparator);
+  }
+
   void _save(bool hasExisting) async {
-    final text = _notesController.text.trim();
-    if (text.isEmpty && _selectedServices.isEmpty) {
+    final text = _buildNotesText();
+    final hasContent = _complaintController.text.trim().isNotEmpty ||
+        _diagnosisController.text.trim().isNotEmpty ||
+        _instructionsController.text.trim().isNotEmpty ||
+        _selectedServices.isNotEmpty;
+
+    if (!hasContent) {
       ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
         SnackBar(duration: const Duration(seconds: 2), 
           content: const Text('يرجى كتابة التقرير الطبي أو اختيار خدمة واحدة على الأقل'),
@@ -59,7 +87,7 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
 
     try {
       // 1. حفظ التقرير الطبي إذا لم يكن فارغاً، أو حذفه إذا أفرغه الطبيب وكان موجوداً سابقاً
-      if (text.isNotEmpty) {
+      if (text.replaceAll(_fieldSeparator, '').trim().isNotEmpty) {
         await ref.read(visitNoteRepositoryProvider).upsertVisitNote(
               clinicId: widget.clinicId,
               appointmentId: widget.appointmentId,
@@ -184,7 +212,7 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
         data: (note) {
           if (!_initialized) {
             if (note != null) {
-              _notesController.text = note.notes;
+              _parseNotes(note.notes);
             }
             _initialized = true;
           }
@@ -194,25 +222,88 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
           // ─── محتويات الجلسة الطبية الحالية ───
           final currentSessionChildren = [
             const SizedBox(height: 8),
-            Text(
-              'التقرير الطبي والتشخيص الحالي:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textSecondaryColor),
+            
+            // 1. الشكوى المرضية والأعراض
+            Row(
+              children: [
+                Icon(Icons.sick_outlined, size: 16, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 6),
+                Text(
+                  'الشكوى والأعراض المرضية:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textSecondaryColor),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             TextFormField(
-              controller: _notesController,
-              maxLines: isMobile ? 5 : 6,
-              minLines: 4,
+              controller: _complaintController,
+              maxLines: isMobile ? 3 : 3,
+              minLines: 2,
               autofocus: isDoctor,
               readOnly: !isDoctor,
-              style: TextStyle(color: textPrimaryColor, fontSize: 14),
+              style: TextStyle(color: textPrimaryColor, fontSize: 13.5),
               decoration: InputDecoration(
                 hintText: isDoctor 
-                    ? 'اكتب الشكوى المرضية، التشخيص، العلاج الموصوف، والتعليمات هنا...'
-                    : 'لا توجد ملاحظات طبية مدونة لهذه الزيارة.',
+                    ? 'اكتب الشكوى المرضية والتاريخ المرضي هنا...'
+                    : 'لا توجد شكوى مدونة.',
                 alignLabelWithHint: true,
               ),
             ),
+            const SizedBox(height: 14),
+
+            // 2. التشخيص الطبي والنتائج
+            Row(
+              children: [
+                Icon(Icons.biotech_outlined, size: 16, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 6),
+                Text(
+                  'التشخيص الطبي والنتائج:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textSecondaryColor),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _diagnosisController,
+              maxLines: isMobile ? 3 : 3,
+              minLines: 2,
+              readOnly: !isDoctor,
+              style: TextStyle(color: textPrimaryColor, fontSize: 13.5),
+              decoration: InputDecoration(
+                hintText: isDoctor 
+                    ? 'اكتب التشخيص الطبي ونتائج الفحص والتحاليل...'
+                    : 'لا يوجد تشخيص مدون.',
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // 3. العلاج والتعليمات
+            Row(
+              children: [
+                Icon(Icons.medication_outlined, size: 16, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 6),
+                Text(
+                  'العلاج والتعليمات الموصوفة (الروشتة):',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textSecondaryColor),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _instructionsController,
+              maxLines: isMobile ? 3 : 3,
+              minLines: 2,
+              readOnly: !isDoctor,
+              style: TextStyle(color: textPrimaryColor, fontSize: 13.5),
+              decoration: InputDecoration(
+                hintText: isDoctor 
+                    ? 'اكتب العلاج الموصوف، الأدوية، والتعليمات الطبية...'
+                    : 'لا يوجد علاج مدون.',
+                alignLabelWithHint: true,
+              ),
+            ),
+
             const SizedBox(height: 20),
             const SizedBox(height: 1),
             const SizedBox(height: 12),
