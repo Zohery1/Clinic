@@ -644,6 +644,30 @@
       }
     }
 
+    // Unified Clinic Status Category Helper
+    function getClinicStatusCategory(clinic) {
+      const now = new Date();
+      const endDate = clinic.subscription_end_date ? new Date(clinic.subscription_end_date) : null;
+      const isExpired = clinic.subscription_status === 'expired' || clinic.subscription_status === 'suspended' || (endDate && endDate < now);
+      const isPending = clinic.subscription_status === 'pending_activation';
+      
+      if (isPending) {
+        const isBrandNewPending = (clinic.patientCount === 0 && clinic.appointmentCount === 0 && (!endDate || endDate.getTime() <= now.getTime() + 86400000));
+        return isBrandNewPending ? 'pending_new' : 'pending_renewal';
+      }
+
+      if (!clinic.is_active || clinic.subscription_status === 'suspended' || isExpired) {
+        return 'expired';
+      }
+
+      const diffHours = endDate ? (endDate - now) / (1000 * 60 * 60) : 999;
+      if (endDate && diffHours <= 48) {
+        return 'expiring_soon';
+      }
+
+      return 'active';
+    }
+
     // Update KPI Summary Cards & MRR
     function updateKPIStats() {
       const total = allClinics.length;
@@ -657,8 +681,6 @@
       let monthlyPlanCount = 0;
       let longPlanCount = 0;
 
-      const now = new Date();
-
       allClinics.forEach(c => {
         if (c.users) {
           totalUsersCount += c.users.length;
@@ -670,25 +692,15 @@
           activeWaInstances++;
         }
 
-        const endDate = c.subscription_end_date ? new Date(c.subscription_end_date) : null;
-        const isExpired = c.subscription_status === 'expired' || c.subscription_status === 'suspended' || (endDate && endDate < now);
-        const isPending = c.subscription_status === 'pending_activation';
-        
-        // Distinction Logic for New Clinics vs Pending Renewals
-        const isBrandNewPending = isPending && (c.patientCount === 0 && c.appointmentCount === 0 && (!endDate || endDate.getTime() <= now.getTime() + 86400000));
+        const cat = getClinicStatusCategory(c);
 
-        if (isPending) {
-          if (isBrandNewPending) {
-            newPending++;
-          } else {
-            pendingRenewals++;
-          }
-        }
-
-        const diffHours = endDate ? (endDate - now) / (1000 * 60 * 60) : 999;
-        const isExpiringSoon = endDate && !isExpired && diffHours <= 48;
-
-        if (c.is_active && c.subscription_status === 'active' && !isExpired && !isExpiringSoon) {
+        if (cat === 'pending_new') {
+          newPending++;
+        } else if (cat === 'pending_renewal') {
+          pendingRenewals++;
+        } else if (cat === 'expired' || cat === 'expiring_soon') {
+          expiring++;
+        } else if (cat === 'active') {
           active++;
           const monthlyRate = getClinicMonthlyRate(c);
           totalMRR += monthlyRate;
@@ -698,9 +710,6 @@
           } else {
             longPlanCount++;
           }
-        }
-        if (isExpired || isExpiringSoon) {
-          expiring++;
         }
       });
 
@@ -715,6 +724,8 @@
         } else {
           mrrSubText = `${active} عيادات نشطة × 550 ج.م/شهرياً (الخطة الشهرية)`;
         }
+      } else {
+        mrrSubText = `لا توجد عيادات نشطة حالياً`;
       }
 
       setElementText('statMRR', `${roundedMRR.toLocaleString('ar-EG')} جم / شهرياً`);
@@ -735,10 +746,18 @@
     function updateAnalyticsCharts() {
       if (typeof Chart === 'undefined') return;
 
-      const activeCount = allClinics.filter(c => c.is_active && c.subscription_status === 'active').length;
-      const newPendingCount = allClinics.filter(c => c.subscription_status === 'pending_activation' && (c.patientCount === 0 && c.appointmentCount === 0)).length;
-      const renewalPendingCount = allClinics.filter(c => c.subscription_status === 'pending_activation' && (c.patientCount > 0 || c.appointmentCount > 0)).length;
-      const expiredCount = allClinics.filter(c => c.subscription_status === 'expired' || c.subscription_status === 'suspended' || !c.is_active).length;
+      let activeCount = 0;
+      let newPendingCount = 0;
+      let renewalPendingCount = 0;
+      let expiredCount = 0;
+
+      allClinics.forEach(c => {
+        const cat = getClinicStatusCategory(c);
+        if (cat === 'active') activeCount++;
+        else if (cat === 'pending_new') newPendingCount++;
+        else if (cat === 'pending_renewal') renewalPendingCount++;
+        else if (cat === 'expired' || cat === 'expiring_soon') expiredCount++;
+      });
 
       // 1. Donut Chart Breakdown
       const donutCtx = document.getElementById('chartStatusBreakdown');
