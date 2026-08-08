@@ -6,7 +6,6 @@ import '../../../core/theme/app_theme.dart';
 import 'login_controller.dart';
 import 'register_screen.dart';
 import 'reset_password_screen.dart';
-import '../../dashboard/presentation/dashboard_screen.dart';
 import 'verify_otp_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
