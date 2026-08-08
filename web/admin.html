@@ -625,6 +625,25 @@
       }
     }
 
+    // Helper to calculate exact effective monthly rate per clinic based on plan
+    function getClinicMonthlyRate(clinic) {
+      if (!clinic.subscription_end_date) return 550;
+
+      const end = new Date(clinic.subscription_end_date);
+      const start = clinic.created_at ? new Date(clinic.created_at) : new Date();
+      const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
+
+      if (diffDays >= 340) {
+        return 6400 / 12; // 533.33 EGP/mo (1 Year Plan: 6400 EGP)
+      } else if (diffDays >= 160) {
+        return 3200 / 6;  // 533.33 EGP/mo (6 Months Plan: 3200 EGP)
+      } else if (diffDays >= 80) {
+        return 1600 / 3;  // 533.33 EGP/mo (3 Months Plan: 1600 EGP)
+      } else {
+        return 550;       // 550 EGP/mo (1 Month Plan: 550 EGP)
+      }
+    }
+
     // Update KPI Summary Cards & MRR
     function updateKPIStats() {
       const total = allClinics.length;
@@ -634,6 +653,9 @@
       let expiring = 0;
       let totalUsersCount = 0;
       let activeWaInstances = 0;
+      let totalMRR = 0;
+      let monthlyPlanCount = 0;
+      let longPlanCount = 0;
 
       const now = new Date();
 
@@ -668,17 +690,35 @@
 
         if (c.is_active && c.subscription_status === 'active' && !isExpired && !isExpiringSoon) {
           active++;
+          const monthlyRate = getClinicMonthlyRate(c);
+          totalMRR += monthlyRate;
+
+          if (monthlyRate === 550) {
+            monthlyPlanCount++;
+          } else {
+            longPlanCount++;
+          }
         }
         if (isExpired || isExpiringSoon) {
           expiring++;
         }
       });
 
-      // Official Subscription Plan Base Rate: 550 EGP / month
-      const estimatedMRR = active * 550;
+      // Format MRR Subtitle depending on active plan breakdown
+      const roundedMRR = Math.round(totalMRR);
+      let mrrSubText = `${active} عيادات نشطة`;
+      if (active > 0) {
+        if (longPlanCount > 0 && monthlyPlanCount > 0) {
+          mrrSubText = `${monthlyPlanCount} خطة شهرية (550ج) + ${longPlanCount} خطط طويلة (533.33ج/شهر)`;
+        } else if (longPlanCount > 0) {
+          mrrSubText = `${active} عيادات نشطة على خطط طويلة (533.33 ج.م/شهرياً)`;
+        } else {
+          mrrSubText = `${active} عيادات نشطة × 550 ج.م/شهرياً (الخطة الشهرية)`;
+        }
+      }
 
-      setElementText('statMRR', `${estimatedMRR.toLocaleString('ar-EG')} جم / شهرياً`);
-      setElementText('statMRRSub', `${active} عيادات نشطة × 550 جم/شهرياً (الخطة الشهرية)`);
+      setElementText('statMRR', `${roundedMRR.toLocaleString('ar-EG')} جم / شهرياً`);
+      setElementText('statMRRSub', mrrSubText);
       setElementText('statTotalClinics', total);
       setElementText('statNewPendingClinics', newPending);
       setElementText('statPendingRenewals', pendingRenewals);
@@ -725,35 +765,40 @@
         });
       }
 
-      // 2. Growth Line Chart
+      // 2. Cumulative Growth Line Chart
       const growthCtx = document.getElementById('chartClinicsGrowth');
       if (growthCtx) {
         if (growthChartInstance) growthChartInstance.destroy();
 
-        // Group clinic registrations by month
-        const monthlyCounts = {};
-        allClinics.forEach(c => {
+        // Sort clinics by creation date ascending to compute cumulative totals
+        const sortedClinics = [...allClinics].sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+
+        const monthlyCumulative = {};
+        let runningTotal = 0;
+
+        sortedClinics.forEach(c => {
           const date = c.created_at ? new Date(c.created_at) : new Date();
           const monthYear = date.toLocaleDateString('ar-EG', { month: 'short', year: 'numeric' });
-          monthlyCounts[monthYear] = (monthlyCounts[monthYear] || 0) + 1;
+          runningTotal++;
+          monthlyCumulative[monthYear] = runningTotal;
         });
 
-        const labels = Object.keys(monthlyCounts).reverse();
-        const dataValues = Object.values(monthlyCounts).reverse();
+        const labels = Object.keys(monthlyCumulative);
+        const dataValues = Object.values(monthlyCumulative);
 
         growthChartInstance = new Chart(growthCtx, {
           type: 'line',
           data: {
             labels: labels.length ? labels : ['هذا الشهر'],
             datasets: [{
-              label: 'عيادات جديدة انضمت',
+              label: 'إجمالي العيادات المنضمة (تراكمي)',
               data: dataValues.length ? dataValues : [allClinics.length],
               borderColor: '#2563EB',
               backgroundColor: 'rgba(37, 99, 235, 0.1)',
               fill: true,
               tension: 0.4,
               borderWidth: 3,
-              pointRadius: 4,
+              pointRadius: 5,
               pointBackgroundColor: '#2563EB'
             }]
           },
@@ -761,7 +806,7 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { display: false }
+              legend: { display: true, labels: { font: { family: 'Cairo', size: 11, weight: 'bold' } } }
             },
             scales: {
               y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Cairo' } } },
