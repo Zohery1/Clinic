@@ -836,6 +836,88 @@
       }
     }
 
+    // Load Clinics & Stats from Supabase
+    async function loadClinicsData() {
+      const tbody = document.getElementById('clinicsTableBody');
+      if (allClinics.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="py-12 text-center text-slate-400">
+              <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-brand-600"></i>
+              <p class="text-xs font-semibold">جاري تحميل وتحديث كافة بيانات العيادات بالوقت الفعلي...</p>
+            </td>
+          </tr>
+        `;
+      }
+
+      try {
+        let clinics = null;
+
+        // 1. Primary Query: Direct Select to fetch clinics with all columns and linked users (doctors & secretaries)
+        const { data: tableData, error: tableError } = await supabaseClient
+          .from('clinics')
+          .select('*, users(*)')
+          .order('created_at', { ascending: false });
+
+        if (!tableError && tableData) {
+          clinics = tableData.map(c => {
+            const docUser = (c.users || []).find(u => u.role === 'doctor') || (c.users || [])[0];
+            return {
+              ...c,
+              doctorName: docUser ? docUser.full_name : 'غير محدد',
+              doctorEmail: docUser ? docUser.email : '',
+              doctorPhone: (docUser && docUser.phone) ? docUser.phone : (c.whatsapp_phone || ''),
+              patientCount: 0,
+              appointmentCount: 0
+            };
+          });
+
+          // Enrich with patient & appointment counts from RPC if available
+          const { data: rpcData } = await supabaseClient.rpc('get_all_clinics_for_admin');
+          if (rpcData && Array.isArray(rpcData)) {
+            const rpcMap = new Map(rpcData.map(r => [r.id, r]));
+            clinics = clinics.map(c => {
+              const r = rpcMap.get(c.id);
+              return {
+                ...c,
+                doctorName: (c.doctorName && c.doctorName !== 'غير محدد') ? c.doctorName : (r ? r.doctor_name : 'غير محدد'),
+                doctorEmail: r ? r.doctor_email : (c.doctorEmail || ''),
+                patientCount: r ? r.patient_count : 0,
+                appointmentCount: r ? r.appointment_count : 0
+              };
+            });
+          }
+        } else {
+          // 2. Fallback to RPC if direct select fails
+          const { data: rpcData, error: rpcError } = await supabaseClient.rpc('get_all_clinics_for_admin');
+          if (rpcError) throw rpcError;
+          clinics = (rpcData || []).map(c => ({
+            ...c,
+            doctorName: c.doctor_name || 'غير محدد',
+            doctorEmail: c.doctor_email || '',
+            doctorPhone: c.whatsapp_phone || '',
+            patientCount: c.patient_count || 0,
+            appointmentCount: c.appointment_count || 0
+          }));
+        }
+
+        allClinics = clinics || [];
+        updateKPIStats();
+        filterClinics();
+        updateAnalyticsCharts();
+      } catch (err) {
+        console.error('Error loading clinics:', err);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="py-8 text-center text-rose-500 font-bold">
+              <i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i>
+              <p>حدث خطأ أثناء الاتصال بـ Supabase: ${err.message}</p>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
     function escapeHtml(str) {
       if (!str) return '';
       return String(str)
@@ -888,9 +970,7 @@
           ((clinic.users || []).find(u => u.role === 'doctor')?.full_name || 'غير محدد');
 
         const doctorName = escapeHtml(rawDoctorName);
-        const doctorEmail = escapeHtml(clinic.doctorEmail || '');
         const clinicName = escapeHtml(clinic.name || '');
-        const inviteCode = escapeHtml(clinic.invite_code || '');
 
         // Doctor Personal Phone for Direct Administrative Contact
         const rawDoctorPhone = clinic.doctorPhone || (clinic.users && clinic.users[0] && clinic.users[0].phone) || '';
@@ -958,29 +1038,40 @@
             <!-- Clinic & Doctor Info -->
             <td class="py-4 px-6">
               <div class="flex items-center gap-3">
-                <div class="w-9 h-9 ${isPending ? 'bg-amber-100 text-amber-700' : 'bg-brand-50 text-brand-600'} rounded-xl flex items-center justify-center font-black text-sm">
+                <div class="w-9 h-9 ${isPending ? 'bg-amber-100 text-amber-700' : 'bg-brand-50 text-brand-600'} rounded-xl flex items-center justify-center font-black text-sm cursor-pointer"
+                     onclick="openClinicDetailsModal('${clinic.id}')" title="انقر لفتح الملف الشامل للعيادة">
                   <i class="fa-solid fa-hospital"></i>
                 </div>
                 <div>
                   <div class="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-                    <span>${clinicName}</span>
+                    <button onclick="openClinicDetailsModal('${clinic.id}')" title="فتح الملف الشامل للعيادة" class="hover:text-brand-600 transition-colors text-right font-black flex items-center gap-1.5">
+                      <span>${clinicName}</span>
+                      <i class="fa-solid fa-id-card text-brand-500 text-xs"></i>
+                    </button>
                     ${isPending ? (isBrandNewPending ? '<span class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-black">جديدة</span>' : '<span class="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-black">تجديد</span>') : ''}
                   </div>
                   
-                  <div class="text-[11px] font-semibold text-slate-500 mt-0.5 flex flex-wrap items-center gap-2">
-                    <span>د/ ${doctorName} ${doctorEmail ? `<span class="text-slate-400">(${doctorEmail})</span>` : ''}</span>
+                  <div class="text-[11px] font-semibold text-slate-600 mt-1 flex flex-wrap items-center gap-2">
+                    <span>د/ ${doctorName}</span>
+                    
+                    ${doctorPhone ? `
+                      <span class="inline-flex items-center gap-1 text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-[10px] font-bold dir-ltr">
+                        <i class="fa-solid fa-phone text-[9px] text-brand-600"></i>
+                        <span>${doctorPhone}</span>
+                      </span>
+                    ` : ''}
                     
                     <!-- Direct WhatsApp Contact Button for Doctor Personal Phone -->
                     ${doctorWaLink ? `
                       <a href="${doctorWaLink}" target="_blank" title="تواصل مباشر مع الطبيب عبر الواتساب" 
                         class="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md text-[10px] font-extrabold transition-all">
                         <i class="fa-brands fa-whatsapp text-xs"></i>
-                        <span>واتساب الطبيب</span>
+                        <span>واتساب</span>
                       </a>
                     ` : ''}
                   </div>
                   
-                  <div class="text-[10px] text-slate-400 mt-0.5">مرضى: <span class="font-bold text-slate-600">${clinic.patientCount || 0}</span> | حجوزات: <span class="font-bold text-slate-600">${clinic.appointmentCount || 0}</span></div>
+                  <div class="text-[10px] text-slate-400 mt-1">مرضى: <span class="font-bold text-slate-600">${clinic.patientCount || 0}</span> | حجوزات: <span class="font-bold text-slate-600">${clinic.appointmentCount || 0}</span></div>
                 </div>
               </div>
             </td>
@@ -1026,6 +1117,13 @@
             <!-- Action Buttons -->
             <td class="py-4 px-6 text-center">
               <div class="flex items-center justify-center gap-2">
+                <!-- Comprehensive Clinic Dossier Button -->
+                <button onclick="openClinicDetailsModal('${clinic.id}')" title="فتح الملف الشامل والكامل للعيادة"
+                  class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all flex items-center gap-1">
+                  <i class="fa-solid fa-id-card text-brand-600 text-xs"></i>
+                  <span>الملف الشامل</span>
+                </button>
+
                 ${isPending ? `
                   <!-- Approve & Activate Button -->
                   <button onclick="activateClinicNow('${clinic.id}', '${clinic.name}', ${isExistingRenewal})"
