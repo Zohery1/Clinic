@@ -206,36 +206,38 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   Future<void> _verifySubscription() async {
     try {
       final user = ref.read(currentUserProvider);
-      if (user != null) {
+      if (user != null && user.clinicId.isNotEmpty) {
         _clinicId = user.clinicId;
         _listenToClinicRealtime(user.clinicId);
         final res = await Supabase.instance.client
             .from('clinics')
             .select('name, invite_code, is_active, subscription_end_date, subscription_status')
             .eq('id', user.clinicId)
-            .single();
+            .maybeSingle();
 
-        final isActive = res['is_active'] as bool? ?? true;
-        final endDateStr = res['subscription_end_date'] as String?;
-        final statusStr = (res['subscription_status'] as String? ?? 'active').toLowerCase();
-        final endDate = endDateStr != null ? DateTime.tryParse(endDateStr) : null;
+        if (res != null) {
+          final isActive = res['is_active'] as bool? ?? true;
+          final endDateStr = res['subscription_end_date'] as String?;
+          final statusStr = (res['subscription_status'] as String? ?? 'active').toLowerCase();
+          final endDate = endDateStr != null ? DateTime.tryParse(endDateStr) : null;
 
-        final isExpired = statusStr == 'active' && endDate != null && endDate.toUtc().isBefore(DateTime.now().toUtc());
-        final finalStatus = isExpired ? 'expired' : statusStr;
+          final isExpired = statusStr == 'active' && endDate != null && endDate.toUtc().isBefore(DateTime.now().toUtc());
+          final finalStatus = isExpired ? 'expired' : statusStr;
 
-        if (mounted) {
-          setState(() {
-            _clinicName = res['name'] as String? ?? 'العيادة';
-            _inviteCode = res['invite_code'] as String? ?? '';
-            _isClinicActive = isActive;
-            _subscriptionEndDate = endDate;
-            _subscriptionStatus = finalStatus;
-          });
+          if (mounted) {
+            setState(() {
+              _clinicName = res['name'] as String? ?? 'العيادة';
+              _inviteCode = res['invite_code'] as String? ?? '';
+              _isClinicActive = isActive;
+              _subscriptionEndDate = endDate;
+              _subscriptionStatus = finalStatus;
+            });
+          }
+          _scheduleExpirationTimer();
         }
-        _scheduleExpirationTimer();
       }
-    } catch (_) {
-      // وفي حالة وجود خطأ نعتمد الحالة الافتراضية
+    } catch (e) {
+      print('_verifySubscription error: $e');
     }
   }
 
