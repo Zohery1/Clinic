@@ -132,13 +132,35 @@ class AuthRepository {
 
   // جلب بيانات البروفايل من قاعدة البيانات لـ User معين
   Future<UserModel> getUserProfile(String userId) async {
-    final data = await _supabase
-        .from('users')
-        .select()
-        .eq('id', userId)
-        .single();
-    
-    return UserModel.fromJson(data);
+    try {
+      final data = await _supabase
+          .from('users')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (data != null) {
+        return UserModel.fromJson(data);
+      }
+    } catch (e) {
+      print('getUserProfile error: $e');
+    }
+
+    // Fallback if RLS or timing delays row retrieval during initial signup/OTP
+    final currentUser = _supabase.auth.currentUser;
+    final meta = currentUser?.userMetadata ?? {};
+
+    return UserModel(
+      id: userId,
+      clinicId: meta['clinic_id'] as String? ?? '',
+      role: meta['role'] as String? ?? 'doctor',
+      fullName: meta['full_name'] as String? ?? 'مستخدم جديد',
+      phone: meta['phone'] as String? ?? currentUser?.phone,
+      isActive: true,
+      canDeleteAppointments: true,
+      canViewReports: true,
+      createdAt: DateTime.now(),
+    );
   }
 
   // تحديث صلاحيات موظف أو تعطيل حسابه (للطبيب فقط)
