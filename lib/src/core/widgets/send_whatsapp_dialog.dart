@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../features/auth/presentation/login_controller.dart';
 import '../../features/settings/data/whatsapp_service.dart';
-import '../theme/app_theme.dart';
 
 void showSendWhatsAppDialog(
   BuildContext context,
@@ -38,7 +37,6 @@ class SendWhatsAppDialog extends ConsumerStatefulWidget {
 class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
   late TextEditingController _messageController;
   late TextEditingController _phoneController;
-  bool _isSending = false;
 
   final List<String> _quickTemplates = [
     'عزيزي المريض [name]، نتمنى لكم دوام الصحة والعافية.',

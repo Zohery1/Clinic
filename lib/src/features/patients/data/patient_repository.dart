@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/patient_model.dart';
@@ -31,7 +32,7 @@ class PatientRepository {
             .toList();
       }
     } catch (e) {
-      print('getPatients RPC fallback: $e');
+      debugPrint('getPatients RPC fallback: $e');
     }
 
     // 2) Fallback: Range chunking loop
@@ -81,7 +82,7 @@ class PatientRepository {
       final cleanPhone = trimmedPhone != null ? trimmedPhone.replaceAll(RegExp(r'\D'), '') : null;
 
       // 1) Duplicate check: Reject ONLY if BOTH full_name AND phone match an existing patient in the same clinic
-      if (cleanPhone != null && cleanPhone.isNotEmpty && trimmedPhone != null) {
+      if (cleanPhone?.isNotEmpty == true && trimmedPhone != null) {
         final safePhone = trimmedPhone.replaceAll(RegExp(r'[^\d+]'), '');
         final existingBoth = await _supabase
             .from('patients')

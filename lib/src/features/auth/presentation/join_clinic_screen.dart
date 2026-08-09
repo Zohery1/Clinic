@@ -63,9 +63,11 @@ class _JoinClinicScreenState extends ConsumerState<JoinClinicScreen> {
         final sessionUser = Supabase.instance.client.auth.currentUser;
         if (sessionUser != null) {
           final updatedProfile = await ref.read(authRepositoryProvider).getUserProfile(sessionUser.id);
+          if (!mounted) return;
           ref.read(currentUserProvider.notifier).state = updatedProfile;
         }
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
           SnackBar(
             content: Text(res['message'] ?? 'تم الانضمام للعيادة بنجاح'),

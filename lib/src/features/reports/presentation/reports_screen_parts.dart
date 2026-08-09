@@ -63,7 +63,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final now = DateTime.now();
                             final start = DateTime(now.year, now.month, now.day, 0, 0, 0);
                             final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-                            setState(() {
+                            (this as State).setState(() {
                               _startDate = start;
                               _endDate = end;
                             });
@@ -79,7 +79,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final yesterday = now.subtract(const Duration(days: 1));
                             final start = DateTime(yesterday.year, yesterday.month, yesterday.day, 0, 0, 0);
                             final end = DateTime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59);
-                            setState(() {
+                            (this as State).setState(() {
                               _startDate = start;
                               _endDate = end;
                             });
@@ -94,7 +94,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final now = DateTime.now();
                             final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
                             final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-                            setState(() {
+                            (this as State).setState(() {
                               _startDate = start;
                               _endDate = end;
                             });
@@ -109,7 +109,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final now = DateTime.now();
                             final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 29));
                             final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-                            setState(() {
+                            (this as State).setState(() {
                               _startDate = start;
                               _endDate = end;
                             });
@@ -124,7 +124,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final now = DateTime.now();
                             final start = DateTime(now.year, now.month, 1);
                             final end = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
-                            setState(() {
+                            (this as State).setState(() {
                               _startDate = start;
                               _endDate = end;
                             });
@@ -139,7 +139,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final now = DateTime.now();
                             final start = DateTime(now.year, now.month - 1, 1);
                             final end = DateTime(now.year, now.month, 0, 23, 59, 59);
-                            setState(() {
+                            (this as State).setState(() {
                               _startDate = start;
                               _endDate = end;
                             });
@@ -462,7 +462,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                         }
                       }
 
-                      setState(() {
+                      (this as State).setState(() {
                         _startDate = finalStart;
                         _endDate = finalEnd;
                       });
@@ -952,7 +952,7 @@ extension ReportsScreenParts on _ReportsScreenState {
   Widget _buildSubTabButton(String label, int index) {
     final isSelected = _selectedSubTab == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedSubTab = index),
+      onTap: () => (this as State).setState(() => _selectedSubTab = index),
       child: Container(
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

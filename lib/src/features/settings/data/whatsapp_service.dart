@@ -43,9 +43,6 @@ class WhatsAppService {
   /// Maximum random extra delay (human-like behavior)
   static const int _maxExtraDelaySeconds = 3;
 
-  /// Minimum global delay between ANY message (CPU protection)
-  static const int _minGlobalDelaySeconds = 2;
-
   /// Max retry attempts for wake-up
   static const int _maxRetries = 2;
 
@@ -82,7 +79,7 @@ class WhatsAppService {
       // 2) Per-clinic Anti-Ban Delay: 5-8 seconds
       final delayMs = (_minDelaySecondsPerInstance * 1000) +
           _random.nextInt(_maxExtraDelaySeconds * 1000);
-      print('[AntiSpam] Instance $instanceName waiting ${delayMs}ms anti-ban delay...');
+      debugPrint('[AntiSpam] Instance $instanceName waiting ${delayMs}ms anti-ban delay...');
       await Future.delayed(Duration(milliseconds: delayMs));
 
       // 3) Global CPU Throttle: Ensure at least 500ms between ANY HTTP request
@@ -163,7 +160,7 @@ class WhatsAppService {
       );
     } catch (e) {
       _showErrorToast('حدث خطأ داخلي أثناء تجهيز الرسالة: $e');
-      print('Error sending WhatsApp booking message: $e');
+      debugPrint('Error sending WhatsApp booking message: $e');
     }
   }
 
@@ -175,7 +172,7 @@ class WhatsAppService {
     try {
       // عدم إرسال رسالة الاعتذار/الإلغاء إذا كان تاريخ ووقت الموعد قد مضى بالفعل
       if (appointmentDate.toUtc().isBefore(DateTime.now().toUtc())) {
-        print('[WhatsApp] ⏭️ تجاوز إرسال رسالة الاعتذار لأن وقت الموعد قد مضى بالفعل ($appointmentDate)');
+        debugPrint('[WhatsApp] ⏭️ تجاوز إرسال رسالة الاعتذار لأن وقت الموعد قد مضى بالفعل ($appointmentDate)');
         return;
       }
 
@@ -223,7 +220,7 @@ class WhatsAppService {
         message: message,
       );
     } catch (e) {
-      print('Error sending WhatsApp cancellation message: $e');
+      debugPrint('Error sending WhatsApp cancellation message: $e');
     }
   }
 
@@ -256,7 +253,7 @@ class WhatsAppService {
       );
       return true;
     } catch (e) {
-      print('Error sending custom WhatsApp message: $e');
+      debugPrint('Error sending custom WhatsApp message: $e');
       return false;
     }
   }
@@ -373,14 +370,14 @@ class WhatsAppService {
             errLower.contains('disconnected');
 
         if (isConnectionClosed && retryCount < _maxRetries) {
-          print('[WhatsApp] ⚡ Session closed for $instanceName. Auto-wakeup attempt ${retryCount + 1}/$_maxRetries...');
+          debugPrint('[WhatsApp] ⚡ Session closed for $instanceName. Auto-wakeup attempt ${retryCount + 1}/$_maxRetries...');
           try {
             await http.get(
               Uri.parse('$_evoBaseUrl/instance/connect/$instanceName'),
               headers: {'apikey': _evoApiKey},
             ).timeout(const Duration(seconds: 5));
           } catch (e) {
-            print('[WhatsApp] ⚠️ Error waking up instance: $e');
+            debugPrint('[WhatsApp] ⚠️ Error waking up instance: $e');
           }
 
           // Wait 5 seconds for session to restore from Redis-saved credentials
@@ -402,11 +399,11 @@ class WhatsAppService {
           userFriendlyError = 'جلسة الواتساب غير موجودة، يرجى إعادة الربط من الإعدادات';
         }
 
-        print('[WhatsApp] ❌ Failed: $status - $body');
+        debugPrint('[WhatsApp] ❌ Failed: $status - $body');
         _showErrorToast(userFriendlyError);
       }
     } catch (e) {
-      print('[WhatsApp] ❌ Exception: $e');
+      debugPrint('[WhatsApp] ❌ Exception: $e');
       _showErrorToast('خطأ في الاتصال بسيرفر واتساب');
     }
   }
@@ -450,7 +447,7 @@ class WhatsAppService {
         }
       }
     } catch (e) {
-      print('Error fetching QR directly from Evolution API: $e');
+      debugPrint('Error fetching QR directly from Evolution API: $e');
     }
     return null;
   }
@@ -462,7 +459,7 @@ class WhatsAppService {
         headers: {'apikey': _evoApiKey},
       ).timeout(const Duration(seconds: 4));
     } catch (e) {
-      print('[WhatsApp] Reset instance warning: $e');
+      debugPrint('[WhatsApp] Reset instance warning: $e');
     }
   }
 
@@ -501,7 +498,7 @@ class WhatsAppService {
 
       // 2) Create fresh instance in pairing mode (qrcode: false) with phone number
       final createUrl = Uri.parse('$_evoBaseUrl/instance/create');
-      print('[WhatsApp] 🔑 Creating fresh pairing instance for $instanceName ($cleanPhone)...');
+      debugPrint('[WhatsApp] 🔑 Creating fresh pairing instance for $instanceName ($cleanPhone)...');
       final createRes = await http.post(
         createUrl,
         headers: {
@@ -553,7 +550,7 @@ class WhatsAppService {
         }
       }
     } catch (e) {
-      print('Error fetching pairing code from Evolution API: $e');
+      debugPrint('Error fetching pairing code from Evolution API: $e');
       return {'error': 'خطأ في الاتصال بسيرفر واتساب: $e'};
     }
     return {'error': 'لم يتم تلقي كود الاقتران. تأكد من صحة رقم الهاتف'};
@@ -579,7 +576,7 @@ class WhatsAppService {
         return {'connectionStatus': state};
       }
     } catch (e) {
-      print('Error checking connection state: $e');
+      debugPrint('Error checking connection state: $e');
     }
     return null;
   }

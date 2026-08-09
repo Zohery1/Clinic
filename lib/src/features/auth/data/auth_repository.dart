@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -153,7 +154,7 @@ class AuthRepository {
         return UserModel.fromJson(data);
       }
     } catch (e) {
-      print('getUserProfile error: $e');
+      debugPrint('getUserProfile error: $e');
     }
 
     // Fallback if RLS or timing delays row retrieval during initial signup/OTP

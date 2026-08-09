@@ -1000,7 +1000,7 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
                   context,
                   appointments,
                   _selectedMobileTab,
-                  (index) => setState(() => _selectedMobileTab = index),
+                  (index) => (this as State).setState(() => _selectedMobileTab = index),
                 ),
                 loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
                 error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),

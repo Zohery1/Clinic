@@ -1992,7 +1992,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
             void checkStatus() async {
               if (isConnectedSuccess) return;
               try {
-                final statusRes = await ref.read(whatsappServiceProvider).checkEvolutionStatus(activeInstanceName!);
+                final statusRes = await ref.read(whatsappServiceProvider).checkEvolutionStatus(activeInstanceName);
                 if (statusRes != null && statusRes['connectionStatus'] == 'open') {
                   isConnectedSuccess = true;
                   pollTimer?.cancel();
@@ -2019,16 +2019,18 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
                         .eq('id', user.clinicId);
                   }
 
-                  setState(() {
-                    _whatsappStatus = 'connected';
-                    _whatsappEnabled = true;
-                    _whatsappInstanceNameController.text = activeInstanceName!;
-                    _whatsappPhoneController.text = connectedPhone;
-                  });
+                  if (mounted) {
+                    setState(() {
+                      _whatsappStatus = 'connected';
+                      _whatsappEnabled = true;
+                      _whatsappInstanceNameController.text = activeInstanceName;
+                      _whatsappPhoneController.text = connectedPhone;
+                    });
+                  }
 
-                  if (dialogContext.mounted) {
+                  if (dialogContext.mounted && mounted) {
                     Navigator.pop(dialogContext);
-                    ScaffoldMessenger.of(this.context)..clearSnackBars()..showSnackBar(
+                    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
                       SnackBar(
                         duration: const Duration(seconds: 3),
                         content: Text(connectedPhone.isNotEmpty
@@ -2471,15 +2473,17 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
 
                         if (dialogContext.mounted) {
                           Navigator.pop(dialogContext);
-                          ScaffoldMessenger.of(this.context)..clearSnackBars()..showSnackBar(
-                            SnackBar(
-                              duration: const Duration(seconds: 3),
-                              content: Text(connectedPhone.isNotEmpty
-                                  ? 'تم ربط الواتساب بنجاح! رقم العيادة: $connectedPhone'
-                                  : 'تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
-                              backgroundColor: AppTheme.success,
-                            ),
-                          );
+                          if (mounted) {
+                            ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                              SnackBar(
+                                duration: const Duration(seconds: 3),
+                                content: Text(connectedPhone.isNotEmpty
+                                    ? 'تم ربط الواتساب بنجاح! رقم العيادة: $connectedPhone'
+                                    : 'تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
+                                backgroundColor: AppTheme.success,
+                              ),
+                            );
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),

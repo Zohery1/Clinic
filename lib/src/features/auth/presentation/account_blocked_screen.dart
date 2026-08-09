@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
-import '../data/auth_repository.dart';
 import 'login_controller.dart';
 import 'login_screen.dart';
 import 'join_clinic_screen.dart';
@@ -25,15 +24,7 @@ class AccountBlockedScreen extends ConsumerStatefulWidget {
 }
 
 class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
-  final _inviteCodeController = TextEditingController();
   bool _isChecking = false;
-  bool _isJoining = false;
-
-  @override
-  void dispose() {
-    _inviteCodeController.dispose();
-    super.dispose();
-  }
 
   void _handleLogout() async {
     await Supabase.instance.client.auth.signOut();
@@ -52,32 +43,6 @@ class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
     widget.onRefresh();
     if (mounted) {
       setState(() => _isChecking = false);
-    }
-  }
-
-  void _joinNewClinic() async {
-    final code = _inviteCodeController.text.trim();
-    if (code.isEmpty) {
-      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال كود العيادة الجديد (رمز الدعوة)'), backgroundColor: Colors.orange),
-      );
-      return;
-    }
-
-    setState(() => _isJoining = true);
-    final res = await ref.read(authRepositoryProvider).joinClinicWithInviteCode(code);
-    if (mounted) {
-      setState(() => _isJoining = false);
-      if (res['success'] == true) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(content: Text(res['message'] ?? 'تم الانضمام للعيادة بنجاح'), backgroundColor: Colors.green),
-        );
-        widget.onRefresh();
-      } else {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(content: Text(res['message'] ?? 'كود العيادة غير صحيح'), backgroundColor: Colors.red),
-        );
-      }
     }
   }
 
@@ -192,14 +157,14 @@ class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
                         ),
                         const Divider(height: 20),
                         Row(
-                          children: [
-                            const Icon(Icons.help_outline_rounded,
+                          children: const [
+                            Icon(Icons.help_outline_rounded,
                                 size: 16, color: AppTheme.textSecondary),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'يرجى مراجعة الطبيب لإعادة تفعيل حسابك من شاشة إدارة فريق العمل داخل الإعدادات.',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.textSecondary,
                                   height: 1.4,

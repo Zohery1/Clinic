@@ -280,6 +280,7 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
             );
 
         if (similar.isNotEmpty) {
+          if (!mounted) return;
           setState(() => _isSaving = false);
           final first = similar.first;
           final confirm = await showDialog<bool>(
@@ -305,7 +306,7 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
                     child: const Text('تراجع / إلغاء'),
                   ),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary),
+                    style: ElevatedButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.primary),
                     onPressed: () => Navigator.pop(ctx, true),
                     child: const Text('إنشاء ملف جديد على أي حال'),
                   ),

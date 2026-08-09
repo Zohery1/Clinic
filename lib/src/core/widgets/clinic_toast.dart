@@ -24,10 +24,7 @@ class ClinicToast {
     required IconData icon,
     required Color color,
   }) {
-    final mediaQuery = MediaQuery.of(context);
-    final topPadding = mediaQuery.padding.top;
-    final screenWidth = mediaQuery.size.width;
-    final screenHeight = mediaQuery.size.height;
+    final screenWidth = MediaQuery.sizeOf(context).width;
 
     // Toast width
     const toastWidth = 340.0;

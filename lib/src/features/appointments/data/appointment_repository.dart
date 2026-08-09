@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/appointment_model.dart';
@@ -109,7 +110,7 @@ class AppointmentRepository {
         patientId: patientId,
         appointmentDate: appointmentDate,
       ).catchError((e) {
-        print('Error sending booking confirmation WhatsApp: $e');
+        debugPrint('Error sending booking confirmation WhatsApp: $e');
       });
     } catch (e) {
       rethrow;
@@ -137,7 +138,7 @@ class AppointmentRepository {
             patientId: appointmentData['patient_id'],
             appointmentDate: DateTime.parse(appointmentData['appointment_date']).toLocal(),
           ).catchError((e) {
-            print('Error sending cancellation WhatsApp: $e');
+            debugPrint('Error sending cancellation WhatsApp: $e');
           });
         }
       }
@@ -249,7 +250,7 @@ class AppointmentRepository {
           patientId: app['patient_id'],
           appointmentDate: DateTime.parse(app['appointment_date']).toLocal(),
         ).catchError((e) {
-          print('Error sending bulk cancellation WhatsApp: $e');
+          debugPrint('Error sending bulk cancellation WhatsApp: $e');
         });
       }
     } catch (e) {

@@ -154,7 +154,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         final end = _subscriptionEndDate!.toUtc();
         
         if (now.isAfter(end) || now.isAtSameMomentAs(end)) {
-          print('[Subscription] 🚨 Heartbeat detected expiration! Auto-switching to TopUpSubscriptionScreen');
+          debugPrint('[Subscription] Heartbeat detected expiration! Auto-switching to TopUpSubscriptionScreen');
           timer.cancel();
           if (_subscriptionStatus != 'expired') {
             setState(() {
@@ -237,7 +237,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         }
       }
     } catch (e) {
-      print('_verifySubscription error: $e');
+      debugPrint('_verifySubscription error: $e');
     }
   }
 
