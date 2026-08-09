@@ -153,9 +153,8 @@ class AuthRepository {
     return UserModel(
       id: userId,
       clinicId: meta['clinic_id'] as String? ?? '',
-      role: meta['role'] as String? ?? 'doctor',
+      role: UserRole.fromString(meta['role'] as String? ?? 'doctor'),
       fullName: meta['full_name'] as String? ?? 'مستخدم جديد',
-      phone: meta['phone'] as String? ?? currentUser?.phone,
       isActive: true,
       canDeleteAppointments: true,
       canViewReports: true,
