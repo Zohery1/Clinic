@@ -173,6 +173,12 @@ class WhatsAppService {
     required DateTime appointmentDate,
   }) async {
     try {
+      // عدم إرسال رسالة الاعتذار/الإلغاء إذا كان تاريخ ووقت الموعد قد مضى بالفعل
+      if (appointmentDate.toUtc().isBefore(DateTime.now().toUtc())) {
+        print('[WhatsApp] ⏭️ تجاوز إرسال رسالة الاعتذار لأن وقت الموعد قد مضى بالفعل ($appointmentDate)');
+        return;
+      }
+
       final clinicRes = await _supabase
           .from('clinics')
           .select('whatsapp_enabled, whatsapp_instance_name, send_cancellation_message, cancellation_message_template')
