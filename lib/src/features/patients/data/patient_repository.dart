@@ -18,16 +18,34 @@ class PatientRepository {
 
   PatientRepository(this._supabase);
 
-  // جلب كافة المرضى للعيادة الحالية مرتبين بالأحدث تسجيلاً
+  // جلب كافة المرضى للعيادة الحالية مرتبين بالأحدث تسجيلاً (مع دعم الـ Chunking لتخطي حد الـ 1000 مريض الخاص بـ PostgREST)
   Future<List<PatientModel>> getPatients(String clinicId) async {
     try {
-      final List<dynamic> response = await _supabase
-          .from('patients')
-          .select('*')
-          .eq('clinic_id', clinicId)
-          .order('created_at', ascending: false);
+      final List<dynamic> allPatients = [];
+      int from = 0;
+      const int pageSize = 1000;
+      bool hasMore = true;
 
-      return response.map((item) => PatientModel.fromJson(item as Map<String, dynamic>)).toList();
+      while (hasMore) {
+        final List<dynamic> page = await _supabase
+            .from('patients')
+            .select('*')
+            .eq('clinic_id', clinicId)
+            .order('created_at', ascending: false)
+            .range(from, from + pageSize - 1);
+
+        allPatients.addAll(page);
+
+        if (page.length < pageSize) {
+          hasMore = false;
+        } else {
+          from += pageSize;
+        }
+      }
+
+      return allPatients
+          .map((item) => PatientModel.fromJson(item as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       rethrow;
     }
