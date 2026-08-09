@@ -812,6 +812,37 @@ BEGIN
 END;
 $$;
 
+-- 6. Get All Patients as JSONB Array (Bypasses PostgREST max-rows table limit completely)
+CREATE OR REPLACE FUNCTION public.get_all_patients_json(p_clinic_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_result jsonb;
+BEGIN
+    SELECT coalesce(jsonb_agg(
+        jsonb_build_object(
+            'id', p.id,
+            'clinic_id', p.clinic_id,
+            'full_name', p.full_name,
+            'phone', p.phone,
+            'gender', p.gender,
+            'birth_date', p.birth_date,
+            'address', p.address,
+            'medical_history', p.medical_history,
+            'created_at', p.created_at,
+            'updated_at', p.updated_at
+        ) ORDER BY p.created_at DESC
+    ), '[]'::jsonb)
+    INTO v_result
+    FROM public.patients p
+    WHERE p.clinic_id = p_clinic_id;
+
+    RETURN v_result;
+END;
+$$;
+
 -- 5. Admin Update Doctor Phone Number (SECURITY DEFINER)
 CREATE OR REPLACE FUNCTION public.admin_update_doctor_phone(p_clinic_id uuid, p_phone text)
 RETURNS void

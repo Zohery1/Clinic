@@ -18,14 +18,14 @@ class PatientRepository {
 
   PatientRepository(this._supabase);
 
-  // جلب كافة المرضى للعيادة الحالية مرتبين بالأحدث تسجيلاً (تتخطي حد الـ 1000 مريض الخاص بـ PostgREST)
+  // جلب كافة المرضى للعيادة الحالية مرتبين بالأحدث تسجيلاً (تتخطي حد الـ 1000 مريض الخاص بـ PostgREST عبر JSON Aggregation)
   Future<List<PatientModel>> getPatients(String clinicId) async {
     try {
-      // 1) Primary: Call SECURITY DEFINER RPC to fetch ALL patients for clinic without PostgREST 1000 cap
-      final List<dynamic> rpcResponse = await _supabase
-          .rpc('get_all_patients_for_clinic', params: {'p_clinic_id': clinicId});
+      // 1) Primary: Call jsonb RPC to completely bypass PostgREST max-rows table limit (returns all 4000+ patients in 1 payload)
+      final dynamic rpcResponse = await _supabase
+          .rpc('get_all_patients_json', params: {'p_clinic_id': clinicId});
 
-      if (rpcResponse.isNotEmpty) {
+      if (rpcResponse is List && rpcResponse.isNotEmpty) {
         return rpcResponse
             .map((item) => PatientModel.fromJson(item as Map<String, dynamic>))
             .toList();
