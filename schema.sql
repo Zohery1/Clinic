@@ -202,73 +202,93 @@ DECLARE
   v_is_active boolean;
   v_can_delete_appointments boolean;
   v_can_view_reports boolean;
+  v_role_str text;
 BEGIN
-  -- Extract metadata from the signup request
-  v_clinic_id := ((new.raw_user_meta_data ->> 'clinic_id')::uuid);
-  v_role := (new.raw_user_meta_data ->> 'role')::public.user_role;
-  v_full_name := coalesce(new.raw_user_meta_data ->> 'full_name', 'مستخدم جديد');
-  v_clinic_name := coalesce(new.raw_user_meta_data ->> 'clinic_name', 'عيادة جديدة');
-  v_invite_code := new.raw_user_meta_data ->> 'invite_code';
-  v_phone := coalesce(
-    nullif(new.raw_user_meta_data ->> 'phone', ''),
-    nullif(new.raw_user_meta_data ->> 'user_phone', ''),
-    nullif(new.raw_user_meta_data ->> 'whatsapp_phone', ''),
-    nullif(new.phone::text, '')
-  );
-
-  -- Format phone to E.164 standard (+20...)
-  IF v_phone IS NOT NULL AND v_phone != '' THEN
-    IF v_phone ~ '^01[0-9]{9}$' THEN
-      v_phone := '+2' || v_phone;
-    ELSIF v_phone ~ '^201[0-9]{9}$' THEN
-      v_phone := '+' || v_phone;
-    ELSIF v_phone !~ '^\+' THEN
-      v_phone := '+20' || regexp_replace(v_phone, '\D', '', 'g');
+  BEGIN
+    -- Extract metadata safely
+    v_role_str := lower(coalesce(new.raw_user_meta_data ->> 'role', 'doctor'));
+    IF v_role_str = 'secretary' THEN
+      v_role := 'secretary'::public.user_role;
+    ELSE
+      v_role := 'doctor'::public.user_role;
     END IF;
-  END IF;
 
-  -- Default role to doctor if not specified
-  IF v_role IS NULL THEN
-    v_role := 'doctor'::public.user_role;
-  END IF;
+    v_full_name := coalesce(nullif(new.raw_user_meta_data ->> 'full_name', ''), 'مستخدم جديد');
+    v_clinic_name := coalesce(nullif(new.raw_user_meta_data ->> 'clinic_name', ''), 'عيادة جديدة');
+    v_invite_code := new.raw_user_meta_data ->> 'invite_code';
+    v_phone := coalesce(
+      nullif(new.raw_user_meta_data ->> 'phone', ''),
+      nullif(new.raw_user_meta_data ->> 'user_phone', ''),
+      nullif(new.raw_user_meta_data ->> 'whatsapp_phone', ''),
+      nullif(new.phone::text, '')
+    );
 
-  -- If clinic_id is null, try to find it by invite_code
-  IF v_clinic_id IS NULL AND v_invite_code IS NOT NULL THEN
-    SELECT id INTO v_clinic_id FROM public.clinics WHERE invite_code = v_invite_code;
-  END IF;
-
-  -- If still null, create a new clinic (Self-onboarding for doctors)
-  IF v_clinic_id IS NULL THEN
-    INSERT INTO public.clinics (name, whatsapp_phone, subscription_status, is_active, subscription_end_date)
-    VALUES (v_clinic_name, v_phone, 'pending_activation', false, now())
-    RETURNING id INTO v_clinic_id;
-  ELSE
-    -- If doctor joining existing clinic, save phone to clinic if missing
-    IF v_role = 'doctor' AND v_phone IS NOT NULL THEN
-      UPDATE public.clinics SET whatsapp_phone = v_phone WHERE id = v_clinic_id AND (whatsapp_phone IS NULL OR whatsapp_phone = '');
+    -- Format phone to E.164 standard (+20...)
+    IF v_phone IS NOT NULL AND v_phone != '' THEN
+      IF v_phone ~ '^01[0-9]{9}$' THEN
+        v_phone := '+2' || v_phone;
+      ELSIF v_phone ~ '^201[0-9]{9}$' THEN
+        v_phone := '+' || v_phone;
+      ELSIF v_phone !~ '^\+' THEN
+        v_phone := '+20' || regexp_replace(v_phone, '\D', '', 'g');
+      END IF;
     END IF;
-  END IF;
 
-  -- Set default permissions based on role
-  IF v_role = 'doctor' THEN
-    v_is_active := true;
-    v_can_delete_appointments := true;
-    v_can_view_reports := true;
-  ELSE
-    v_is_active := true;
-    v_can_delete_appointments := false; -- السكرتيرة لا تحذف مواعيد افتراضياً
-    v_can_view_reports := false;        -- السكرتيرة لا ترى التقارير افتراضياً
-  END IF;
+    -- Extract clinic_id safely if present
+    IF new.raw_user_meta_data ->> 'clinic_id' IS NOT NULL THEN
+      BEGIN
+        v_clinic_id := (new.raw_user_meta_data ->> 'clinic_id')::uuid;
+      EXCEPTION WHEN OTHERS THEN
+        v_clinic_id := NULL;
+      END;
+    END IF;
 
-  -- Insert profile
-  INSERT INTO public.users (id, clinic_id, role, full_name, phone, is_active, can_delete_appointments, can_view_reports)
-  VALUES (new.id, v_clinic_id, v_role, v_full_name, v_phone, v_is_active, v_can_delete_appointments, v_can_view_reports);
+    -- Find clinic by invite_code if secretary
+    IF v_clinic_id IS NULL AND v_invite_code IS NOT NULL THEN
+      SELECT id INTO v_clinic_id FROM public.clinics WHERE invite_code = v_invite_code LIMIT 1;
+    END IF;
+
+    -- Create clinic if self-onboarding doctor
+    IF v_clinic_id IS NULL THEN
+      INSERT INTO public.clinics (name, whatsapp_phone, subscription_status, is_active, subscription_end_date)
+      VALUES (v_clinic_name, v_phone, 'pending_activation', false, now())
+      RETURNING id INTO v_clinic_id;
+    ELSE
+      IF v_role = 'doctor' AND v_phone IS NOT NULL AND v_phone != '' THEN
+        UPDATE public.clinics SET whatsapp_phone = v_phone WHERE id = v_clinic_id AND (whatsapp_phone IS NULL OR whatsapp_phone = '');
+      END IF;
+    END IF;
+
+    -- Default permissions
+    IF v_role = 'doctor' THEN
+      v_is_active := true;
+      v_can_delete_appointments := true;
+      v_can_view_reports := true;
+    ELSE
+      v_is_active := true;
+      v_can_delete_appointments := false;
+      v_can_view_reports := false;
+    END IF;
+
+    -- Insert profile safely into public.users
+    INSERT INTO public.users (id, clinic_id, role, full_name, phone, is_active, can_delete_appointments, can_view_reports)
+    VALUES (new.id, v_clinic_id, v_role, v_full_name, v_phone, v_is_active, v_can_delete_appointments, v_can_view_reports)
+    ON CONFLICT (id) DO UPDATE SET
+      clinic_id = EXCLUDED.clinic_id,
+      role = EXCLUDED.role,
+      full_name = EXCLUDED.full_name,
+      phone = coalesce(EXCLUDED.phone, public.users.phone);
+
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'handle_new_user trigger encountered an error: %', SQLERRM;
+  END;
 
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Bind onboarding function to auth.users trigger
+-- Re-bind trigger cleanly
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
