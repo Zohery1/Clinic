@@ -209,7 +209,17 @@ BEGIN
   v_full_name := coalesce(new.raw_user_meta_data ->> 'full_name', 'مستخدم جديد');
   v_clinic_name := coalesce(new.raw_user_meta_data ->> 'clinic_name', 'عيادة جديدة');
   v_invite_code := new.raw_user_meta_data ->> 'invite_code';
-  v_phone := coalesce(new.raw_user_meta_data ->> 'phone', new.phone);
+  v_phone := coalesce(
+    nullif(new.raw_user_meta_data ->> 'phone', ''),
+    nullif(new.raw_user_meta_data ->> 'user_phone', ''),
+    nullif(new.raw_user_meta_data ->> 'whatsapp_phone', ''),
+    nullif(new.phone::text, '')
+  );
+
+  -- Populate auth.users native phone column if null
+  IF v_phone IS NOT NULL AND v_phone != '' AND (new.phone IS NULL OR new.phone = '') THEN
+    UPDATE auth.users SET phone = v_phone WHERE id = new.id;
+  END IF;
 
   -- Default role to doctor if not specified
   IF v_role IS NULL THEN
@@ -743,6 +753,14 @@ BEGIN
     UPDATE public.users
     SET phone = p_phone
     WHERE clinic_id = p_clinic_id AND role = 'doctor';
+
+    -- Update auth.users native phone & metadata
+    UPDATE auth.users au
+    SET 
+      phone = p_phone,
+      raw_user_meta_data = jsonb_set(coalesce(au.raw_user_meta_data, '{}'::jsonb), '{phone}', to_jsonb(p_phone))
+    FROM public.users u
+    WHERE u.id = au.id AND u.clinic_id = p_clinic_id AND u.role = 'doctor';
 END;
 $$;
 

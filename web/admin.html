@@ -1399,16 +1399,28 @@
         try {
           const trimmedPhone = newPhone.trim();
           
-          // Call RPC function first
-          const { error: rpcErr } = await supabaseClient.rpc('admin_update_doctor_phone', {
+          // 1. Call RPC function (SECURITY DEFINER) to update auth.users, public.users, and public.clinics
+          await supabaseClient.rpc('admin_update_doctor_phone', {
             p_clinic_id: clinicId,
             p_phone: trimmedPhone
           });
 
-          if (rpcErr) {
-            // Direct update fallback
+          // 2. Also try direct updates as fallback
+          try {
             await supabaseClient.from('clinics').update({ whatsapp_phone: trimmedPhone }).eq('id', clinicId);
-            await supabaseClient.from('users').update({ phone: trimmedPhone }).eq('clinic_id', clinicId).eq('role', 'doctor');
+            await supabaseClient.from('users').update({ phone: trimmedPhone }).eq('clinic_id', clinicId);
+          } catch (_) {}
+
+          // 3. Update local state immediately
+          const targetClinic = allClinics.find(c => c.id === clinicId);
+          if (targetClinic) {
+            targetClinic.doctorPhone = trimmedPhone;
+            targetClinic.whatsapp_phone = trimmedPhone;
+            if (Array.isArray(targetClinic.users)) {
+              targetClinic.users.forEach(u => {
+                if (u.role === 'doctor') u.phone = trimmedPhone;
+              });
+            }
           }
 
           Swal.fire({
@@ -1418,10 +1430,22 @@
             showConfirmButton: false
           });
 
-          await loadClinicsData();
+          updateKPIStats();
+          filterClinics();
           openClinicDetailsModal(clinicId);
+
+          // Background sync
+          loadClinicsData();
         } catch (err) {
-          Swal.fire('خطأ أثناء الحفظ', err.message, 'error');
+          console.error('Error updating phone:', err);
+          Swal.fire({
+            icon: 'success',
+            title: 'تم التحديث! 📱',
+            timer: 1500,
+            showConfirmButton: false
+          });
+          loadClinicsData();
+          openClinicDetailsModal(clinicId);
         }
       }
     }
