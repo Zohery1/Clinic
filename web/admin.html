@@ -648,15 +648,17 @@
     function getClinicStatusCategory(clinic) {
       const now = new Date();
       const endDate = clinic.subscription_end_date ? new Date(clinic.subscription_end_date) : null;
-      const isExpired = clinic.subscription_status === 'expired' || clinic.subscription_status === 'suspended' || (endDate && endDate < now);
       const isPending = clinic.subscription_status === 'pending_activation';
       
       if (isPending) {
-        const isBrandNewPending = (clinic.patientCount === 0 && clinic.appointmentCount === 0 && (!endDate || endDate.getTime() <= now.getTime() + 86400000));
+        const pCount = Number(clinic.patientCount || 0);
+        const aCount = Number(clinic.appointmentCount || 0);
+        const isBrandNewPending = (pCount === 0 && aCount === 0);
         return isBrandNewPending ? 'pending_new' : 'pending_renewal';
       }
 
-      if (!clinic.is_active || clinic.subscription_status === 'suspended' || isExpired) {
+      const isExpired = clinic.subscription_status === 'expired' || clinic.subscription_status === 'suspended' || !clinic.is_active || (endDate && endDate < now);
+      if (isExpired) {
         return 'expired';
       }
 
@@ -862,8 +864,8 @@
             doctorName: c.doctor_name || 'غير محدد',
             doctorEmail: c.doctor_email || '',
             doctorPhone: c.doctor_phone || c.whatsapp_phone || '',
-            patientCount: c.patient_count || 0,
-            appointmentCount: c.appointment_count || 0,
+            patientCount: Number(c.patient_count || 0),
+            appointmentCount: Number(c.appointment_count || 0),
             users: Array.isArray(c.users_data) ? c.users_data : []
           }));
         } else {
@@ -1483,20 +1485,13 @@
         // Status Filter
         if (status === 'all') return true;
         
-        const endDate = c.subscription_end_date ? new Date(c.subscription_end_date) : null;
-        const isPending = c.subscription_status === 'pending_activation';
-        const isBrandNewPending = isPending && (c.patientCount === 0 && c.appointmentCount === 0);
+        const cat = getClinicStatusCategory(c);
 
-        if (status === 'pending_new') return isPending && isBrandNewPending;
-        if (status === 'pending_renewal') return isPending && !isBrandNewPending;
-
-        const isExpired = c.subscription_status === 'expired' || c.subscription_status === 'suspended' || (endDate && endDate < now);
-        const diffHours = endDate ? (endDate - now) / (1000 * 60 * 60) : 999;
-        const isExpiringSoon = endDate && !isExpired && diffHours <= 48;
-
-        if (status === 'active') return c.is_active && c.subscription_status === 'active' && !isExpired && !isExpiringSoon;
-        if (status === 'expiring') return isExpiringSoon;
-        if (status === 'expired') return isExpired || !c.is_active;
+        if (status === 'pending_new') return cat === 'pending_new';
+        if (status === 'pending_renewal') return cat === 'pending_renewal';
+        if (status === 'active') return cat === 'active';
+        if (status === 'expiring') return cat === 'expiring_soon';
+        if (status === 'expired') return cat === 'expired';
 
         return true;
       });
