@@ -853,7 +853,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
                       title: Text(
                         service.name,
                         style: TextStyle(fontSize: 14, color: _textColor),
-                      ),
+),
                       subtitle: Text(
                         '+ ${service.price.toStringAsFixed(0)} ج.م',
                         style: TextStyle(
@@ -887,115 +887,226 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
   }
 
   Widget _buildFooter() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-      decoration: BoxDecoration(
-        color: _surfaceCol,
-        border: Border(
-          top: BorderSide(color: _borderCol),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Price summary
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'السعر الإجمالي المطلوب',
-                style: TextStyle(color: _textSecColor, fontSize: 12),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 480;
+
+        if (isMobile) {
+          return Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            decoration: BoxDecoration(
+              color: _surfaceCol,
+              border: Border(
+                top: BorderSide(color: _borderCol),
               ),
-              const SizedBox(height: 2),
-              Text(
-                '${_priceCharged.toStringAsFixed(0)} ج.م',
-                style: GoogleFonts.cairo(
-                  color: _primaryColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          // Action buttons
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Cancel
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => Navigator.pop(context),
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: _borderCol),
-                      borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'السعر الإجمالي المطلوب:',
+                      style: TextStyle(color: _textSecColor, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
-                    child: Text(
-                      'إلغاء',
-                      style: TextStyle(
-                        color: _textSecColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                    Text(
+                      '${_priceCharged.toStringAsFixed(0)} ج.م',
+                      style: GoogleFonts.cairo(
+                        color: _primaryColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: InkWell(
+                        onTap: () => Navigator.pop(context),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: _borderCol),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'إلغاء',
+                            style: TextStyle(
+                              color: _textSecColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: InkWell(
+                        onTap: _isSaving ? null : _submit,
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _isSaving ? Colors.grey : _primaryColor,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: _isSaving ? null : [
+                              BoxShadow(
+                                color: _primaryColor.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: _isSaving
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.save_rounded, size: 18, color: Colors.white),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'حفظ التعديلات',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+          decoration: BoxDecoration(
+            color: _surfaceCol,
+            border: Border(
+              top: BorderSide(color: _borderCol),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'السعر الإجمالي المطلوب',
+                    style: TextStyle(color: _textSecColor, fontSize: 12),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${_priceCharged.toStringAsFixed(0)} ج.م',
+                    style: GoogleFonts.cairo(
+                      color: _primaryColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: _borderCol),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'إلغاء',
+                          style: TextStyle(
+                            color: _textSecColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Confirm
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _isSaving ? null : _submit,
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: _isSaving ? Colors.grey : _primaryColor,
+                  const SizedBox(width: 8),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _isSaving ? null : _submit,
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow: _isSaving ? null : [
-                        BoxShadow(
-                          color: _primaryColor.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.save_rounded, size: 18, color: Colors.white),
-                                SizedBox(width: 6),
-                                Text(
-                                  'حفظ التعديلات',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _isSaving ? Colors.grey : _primaryColor,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: _isSaving ? null : [
+                            BoxShadow(
+                              color: _primaryColor.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
+                          ],
+                        ),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: _isSaving
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.save_rounded, size: 18, color: Colors.white),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'حفظ التعديلات',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
