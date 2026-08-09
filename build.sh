@@ -14,7 +14,7 @@ flutter clean
 echo "Getting dependencies..."
 flutter pub get
 
-echo "Building Flutter Web..."
-flutter build web --release
+echo "Building Flutter Web (Optimized Release)..."
+flutter build web --release --pwa-strategy=offline-first
 
 echo "Build finished successfully!"
