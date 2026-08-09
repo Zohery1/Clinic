@@ -150,10 +150,21 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
   }
 
   void markAsRead(String notificationId) {
-    // Simply remove from local memory
+    // 1. Remove from local memory state
     state = state.copyWith(
       notifications: state.notifications.where((n) => n.id != notificationId).toList(),
     );
+
+    // 2. Delete from Supabase DB
+    final user = _ref.read(currentUserProvider);
+    if (user != null) {
+      try {
+        Supabase.instance.client
+            .from('notifications')
+            .delete()
+            .eq('id', notificationId);
+      } catch (_) {}
+    }
   }
 
   void markAllAsRead() {
