@@ -18,8 +18,23 @@ class PatientRepository {
 
   PatientRepository(this._supabase);
 
-  // جلب كافة المرضى للعيادة الحالية مرتبين بالأحدث تسجيلاً (مع دعم الـ Chunking لتخطي حد الـ 1000 مريض الخاص بـ PostgREST)
+  // جلب كافة المرضى للعيادة الحالية مرتبين بالأحدث تسجيلاً (تتخطي حد الـ 1000 مريض الخاص بـ PostgREST)
   Future<List<PatientModel>> getPatients(String clinicId) async {
+    try {
+      // 1) Primary: Call SECURITY DEFINER RPC to fetch ALL patients for clinic without PostgREST 1000 cap
+      final List<dynamic> rpcResponse = await _supabase
+          .rpc('get_all_patients_for_clinic', params: {'p_clinic_id': clinicId});
+
+      if (rpcResponse.isNotEmpty) {
+        return rpcResponse
+            .map((item) => PatientModel.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      print('getPatients RPC fallback: $e');
+    }
+
+    // 2) Fallback: Range chunking loop
     try {
       final List<dynamic> allPatients = [];
       int from = 0;

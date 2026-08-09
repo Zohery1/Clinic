@@ -776,6 +776,42 @@ BEGIN
 END;
 $$;
 
+-- 5. Get All Patients for Clinic (Bypasses PostgREST 1000 limit)
+CREATE OR REPLACE FUNCTION public.get_all_patients_for_clinic(p_clinic_id uuid)
+RETURNS TABLE (
+    id uuid,
+    clinic_id uuid,
+    full_name text,
+    phone text,
+    gender text,
+    birth_date date,
+    address text,
+    medical_history text,
+    created_at timestamptz,
+    updated_at timestamptz
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        p.id,
+        p.clinic_id,
+        p.full_name,
+        p.phone,
+        p.gender,
+        p.birth_date,
+        p.address,
+        p.medical_history,
+        p.created_at,
+        p.updated_at
+    FROM public.patients p
+    WHERE p.clinic_id = p_clinic_id
+    ORDER BY p.created_at DESC;
+END;
+$$;
+
 -- 5. Admin Update Doctor Phone Number (SECURITY DEFINER)
 CREATE OR REPLACE FUNCTION public.admin_update_doctor_phone(p_clinic_id uuid, p_phone text)
 RETURNS void
