@@ -133,11 +133,21 @@ class AuthRepository {
   // جلب بيانات البروفايل من قاعدة البيانات لـ User معين
   Future<UserModel> getUserProfile(String userId) async {
     try {
-      final data = await _supabase
+      var data = await _supabase
           .from('users')
           .select()
           .eq('id', userId)
           .maybeSingle();
+
+      if (data == null) {
+        // Self-Healing RPC: إذا كان بروفايل أو عيادة المستخدم لم تنشأ لأي سبب، يتم إنشاؤها وتصحيح الحساب تلقائياً
+        await _supabase.rpc('ensure_user_clinic_exists');
+        data = await _supabase
+            .from('users')
+            .select()
+            .eq('id', userId)
+            .maybeSingle();
+      }
 
       if (data != null) {
         return UserModel.fromJson(data);
