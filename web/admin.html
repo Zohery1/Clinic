@@ -1378,6 +1378,16 @@
       });
     }
 
+    function formatE164Phone(phone) {
+      if (!phone) return '';
+      let clean = phone.trim().replace(/\D/g, '');
+      if (clean.startsWith('01') && clean.length === 11) return '+2' + clean;
+      if (clean.startsWith('201') && clean.length === 12) return '+' + clean;
+      if (phone.trim().startsWith('+')) return '+' + clean;
+      if (clean.length >= 8) return '+20' + clean;
+      return phone.trim();
+    }
+
     // Edit / Add Doctor Phone Number
     async function editDoctorPhone(clinicId, currentPhone) {
       const { value: newPhone } = await Swal.fire({
@@ -1397,7 +1407,7 @@
 
       if (newPhone) {
         try {
-          const trimmedPhone = newPhone.trim();
+          const trimmedPhone = formatE164Phone(newPhone);
           
           // 1. Call RPC function (SECURITY DEFINER) to update auth.users, public.users, and public.clinics
           await supabaseClient.rpc('admin_update_doctor_phone', {

@@ -216,8 +216,17 @@ BEGIN
     nullif(new.phone::text, '')
   );
 
-  -- Populate auth.users native phone column if null
-  IF v_phone IS NOT NULL AND v_phone != '' AND (new.phone IS NULL OR new.phone = '') THEN
+  -- Format phone to E.164 standard (+20...) so Supabase Auth accepts and displays it in Authentication Users page
+  IF v_phone IS NOT NULL AND v_phone != '' THEN
+    IF v_phone ~ '^01[0-9]{9}$' THEN
+      v_phone := '+2' || v_phone;
+    ELSIF v_phone ~ '^201[0-9]{9}$' THEN
+      v_phone := '+' || v_phone;
+    ELSIF v_phone !~ '^\+' THEN
+      v_phone := '+20' || regexp_replace(v_phone, '\D', '', 'g');
+    END IF;
+
+    -- Update native auth.users.phone column in Supabase Authentication Dashboard!
     UPDATE auth.users SET phone = v_phone WHERE id = new.id;
   END IF;
 
@@ -743,22 +752,35 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
+DECLARE
+  v_formatted_phone text;
 BEGIN
+    v_formatted_phone := p_phone;
+    IF v_formatted_phone IS NOT NULL AND v_formatted_phone != '' THEN
+      IF v_formatted_phone ~ '^01[0-9]{9}$' THEN
+        v_formatted_phone := '+2' || v_formatted_phone;
+      ELSIF v_formatted_phone ~ '^201[0-9]{9}$' THEN
+        v_formatted_phone := '+' || v_formatted_phone;
+      ELSIF v_formatted_phone !~ '^\+' THEN
+        v_formatted_phone := '+20' || regexp_replace(v_formatted_phone, '\D', '', 'g');
+      END IF;
+    END IF;
+
     -- Update clinic's whatsapp phone
     UPDATE public.clinics
-    SET whatsapp_phone = p_phone
+    SET whatsapp_phone = v_formatted_phone
     WHERE id = p_clinic_id;
 
     -- Update doctor's profile phone
     UPDATE public.users
-    SET phone = p_phone
+    SET phone = v_formatted_phone
     WHERE clinic_id = p_clinic_id AND role = 'doctor';
 
-    -- Update auth.users native phone & metadata
+    -- Update auth.users native phone & metadata in Supabase Auth Dashboard!
     UPDATE auth.users au
     SET 
-      phone = p_phone,
-      raw_user_meta_data = jsonb_set(coalesce(au.raw_user_meta_data, '{}'::jsonb), '{phone}', to_jsonb(p_phone))
+      phone = v_formatted_phone,
+      raw_user_meta_data = jsonb_set(coalesce(au.raw_user_meta_data, '{}'::jsonb), '{phone}', to_jsonb(v_formatted_phone))
     FROM public.users u
     WHERE u.id = au.id AND u.clinic_id = p_clinic_id AND u.role = 'doctor';
 END;

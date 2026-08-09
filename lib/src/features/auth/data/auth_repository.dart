@@ -32,6 +32,22 @@ class AuthRepository {
   String? get currentUserId => _supabase.auth.currentUser?.id;
 
   // تسجيل حساب جديد (طبيب أو سكرتيرة)
+  String? _formatE164Phone(String? phone) {
+    if (phone == null || phone.trim().isEmpty) return null;
+    final String trimmed = phone.trim();
+    final String clean = trimmed.replaceAll(RegExp(r'\D'), '');
+    if (clean.startsWith('01') && clean.length == 11) {
+      return '+2$clean';
+    } else if (clean.startsWith('201') && clean.length == 12) {
+      return '+$clean';
+    } else if (trimmed.startsWith('+')) {
+      return '+$clean';
+    } else if (clean.length >= 8) {
+      return '+20$clean';
+    }
+    return trimmed;
+  }
+
   Future<SignUpResult> signUp({
     required String email,
     required String password,
@@ -42,14 +58,16 @@ class AuthRepository {
     String? inviteCode,   // required if secretary
   }) async {
     try {
+      final String? formattedPhone = _formatE164Phone(phone);
+
       final AuthResponse response = await _supabase.auth.signUp(
         email: email,
         password: password,
-        phone: phone,
+        phone: formattedPhone,
         data: {
           'full_name': fullName,
           'role': role,
-          if (phone != null) 'phone': phone,
+          if (formattedPhone != null) 'phone': formattedPhone,
           if (clinicName != null) 'clinic_name': clinicName,
           if (inviteCode != null) 'invite_code': inviteCode,
         },
