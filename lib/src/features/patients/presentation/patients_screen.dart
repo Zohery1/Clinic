@@ -41,6 +41,9 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
     super.dispose();
   }
 
+  Map<String, int>? _cachedFileNumbers;
+  List<PatientModel>? _cachedSortedPatients;
+
   void _onSearchChanged(String query, String clinicId) {
     _debounceTimer?.cancel();
     
@@ -54,21 +57,27 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
 
     setState(() => _isSearching = true);
 
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+    _debounceTimer = Timer(const Duration(milliseconds: 200), () async {
       try {
-        final allPatients = await ref.read(patientRepositoryProvider).getPatients(clinicId);
-        final sortedFullPatients = List<PatientModel>.from(allPatients)
-          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        if (_cachedSortedPatients == null || _cachedFileNumbers == null) {
+          final allPatients = await ref.read(patientRepositoryProvider).getPatients(clinicId);
+          _cachedSortedPatients = List<PatientModel>.from(allPatients)
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-        final Map<String, int> fileNumbers = {};
-        for (int i = 0; i < sortedFullPatients.length; i++) {
-          fileNumbers[sortedFullPatients[i].id] = i + 1;
+          _cachedFileNumbers = {};
+          for (int i = 0; i < _cachedSortedPatients!.length; i++) {
+            _cachedFileNumbers![_cachedSortedPatients![i].id] = i + 1;
+          }
         }
+
+        final sortedFullPatients = _cachedSortedPatients!;
+        final fileNumbers = _cachedFileNumbers!;
+        final cleanQuery = query.trim();
 
         if (_searchByFileOnly) {
           final filtered = sortedFullPatients.where((p) {
             final fileNo = fileNumbers[p.id] ?? 0;
-            return fileNo.toString() == query.trim() || fileNo.toString().contains(query.trim());
+            return fileNo.toString() == cleanQuery || fileNo.toString().contains(cleanQuery);
           }).toList();
           if (mounted) {
             setState(() {
@@ -80,7 +89,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
           final results = await ref.read(patientRepositoryProvider).searchPatients(clinicId, query);
           final byFile = sortedFullPatients.where((p) {
             final fileNo = fileNumbers[p.id] ?? 0;
-            return fileNo.toString() == query.trim() || fileNo.toString().contains(query.trim());
+            return fileNo.toString() == cleanQuery || fileNo.toString().contains(cleanQuery);
           }).toList();
           
           final merged = [...results];
@@ -89,6 +98,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
               merged.add(p);
             }
           }
+
           if (mounted) {
             setState(() {
               _searchResults = merged;
@@ -168,6 +178,8 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
               onPressed: () async {
                 try {
                   await ref.read(patientRepositoryProvider).deletePatient(patient.id);
+                  _cachedSortedPatients = null;
+                  _cachedFileNumbers = null;
                   ref.invalidate(patientsListProvider(clinicId));
                   if (_searchController.text.isNotEmpty) {
                     _onSearchChanged(_searchController.text, clinicId);

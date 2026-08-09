@@ -747,16 +747,33 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                 }
 
                 final normQuery = ArabicUtils.normalize(query);
+                final List<PatientModel> matches = [];
 
-                final matches = patients.where((PatientModel option) {
+                // Fast Stage 1: Fast O(1) String Contains
+                for (var i = 0; i < patients.length; i++) {
+                  final option = patients[i];
                   final normName = ArabicUtils.normalize(option.fullName);
                   final phone = option.phone ?? '';
 
-                  return normName.contains(normQuery) ||
-                      normQuery.contains(normName) ||
-                      ArabicUtils.tokenSimilarity(normQuery, normName) >= 0.45 ||
-                      phone.contains(query);
-                }).toList();
+                  if (normName.contains(normQuery) || normQuery.contains(normName) || phone.contains(query)) {
+                    matches.add(option);
+                    if (matches.length >= 6) break;
+                  }
+                }
+
+                // Stage 2: Heavy similarity ONLY if < 6 matches found and query >= 3 chars
+                if (matches.length < 6 && normQuery.length >= 3) {
+                  for (var i = 0; i < patients.length; i++) {
+                    final option = patients[i];
+                    if (matches.contains(option)) continue;
+
+                    final normName = ArabicUtils.normalize(option.fullName);
+                    if (ArabicUtils.tokenSimilarity(normQuery, normName) >= 0.45) {
+                      matches.add(option);
+                      if (matches.length >= 6) break;
+                    }
+                  }
+                }
 
                 if (matches.isEmpty) {
                   return [

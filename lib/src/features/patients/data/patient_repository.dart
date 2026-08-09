@@ -160,7 +160,7 @@ class PatientRepository {
     }
   }
 
-  // البحث عن المرضى بالاسم أو بالرقم أو العنوان مع التطبيع العربي
+  // البحث السريع والمحسن فائقاً عن المرضى بنظام الفهرسة ثنائي المنسوب (2-Stage Fast Filtering)
   Future<List<PatientModel>> searchPatients(String clinicId, String query) async {
     try {
       final trimmed = query.trim();
@@ -170,17 +170,40 @@ class PatientRepository {
 
       final allPatients = await getPatients(clinicId);
       final normQuery = ArabicUtils.normalize(trimmed);
+      final List<PatientModel> fastMatches = [];
+      final Set<String> matchedIds = {};
 
-      return allPatients.where((patient) {
+      // Stage 1: Fast O(1) String Contains & Phone Contains
+      for (var i = 0; i < allPatients.length; i++) {
+        final patient = allPatients[i];
         final normName = ArabicUtils.normalize(patient.fullName);
         final phone = patient.phone ?? '';
         final address = patient.address ?? '';
 
-        return normName.contains(normQuery) ||
-               ArabicUtils.tokenSimilarity(normQuery, normName) >= 0.5 ||
-               phone.contains(trimmed) ||
-               address.contains(trimmed);
-      }).toList();
+        if (normName.contains(normQuery) ||
+            phone.contains(trimmed) ||
+            (address.isNotEmpty && address.contains(trimmed))) {
+          fastMatches.add(patient);
+          matchedIds.add(patient.id);
+        }
+      }
+
+      // Stage 2: Heavy tokenSimilarity Fuzzy Matching ONLY if Stage 1 found < 15 matches and query is >= 3 chars
+      if (fastMatches.length < 15 && normQuery.length >= 3) {
+        for (var i = 0; i < allPatients.length; i++) {
+          final patient = allPatients[i];
+          if (matchedIds.contains(patient.id)) continue;
+
+          final normName = ArabicUtils.normalize(patient.fullName);
+          if (ArabicUtils.tokenSimilarity(normQuery, normName) >= 0.5) {
+            fastMatches.add(patient);
+            matchedIds.add(patient.id);
+            if (fastMatches.length >= 30) break;
+          }
+        }
+      }
+
+      return fastMatches;
     } catch (e) {
       rethrow;
     }

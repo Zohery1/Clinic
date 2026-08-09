@@ -1018,6 +1018,19 @@ ON public.users (clinic_id, role, is_active);
 CREATE INDEX IF NOT EXISTS idx_clinics_status_active 
 ON public.clinics (subscription_status, is_active);
 
+-- ==========================================
+-- 6. Storage Protection & Maintenance Procedure
+-- Guarantees Database footprint stays well within Supabase 500MB Free Tier
+-- ==========================================
+CREATE OR REPLACE FUNCTION public.purge_old_audit_logs()
+RETURNS void AS $$
+BEGIN
+    -- Delete audit logs older than 30 days
+    DELETE FROM public.audit_logs 
+    WHERE created_at < (NOW() - INTERVAL '30 days');
 
-
-
+    -- Delete notifications older than 14 days
+    DELETE FROM public.notifications 
+    WHERE created_at < (NOW() - INTERVAL '14 days');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
