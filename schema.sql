@@ -216,7 +216,7 @@ BEGIN
     nullif(new.phone::text, '')
   );
 
-  -- Format phone to E.164 standard (+20...) so Supabase Auth accepts and displays it in Authentication Users page
+  -- Format phone to E.164 standard (+20...)
   IF v_phone IS NOT NULL AND v_phone != '' THEN
     IF v_phone ~ '^01[0-9]{9}$' THEN
       v_phone := '+2' || v_phone;
@@ -225,9 +225,6 @@ BEGIN
     ELSIF v_phone !~ '^\+' THEN
       v_phone := '+20' || regexp_replace(v_phone, '\D', '', 'g');
     END IF;
-
-    -- Update native auth.users.phone column in Supabase Authentication Dashboard!
-    UPDATE auth.users SET phone = v_phone WHERE id = new.id;
   END IF;
 
   -- Default role to doctor if not specified

@@ -63,7 +63,6 @@ class AuthRepository {
       final AuthResponse response = await _supabase.auth.signUp(
         email: email,
         password: password,
-        phone: formattedPhone,
         data: {
           'full_name': fullName,
           'role': role,
