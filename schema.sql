@@ -190,6 +190,41 @@ $$;
 -- Ensure users table has phone column
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone text;
 
+-- 1. BEFORE INSERT trigger on auth.users to populate NEW.phone natively before row insertion
+CREATE OR REPLACE FUNCTION public.handle_new_user_before()
+RETURNS trigger AS $$
+DECLARE
+  v_phone text;
+BEGIN
+  v_phone := coalesce(
+    nullif(NEW.raw_user_meta_data ->> 'phone', ''),
+    nullif(NEW.raw_user_meta_data ->> 'user_phone', ''),
+    nullif(NEW.raw_user_meta_data ->> 'whatsapp_phone', ''),
+    nullif(NEW.phone::text, '')
+  );
+
+  IF v_phone IS NOT NULL AND v_phone != '' THEN
+    IF v_phone ~ '^01[0-9]{9}$' THEN
+      v_phone := '+2' || v_phone;
+    ELSIF v_phone ~ '^201[0-9]{9}$' THEN
+      v_phone := '+' || v_phone;
+    ELSIF v_phone !~ '^\+' THEN
+      v_phone := '+20' || regexp_replace(v_phone, '\D', '', 'g');
+    END IF;
+
+    NEW.phone := v_phone;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS tr_auth_user_before_created ON auth.users;
+CREATE TRIGGER tr_auth_user_before_created
+  BEFORE INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_before();
+
+-- 2. AFTER INSERT trigger on auth.users to create user profile & clinic
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 DECLARE
@@ -205,50 +240,30 @@ DECLARE
   v_role_str text;
 BEGIN
   BEGIN
-    -- Extract metadata safely
-    v_role_str := lower(coalesce(new.raw_user_meta_data ->> 'role', 'doctor'));
+    v_role_str := lower(coalesce(NEW.raw_user_meta_data ->> 'role', 'doctor'));
     IF v_role_str = 'secretary' THEN
       v_role := 'secretary'::public.user_role;
     ELSE
       v_role := 'doctor'::public.user_role;
     END IF;
 
-    v_full_name := coalesce(nullif(new.raw_user_meta_data ->> 'full_name', ''), 'مستخدم جديد');
-    v_clinic_name := coalesce(nullif(new.raw_user_meta_data ->> 'clinic_name', ''), 'عيادة جديدة');
-    v_invite_code := new.raw_user_meta_data ->> 'invite_code';
-    v_phone := coalesce(
-      nullif(new.raw_user_meta_data ->> 'phone', ''),
-      nullif(new.raw_user_meta_data ->> 'user_phone', ''),
-      nullif(new.raw_user_meta_data ->> 'whatsapp_phone', ''),
-      nullif(new.phone::text, '')
-    );
+    v_full_name := coalesce(nullif(NEW.raw_user_meta_data ->> 'full_name', ''), 'مستخدم جديد');
+    v_clinic_name := coalesce(nullif(NEW.raw_user_meta_data ->> 'clinic_name', ''), 'عيادة جديدة');
+    v_invite_code := NEW.raw_user_meta_data ->> 'invite_code';
+    v_phone := coalesce(nullif(NEW.phone::text, ''), nullif(NEW.raw_user_meta_data ->> 'phone', ''));
 
-    -- Format phone to E.164 standard (+20...)
-    IF v_phone IS NOT NULL AND v_phone != '' THEN
-      IF v_phone ~ '^01[0-9]{9}$' THEN
-        v_phone := '+2' || v_phone;
-      ELSIF v_phone ~ '^201[0-9]{9}$' THEN
-        v_phone := '+' || v_phone;
-      ELSIF v_phone !~ '^\+' THEN
-        v_phone := '+20' || regexp_replace(v_phone, '\D', '', 'g');
-      END IF;
-    END IF;
-
-    -- Extract clinic_id safely if present
-    IF new.raw_user_meta_data ->> 'clinic_id' IS NOT NULL THEN
+    IF NEW.raw_user_meta_data ->> 'clinic_id' IS NOT NULL THEN
       BEGIN
-        v_clinic_id := (new.raw_user_meta_data ->> 'clinic_id')::uuid;
+        v_clinic_id := (NEW.raw_user_meta_data ->> 'clinic_id')::uuid;
       EXCEPTION WHEN OTHERS THEN
         v_clinic_id := NULL;
       END;
     END IF;
 
-    -- Find clinic by invite_code if secretary
     IF v_clinic_id IS NULL AND v_invite_code IS NOT NULL THEN
       SELECT id INTO v_clinic_id FROM public.clinics WHERE invite_code = v_invite_code LIMIT 1;
     END IF;
 
-    -- Create clinic if self-onboarding doctor
     IF v_clinic_id IS NULL THEN
       INSERT INTO public.clinics (name, whatsapp_phone, subscription_status, is_active, subscription_end_date)
       VALUES (v_clinic_name, v_phone, 'pending_activation', false, now())
@@ -259,7 +274,6 @@ BEGIN
       END IF;
     END IF;
 
-    -- Default permissions
     IF v_role = 'doctor' THEN
       v_is_active := true;
       v_can_delete_appointments := true;
@@ -270,9 +284,8 @@ BEGIN
       v_can_view_reports := false;
     END IF;
 
-    -- Insert profile safely into public.users
     INSERT INTO public.users (id, clinic_id, role, full_name, phone, is_active, can_delete_appointments, can_view_reports)
-    VALUES (new.id, v_clinic_id, v_role, v_full_name, v_phone, v_is_active, v_can_delete_appointments, v_can_view_reports)
+    VALUES (NEW.id, v_clinic_id, v_role, v_full_name, v_phone, v_is_active, v_can_delete_appointments, v_can_view_reports)
     ON CONFLICT (id) DO UPDATE SET
       clinic_id = EXCLUDED.clinic_id,
       role = EXCLUDED.role,
@@ -280,14 +293,14 @@ BEGIN
       phone = coalesce(EXCLUDED.phone, public.users.phone);
 
   EXCEPTION WHEN OTHERS THEN
-    RAISE WARNING 'handle_new_user trigger encountered an error: %', SQLERRM;
+    RAISE WARNING 'handle_new_user error: %', SQLERRM;
   END;
 
-  RETURN new;
+  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Re-bind trigger cleanly
+-- Rebind AFTER INSERT trigger
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
