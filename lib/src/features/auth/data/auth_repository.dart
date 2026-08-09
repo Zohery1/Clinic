@@ -202,25 +202,52 @@ class AuthRepository {
     required String token,
   }) async {
     try {
-      final AuthResponse response = await _supabase.auth.verifyOTP(
-        email: email,
-        token: token.trim(),
-        type: OtpType.signup,
-      );
+      // 1. تجربة نوع OtpType.signup
+      try {
+        final AuthResponse response = await _supabase.auth.verifyOTP(
+          email: email,
+          token: token.trim(),
+          type: OtpType.signup,
+        );
 
-      if (response.user != null) {
-        return await getUserProfile(response.user!.id);
+        if (response.user != null) {
+          return await getUserProfile(response.user!.id);
+        }
+      } catch (e1) {
+        final errStr = e1.toString().toLowerCase();
+        if (errStr.contains('already confirmed') || errStr.contains('already verified')) {
+          final currentUser = _supabase.auth.currentUser;
+          if (currentUser != null) {
+            return await getUserProfile(currentUser.id);
+          }
+        }
       }
 
-      // تجربة النوع الافتراضي email إذا فشل signup
-      final AuthResponse response2 = await _supabase.auth.verifyOTP(
-        email: email,
-        token: token.trim(),
-        type: OtpType.email,
-      );
+      // 2. تجربة النوع الافتراضي OtpType.email إذا فشل signup
+      try {
+        final AuthResponse response2 = await _supabase.auth.verifyOTP(
+          email: email,
+          token: token.trim(),
+          type: OtpType.email,
+        );
 
-      if (response2.user != null) {
-        return await getUserProfile(response2.user!.id);
+        if (response2.user != null) {
+          return await getUserProfile(response2.user!.id);
+        }
+      } catch (e2) {
+        final errStr = e2.toString().toLowerCase();
+        if (errStr.contains('already confirmed') || errStr.contains('already verified')) {
+          final currentUser = _supabase.auth.currentUser;
+          if (currentUser != null) {
+            return await getUserProfile(currentUser.id);
+          }
+        }
+      }
+
+      // في حال وُجدت جلسة قائمة للمستخدم المسجل بالفعل
+      final currentUser = _supabase.auth.currentUser;
+      if (currentUser != null) {
+        return await getUserProfile(currentUser.id);
       }
 
       throw Exception('رمز التحقق غير صحيح أو انتهت صلاحيته.');
