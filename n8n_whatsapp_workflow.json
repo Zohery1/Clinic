@@ -5,52 +5,41 @@
       "parameters": {
         "path": "send-whatsapp",
         "responseMode": "lastNode",
-        "options": {}
+        "options": {
+          "rawBody": false
+        }
       },
       "id": "1",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
+      "typeVersion": 2,
       "position": [250, 300],
       "webhookId": "send-whatsapp"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'http://37.27.31.127:8081/message/sendText/' + $json.body.instanceName }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "EyadatyEvoSecretKey2026!"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
+        "url": "={{ 'http://evolution_api:8080/message/sendText/' + $json.body.instanceName }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "number",
-              "value": "={{ $json.body.phone }}"
-            },
-            {
-              "name": "text",
-              "value": "={{ $json.body.message }}"
-            }
-          ]
-        },
-        "options": {}
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.body.phone, text: $json.body.message }) }}",
+        "options": {
+          "timeout": 10000
+        }
       },
       "id": "2",
       "name": "Evolution API",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [450, 300]
+      "typeVersion": 4.2,
+      "position": [450, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "EvoAPI Key"
+        }
+      }
     }
   ],
   "connections": {
@@ -67,5 +56,10 @@
     }
   },
   "active": true,
-  "settings": {}
+  "settings": {},
+  "tags": [
+    {
+      "name": "whatsapp"
+    }
+  ]
 }
