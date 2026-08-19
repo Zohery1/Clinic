@@ -42,6 +42,10 @@ CREATE TABLE public.clinics (
     subscription_end_date timestamptz NOT NULL DEFAULT now(), -- Bounded to zero until admin activates
     subscription_status text NOT NULL DEFAULT 'pending_activation' CHECK (subscription_status IN ('active', 'pending_activation', 'expired', 'suspended')),
     is_active boolean NOT NULL DEFAULT false,
+    renewal_requested boolean NOT NULL DEFAULT false,
+    renewal_requested_at timestamptz,
+    renewal_plan text,
+    renewal_plan_price numeric(10, 2),
     whatsapp_enabled boolean NOT NULL DEFAULT false,
     whatsapp_phone text,
     whatsapp_instance_name text,
@@ -805,6 +809,10 @@ RETURNS TABLE (
     subscription_end_date timestamptz,
     subscription_status text,
     is_active boolean,
+    renewal_requested boolean,
+    renewal_requested_at timestamptz,
+    renewal_plan text,
+    renewal_plan_price numeric,
     created_at timestamptz,
     whatsapp_phone text,
     doctor_name text,
@@ -826,6 +834,10 @@ BEGIN
         c.subscription_end_date,
         c.subscription_status,
         c.is_active,
+        c.renewal_requested,
+        c.renewal_requested_at,
+        c.renewal_plan,
+        c.renewal_plan_price,
         c.created_at,
         c.whatsapp_phone,
         coalesce((SELECT u.full_name FROM public.users u WHERE u.clinic_id = c.id AND u.role = 'doctor' LIMIT 1), 'غير محدد') as doctor_name,
@@ -992,7 +1004,12 @@ BEGIN
     SET 
         subscription_status = 'active',
         is_active = true,
-        subscription_end_date = (now() + (p_days || ' days')::interval)
+        renewal_requested = false,
+        renewal_requested_at = null,
+        renewal_plan = null,
+        renewal_plan_price = null,
+        subscription_end_date = (now() + (p_days || ' days')::interval),
+        updated_at = now()
     WHERE id = p_clinic_id;
 END;
 $$;
@@ -1008,8 +1025,47 @@ BEGIN
     SET 
         subscription_status = 'active',
         is_active = true,
-        subscription_end_date = p_end_date
+        renewal_requested = false,
+        renewal_requested_at = null,
+        renewal_plan = null,
+        renewal_plan_price = null,
+        subscription_end_date = p_end_date,
+        updated_at = now()
     WHERE id = p_clinic_id;
+END;
+$$;
+
+-- 3.1 Doctor / Clinic Request Subscription Renewal (RPC)
+CREATE OR REPLACE FUNCTION public.request_subscription_renewal(
+    p_plan text,
+    p_price numeric DEFAULT NULL
+)
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_clinic_id uuid;
+    v_uid uuid := auth.uid();
+BEGIN
+    IF v_uid IS NULL THEN
+        RETURN json_build_object('success', false, 'message', 'يجب تسجيل الدخول');
+    END IF;
+
+    SELECT clinic_id INTO v_clinic_id FROM public.users WHERE id = v_uid;
+    IF v_clinic_id IS NULL THEN
+        RETURN json_build_object('success', false, 'message', 'العيادة غير موجودة');
+    END IF;
+
+    UPDATE public.clinics
+    SET renewal_requested = true,
+        renewal_requested_at = now(),
+        renewal_plan = coalesce(p_plan, 'تجديد الاشتراك'),
+        renewal_plan_price = p_price,
+        updated_at = now()
+    WHERE id = v_clinic_id;
+
+    RETURN json_build_object('success', true, 'clinic_id', v_clinic_id);
 END;
 $$;
 

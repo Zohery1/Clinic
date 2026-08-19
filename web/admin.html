@@ -525,6 +525,18 @@
                 showConfirmButton: false,
                 timer: 4000
               });
+            } else if (payload.eventType === 'UPDATE') {
+              if (payload.new && payload.new.renewal_requested && (!payload.old || !payload.old.renewal_requested)) {
+                Swal.fire({
+                  toast: true,
+                  position: 'top-end',
+                  icon: 'warning',
+                  title: '🔄 طلب تجديد اشتراك جديد!',
+                  text: `عيادة (${payload.new.name}) طلبت تجديد الاشتراك: ${payload.new.renewal_plan || 'الخطة'}`,
+                  showConfirmButton: false,
+                  timer: 6000
+                });
+              }
             }
             
             loadClinicsData();
@@ -645,7 +657,13 @@
       const now = new Date();
       const endDate = clinic.subscription_end_date ? new Date(clinic.subscription_end_date) : null;
       const isPending = clinic.subscription_status === 'pending_activation';
+      const hasRenewalRequest = clinic.renewal_requested === true;
       
+      // If explicit renewal requested or pending activation for existing clinic
+      if (hasRenewalRequest) {
+        return 'pending_renewal';
+      }
+
       if (isPending) {
         const pCount = Number(clinic.patientCount || 0);
         const aCount = Number(clinic.appointmentCount || 0);
@@ -975,10 +993,13 @@
         // Distinct Logic: Brand New Clinic vs Existing Clinic Renewal Request
         const isPending = clinic.subscription_status === 'pending_activation';
         const isBrandNewPending = isPending && (clinic.patientCount === 0 && clinic.appointmentCount === 0 && (!endDate || endDate.getTime() <= now.getTime() + 86400000));
-        const isExistingRenewal = isPending && !isBrandNewPending;
+        const hasEarlyRenewal = clinic.renewal_requested === true;
+        const isExistingRenewal = (isPending && !isBrandNewPending) || hasEarlyRenewal;
         
         let statusBadge = '';
-        if (isPending) {
+        if (hasEarlyRenewal) {
+          statusBadge = `<span class="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[11px] font-extrabold animate-pulse">⚡ طلب تجديد (${escapeHtml(clinic.renewal_plan || 'معلق')})</span>`;
+        } else if (isPending) {
           if (isBrandNewPending) {
             statusBadge = `<span class="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[11px] font-extrabold animate-pulse">عيادة جديدة بانتظار التفعيل ⏳</span>`;
           } else {
@@ -1020,11 +1041,11 @@
         const formattedEndDate = endDate && clinic.subscription_status !== 'pending_activation' ? endDate.toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) : 'لم يُحدد بعد';
 
         return `
-          <tr class="${isPending ? 'bg-amber-50/40' : 'hover:bg-slate-50/80'} transition-colors">
+          <tr class="${(isPending || hasEarlyRenewal) ? 'bg-amber-50/50 border-r-4 border-amber-500' : 'hover:bg-slate-50/80'} transition-colors">
             <!-- Clinic & Doctor Info -->
             <td class="py-4 px-6">
               <div class="flex items-center gap-3">
-                <div class="w-9 h-9 ${isPending ? 'bg-amber-100 text-amber-700' : 'bg-brand-50 text-brand-600'} rounded-xl flex items-center justify-center font-black text-sm cursor-pointer"
+                <div class="w-9 h-9 ${isPending ? 'bg-amber-100 text-amber-700' : (hasEarlyRenewal ? 'bg-amber-100 text-amber-700' : 'bg-brand-50 text-brand-600')} rounded-xl flex items-center justify-center font-black text-sm cursor-pointer"
                      onclick="openClinicDetailsModal('${clinic.id}')" title="انقر لفتح الملف الشامل للعيادة">
                   <i class="fa-solid fa-hospital"></i>
                 </div>
@@ -1034,7 +1055,7 @@
                       <span>${clinicName}</span>
                       <i class="fa-solid fa-id-card text-brand-500 text-xs"></i>
                     </button>
-                    ${isPending ? (isBrandNewPending ? '<span class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-black">جديدة</span>' : '<span class="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-black">تجديد</span>') : ''}
+                    ${isPending ? (isBrandNewPending ? '<span class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-black">جديدة</span>' : '<span class="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-black">تجديد</span>') : (hasEarlyRenewal ? '<span class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-black animate-pulse">طلب تجديد</span>' : '')}
                   </div>
                   
                   <div class="text-[11px] font-semibold text-slate-600 mt-1 flex flex-wrap items-center gap-2">
@@ -1110,21 +1131,28 @@
                   <span>الملف الشامل</span>
                 </button>
 
-                ${isPending ? `
+                ${hasEarlyRenewal ? `
+                  <!-- Confirm Early Renewal Button -->
+                  <button onclick="openExtendModal('${clinic.id}', '${clinicName}', '${clinic.subscription_end_date || ''}', '${escapeHtml(clinic.renewal_plan || '')}')"
+                    class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl text-xs shadow-md transition-all flex items-center gap-1 animate-pulse">
+                    <i class="fa-solid fa-bolt text-[11px]"></i>
+                    <span>تأكيد التجديد (${escapeHtml(clinic.renewal_plan || 'تمديد')}) ⚡</span>
+                  </button>
+                ` : (isPending ? `
                   <!-- Approve & Activate Button -->
                   <button onclick="activateClinicNow('${clinic.id}', '${clinic.name}', ${isExistingRenewal})"
                     class="px-3 py-1.5 ${isExistingRenewal ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white font-black rounded-xl text-xs shadow-md transition-all flex items-center gap-1">
                     <i class="fa-solid ${isExistingRenewal ? 'fa-rotate' : 'fa-bolt'} text-[11px]"></i>
                     <span>${isExistingRenewal ? 'تجديد الاشتراك 🔄' : 'تفعيل العيادة الجديدة ⚡'}</span>
                   </button>
-                ` : ''}
-
-                <!-- Extend Button -->
-                <button onclick="openExtendModal('${clinic.id}', '${clinic.name}', '${clinic.subscription_end_date || ''}')"
-                  class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition-all flex items-center gap-1">
-                  <i class="fa-solid fa-bolt text-[11px]"></i>
-                  <span>تمديد</span>
-                </button>
+                ` : `
+                  <!-- Extend Button -->
+                  <button onclick="openExtendModal('${clinic.id}', '${clinic.name}', '${clinic.subscription_end_date || ''}')"
+                    class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition-all flex items-center gap-1">
+                    <i class="fa-solid fa-bolt text-[11px]"></i>
+                    <span>تمديد</span>
+                  </button>
+                `)}
 
                 <!-- Delete Button -->
                 <button onclick="deleteClinic('${clinic.id}', '${clinic.name}')" title="حذف العيادة وكافة مستخدميها نهائياً"
@@ -1165,7 +1193,10 @@
 
       let statusBadgeText = 'نشط 🟢';
       let statusBadgeBg = 'bg-emerald-100 text-emerald-800 border-emerald-300';
-      if (isPending) {
+      if (clinic.renewal_requested) {
+        statusBadgeText = 'طلب تجديد مبكر ⚡';
+        statusBadgeBg = 'bg-amber-100 text-amber-900 border-amber-300';
+      } else if (isPending) {
         if (isBrandNewPending) {
           statusBadgeText = 'جديدة بانتظار التفعيل ⏳';
           statusBadgeBg = 'bg-amber-100 text-amber-900 border-amber-300';
@@ -1227,6 +1258,24 @@
               <span class="px-3 py-1 text-xs font-black rounded-full border ${statusBadgeBg}">${statusBadgeText}</span>
             </div>
           </div>
+
+          ${clinic.renewal_requested ? `
+            <div class="p-3 bg-amber-50 border-2 border-amber-400 rounded-2xl flex items-center justify-between animate-pulse">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 bg-amber-500 text-white rounded-xl flex items-center justify-center font-black">
+                  <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                  <div class="font-extrabold text-amber-950 text-xs">طلب تجديد اشتراك معلق</div>
+                  <div class="text-[11px] text-amber-800 font-bold">الخطة المطلوبة: ${escapeHtml(clinic.renewal_plan || 'غير محدد')} ${clinic.renewal_plan_price ? `(${clinic.renewal_plan_price} ج.م)` : ''}</div>
+                </div>
+              </div>
+              <button onclick="Swal.close(); openExtendModal('${clinic.id}', '${escapeHtml(clinic.name)}', '${clinic.subscription_end_date || ''}', '${escapeHtml(clinic.renewal_plan || '')}')"
+                class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black text-xs shadow transition-all flex items-center gap-1">
+                <span>تأكيد التجديد الآن ⚡</span>
+              </button>
+            </div>
+          ` : ''}
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- 1. Doctor & Identity Card -->
@@ -1496,7 +1545,7 @@
     }
 
     // Open Extend Modal
-    function openExtendModal(clinicId, clinicName, currentEndDateStr) {
+    function openExtendModal(clinicId, clinicName, currentEndDateStr, renewalPlanStr = '') {
       document.getElementById('modalClinicId').value = clinicId;
       document.getElementById('modalClinicName').textContent = clinicName;
 
@@ -1504,13 +1553,27 @@
       modal.classList.remove('hidden');
       modal.classList.add('flex');
 
-      // Set default datetime picker to current end date or now + 30 days
+      // Determine days from requested plan if any
+      let addDays = 30;
+      if (renewalPlanStr) {
+        if (renewalPlanStr.includes('سنة') || renewalPlanStr.includes('12') || renewalPlanStr.includes('year')) {
+          addDays = 365;
+        } else if (renewalPlanStr.includes('6') || renewalPlanStr.includes('نصف')) {
+          addDays = 180;
+        } else if (renewalPlanStr.includes('3') || renewalPlanStr.includes('ربع')) {
+          addDays = 90;
+        } else {
+          addDays = 30;
+        }
+      }
+
+      // Set default datetime picker to current end date or now + addDays
       let defaultDate = new Date();
       if (currentEndDateStr) {
         const d = new Date(currentEndDateStr);
         if (d > defaultDate) defaultDate = d;
       }
-      defaultDate.setDate(defaultDate.getDate() + 30);
+      defaultDate.setDate(defaultDate.getDate() + addDays);
       
       const isoStr = new Date(defaultDate.getTime() - (defaultDate.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
       document.getElementById('customEndDate').value = isoStr;
@@ -1565,7 +1628,11 @@
             .update({
               subscription_end_date: newEndDate,
               subscription_status: 'active',
-              is_active: true
+              is_active: true,
+              renewal_requested: false,
+              renewal_requested_at: null,
+              renewal_plan: null,
+              renewal_plan_price: null
             })
             .eq('id', clinicId);
           if (error) throw error;
@@ -1575,7 +1642,7 @@
         Swal.fire({
           icon: 'success',
           title: 'تم التمديد بنجاح! ⚡',
-          text: 'تمت تحديث فترة الاشتراك وتفعيل العيادة مباشرة',
+          text: 'تمت تحديث فترة الاشتراك وتفعيل العيادة مباشرة ومسح طلب التجديد',
           timer: 2000,
           showConfirmButton: false
         });
@@ -1589,7 +1656,7 @@
     // 1-Click Activate / Renew Pending Clinic
     async function activateClinicNow(clinicId, clinicName, isRenewal = false) {
       const actionTitle = isRenewal ? `تجديد اشتراك عيادة "${clinicName}"؟` : `تفعيل اشتراك عيادة جديدة "${clinicName}"؟`;
-      const actionText = isRenewal ? 'سيتم تمديد اشتراك العيادة رسمياً لمدة 30 يوماً إضافية من الآن' : 'سيتم تفعيل العيادة الجديدة رسمياً لمدة 30 يوماً من الآن';
+      const actionText = isRenewal ? 'سيتم تمديد اشتراك العيادة رسمياً لمدة 30 يوماً إضافية من الآن ومسح إشعار التجديد' : 'سيتم تفعيل العيادة الجديدة رسمياً لمدة 30 يوماً من الآن';
       const btnText = isRenewal ? 'نعم، تجديد الاشتراك الآن 🔄' : 'نعم، تفعيل العيادة الآن ⚡';
 
       const confirm = await Swal.fire({
@@ -1617,6 +1684,10 @@
               .update({
                 subscription_status: 'active',
                 is_active: true,
+                renewal_requested: false,
+                renewal_requested_at: null,
+                renewal_plan: null,
+                renewal_plan_price: null,
                 subscription_end_date: newEndDate
               })
               .eq('id', clinicId);

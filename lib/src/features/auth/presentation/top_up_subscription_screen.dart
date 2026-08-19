@@ -122,21 +122,54 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
           statusStr == 'pending_activation' ||
           (endDate != null && endDate.toUtc().isBefore(DateTime.now().toUtc()));
 
+      final plan = _plans[_selectedPlanIndex];
+      final priceNum = double.tryParse(plan['price']!.replaceAll(',', '').trim()) ?? 550.0;
+
       if (isAlreadyExpired) {
-        // إذا كان الاشتراك منتهياً بالفعل، يتم التحديث بطلب تفعيل لينتقل لشاشة الانتظار
+        // إذا كان الاشتراك منتهياً بالفعل، يتم التحديث بطلب تفعيل وتجديد لينتقل لشاشة الانتظار
         await Supabase.instance.client
             .from('clinics')
-            .update({'subscription_status': 'pending_activation'})
+            .update({
+              'subscription_status': 'pending_activation',
+              'renewal_requested': true,
+              'renewal_requested_at': DateTime.now().toIso8601String(),
+              'renewal_plan': plan['title'],
+              'renewal_plan_price': priceNum,
+            })
             .eq('id', widget.clinicId);
+
+        try {
+          await Supabase.instance.client.rpc('request_subscription_renewal', params: {
+            'p_plan': plan['title'],
+            'p_price': priceNum,
+          });
+        } catch (_) {}
 
         if (mounted && Navigator.canPop(context)) Navigator.of(context).pop();
         widget.onRefresh();
       } else {
-        // إذا كان الاشتراك ما زال سارياً وجدد مبكراً، نترك الحالة active ونعرض رسالة نجاح ليكمل عمله فوراً
+        // إذا كان الاشتراك ما زال سارياً وجدد مبكراً، نسجل طلب التجديد فوراً في قاعدة البيانات مع إبقاء العيادة شريحة نشطة
+        await Supabase.instance.client
+            .from('clinics')
+            .update({
+              'renewal_requested': true,
+              'renewal_requested_at': DateTime.now().toIso8601String(),
+              'renewal_plan': plan['title'],
+              'renewal_plan_price': priceNum,
+            })
+            .eq('id', widget.clinicId);
+
+        try {
+          await Supabase.instance.client.rpc('request_subscription_renewal', params: {
+            'p_plan': plan['title'],
+            'p_price': priceNum,
+          });
+        } catch (_) {}
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
-              'تم إرسال طلب التجديد للإدارة بنجاح. يمكنك مواصلة عملك بشكل طبيعي لحين مراجعة الإدارة وتمديد الاشتراك.',
+              'تم إرسال طلب التجديد لخطة (${plan['title']}) للإدارة بنجاح. يمكنك مواصلة عملك بشكل طبيعي لحين مراجعة الإدارة وتمديد الاشتراك.',
               style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
             ),
             backgroundColor: AppTheme.success,
