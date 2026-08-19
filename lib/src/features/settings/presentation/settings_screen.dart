@@ -982,24 +982,29 @@ class StaffPermissionsPage extends ConsumerWidget {
                                 letterSpacing: 4,
                               ),
                             ),
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                minimumSize: Size.zero,
-                              ),
-                              icon: const Icon(Icons.share_rounded, size: 14),
-                              label: const Text('نسخ رابط التسجيل السريع', style: TextStyle(fontSize: 12)),
-                              onPressed: () {
-                                Clipboard.setData(ClipboardData(text: inviteLink));
-                                ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                                  const SnackBar(duration: Duration(seconds: 2), 
-                                    content: Text('تم نسخ رابط التسجيل المباشر للسكرتيرة!'),
-                                    backgroundColor: AppTheme.success,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    minimumSize: Size.zero,
                                   ),
-                                );
-                              },
+                                  icon: const Icon(Icons.copy_rounded, size: 14),
+                                  label: const Text('نسخ الرابط', style: TextStyle(fontSize: 12)),
+                                  onPressed: () {
+                                    Clipboard.setData(ClipboardData(text: inviteLink));
+                                    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
+                                      const SnackBar(duration: Duration(seconds: 2), 
+                                        content: Text('تم نسخ رابط التسجيل المباشر للسكرتيرة!'),
+                                        backgroundColor: AppTheme.success,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ],
                         );

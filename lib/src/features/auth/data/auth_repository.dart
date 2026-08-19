@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import '../domain/user_model.dart';
 
 // مزود مستودع المصادقة لجعل كلاس AuthRepository قابلاً للاستخدام في أي مكان

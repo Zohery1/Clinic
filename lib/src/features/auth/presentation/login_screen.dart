@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../main.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/invite_utils.dart';
 import 'login_controller.dart';
 import 'register_screen.dart';
 import 'reset_password_screen.dart';
@@ -260,8 +261,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             ),
                             TextButton(
                               onPressed: () {
+                                final inviteCode = InviteUtils.extractInviteCode();
                                 Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                                  MaterialPageRoute(
+                                    builder: (_) => RegisterScreen(initialInviteCode: inviteCode),
+                                  ),
                                 );
                               },
                               style: TextButton.styleFrom(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/invite_utils.dart';
 import 'login_controller.dart';
 import 'login_screen.dart';
 import 'verify_otp_screen.dart';
@@ -53,15 +54,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     _animController.forward();
 
     String? inviteCode = widget.initialInviteCode;
-    try {
-      final inviteParam = Uri.base.queryParameters['invite'];
-      if (inviteParam != null && inviteParam.isNotEmpty) {
-        inviteCode = inviteParam;
-      }
-    } catch (_) {}
+    if (inviteCode == null || inviteCode.trim().isEmpty) {
+      inviteCode = InviteUtils.extractInviteCode();
+    }
 
-    if (inviteCode != null && inviteCode.isNotEmpty) {
-      _inviteCodeController.text = inviteCode;
+    if (inviteCode != null && inviteCode.trim().isNotEmpty) {
+      final cleanCode = inviteCode.trim();
+      _inviteCodeController.text = cleanCode;
       _selectedRole = 'secretary';
       _isInviteCodeLocked = true;
     }
@@ -331,8 +330,81 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
         key: const ValueKey('step1'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // اختيار نوع الحساب (طبيب أم سكرتير)
-          if (!_isInviteCodeLocked) ...[
+          // إذا كان الرابط بدعوة يتم إظهار بانر تأكيد الانضمام التلقائي
+          if (_isInviteCodeLocked) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.badge_outlined, color: theme.colorScheme.primary, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'تسجيل حساب مساعد / سكرتير',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'تم تفعيل كود الدعوة للانضمام للعيادة تلقائياً',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.lock_rounded, size: 12, color: Colors.white),
+                        const SizedBox(width: 4),
+                        Text(
+                          _inviteCodeController.text,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            // اختيار نوع الحساب (طبيب أم سكرتير) في حال الدخول المباشر بدون رابط
             Row(
               children: [
                 Expanded(
@@ -493,7 +565,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           if (_selectedRole == 'secretary') ...[
             TextFormField(
               controller: _inviteCodeController,
-              enabled: !_isInviteCodeLocked,
+              readOnly: _isInviteCodeLocked,
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _submit(),
               style: TextStyle(
@@ -504,9 +576,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
               decoration: InputDecoration(
                 labelText: 'كود الدعوة من الطبيب',
                 prefixIcon: const Icon(Icons.vpn_key_outlined, size: 20),
+                suffixIcon: _isInviteCodeLocked
+                    ? const Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 20)
+                    : null,
                 helperText: _isInviteCodeLocked
-                    ? 'تم قفل الكود بناءً على رابط الدعوة المفتوح'
+                    ? '✅ تم ملء كود الدعوة تلقائياً من الرابط'
                     : 'اطلب كود الدعوة من الطبيب للانضمام لعيادته',
+                helperStyle: TextStyle(
+                  color: _isInviteCodeLocked ? AppTheme.success : null,
+                  fontWeight: _isInviteCodeLocked ? FontWeight.w600 : FontWeight.normal,
+                ),
+                filled: _isInviteCodeLocked,
+                fillColor: _isInviteCodeLocked
+                    ? theme.colorScheme.primary.withValues(alpha: 0.05)
+                    : null,
               ),
               validator: (value) {
                 if (_selectedRole == 'secretary' && (value == null || value.trim().isEmpty)) {

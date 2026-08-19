@@ -184,47 +184,17 @@ AS $$
 $$;
 
 -- ==========================================
--- Self-Onboarding Triggers (auth.users -> public.users)
+-- Self-Onboarding Triggers & RPCs (auth.users -> public.users)
 -- ==========================================
 
 -- Ensure users table has phone column
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone text;
 
--- 1. BEFORE INSERT trigger on auth.users to populate NEW.phone natively before row insertion
-CREATE OR REPLACE FUNCTION public.handle_new_user_before()
-RETURNS trigger AS $$
-DECLARE
-  v_phone text;
-BEGIN
-  v_phone := coalesce(
-    nullif(NEW.raw_user_meta_data ->> 'phone', ''),
-    nullif(NEW.raw_user_meta_data ->> 'user_phone', ''),
-    nullif(NEW.raw_user_meta_data ->> 'whatsapp_phone', ''),
-    nullif(NEW.phone::text, '')
-  );
-
-  IF v_phone IS NOT NULL AND v_phone != '' THEN
-    IF v_phone ~ '^01[0-9]{9}$' THEN
-      v_phone := '+2' || v_phone;
-    ELSIF v_phone ~ '^201[0-9]{9}$' THEN
-      v_phone := '+' || v_phone;
-    ELSIF v_phone !~ '^\+' THEN
-      v_phone := '+20' || regexp_replace(v_phone, '\D', '', 'g');
-    END IF;
-
-    NEW.phone := v_phone;
-  END IF;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
+-- Drop old unsafe BEFORE trigger on auth.users (to prevent GoTrue SMS/Phone unique constraint violations)
 DROP TRIGGER IF EXISTS tr_auth_user_before_created ON auth.users;
-CREATE TRIGGER tr_auth_user_before_created
-  BEFORE INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_before();
+DROP FUNCTION IF EXISTS public.handle_new_user_before();
 
--- 2. AFTER INSERT trigger on auth.users to create user profile & clinic
+-- AFTER INSERT trigger on auth.users to create user profile & link clinic
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 DECLARE
@@ -249,9 +219,21 @@ BEGIN
 
     v_full_name := coalesce(nullif(NEW.raw_user_meta_data ->> 'full_name', ''), 'مستخدم جديد');
     v_clinic_name := coalesce(nullif(NEW.raw_user_meta_data ->> 'clinic_name', ''), 'عيادة جديدة');
-    v_invite_code := NEW.raw_user_meta_data ->> 'invite_code';
-    v_phone := coalesce(nullif(NEW.phone::text, ''), nullif(NEW.raw_user_meta_data ->> 'phone', ''));
+    v_invite_code := trim(coalesce(NEW.raw_user_meta_data ->> 'invite_code', ''));
+    v_phone := coalesce(nullif(NEW.raw_user_meta_data ->> 'phone', ''), nullif(NEW.phone::text, ''));
 
+    -- Format phone number safely for public.users
+    IF v_phone IS NOT NULL AND v_phone != '' THEN
+      IF v_phone ~ '^01[0-9]{9}$' THEN
+        v_phone := '+2' || v_phone;
+      ELSIF v_phone ~ '^201[0-9]{9}$' THEN
+        v_phone := '+' || v_phone;
+      ELSIF v_phone !~ '^\+' THEN
+        v_phone := '+20' || regexp_replace(v_phone, '\D', '', 'g');
+      END IF;
+    END IF;
+
+    -- Check if clinic_id was explicitly provided in metadata
     IF NEW.raw_user_meta_data ->> 'clinic_id' IS NOT NULL THEN
       BEGIN
         v_clinic_id := (NEW.raw_user_meta_data ->> 'clinic_id')::uuid;
@@ -260,15 +242,21 @@ BEGIN
       END;
     END IF;
 
-    IF v_clinic_id IS NULL AND v_invite_code IS NOT NULL THEN
-      SELECT id INTO v_clinic_id FROM public.clinics WHERE invite_code = v_invite_code LIMIT 1;
+    -- If secretary or invite_code exists, find the matching clinic by invite code (case-insensitive & trimmed)
+    IF v_clinic_id IS NULL AND v_invite_code != '' THEN
+      SELECT id INTO v_clinic_id
+      FROM public.clinics
+      WHERE LOWER(TRIM(invite_code)) = LOWER(v_invite_code)
+      LIMIT 1;
     END IF;
 
+    -- If doctor and no clinic found, create new clinic for the doctor
     IF v_clinic_id IS NULL THEN
       INSERT INTO public.clinics (name, whatsapp_phone, subscription_status, is_active, subscription_end_date)
       VALUES (v_clinic_name, v_phone, 'pending_activation', false, now())
       RETURNING id INTO v_clinic_id;
     ELSE
+      -- If existing clinic and user is doctor, update whatsapp_phone if empty
       IF v_role = 'doctor' AND v_phone IS NOT NULL AND v_phone != '' THEN
         UPDATE public.clinics SET whatsapp_phone = v_phone WHERE id = v_clinic_id AND (whatsapp_phone IS NULL OR whatsapp_phone = '');
       END IF;
@@ -305,6 +293,116 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- RPC: Switch or link assistant/secretary to a clinic using invite code
+CREATE OR REPLACE FUNCTION public.switch_user_clinic(p_invite_code text)
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_clinic_id uuid;
+  v_clinic_name text;
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'يجب تسجيل الدخول أولاً');
+  END IF;
+
+  IF p_invite_code IS NULL OR trim(p_invite_code) = '' THEN
+    RETURN json_build_object('success', false, 'message', 'يرجى إدخال كود الدعوة');
+  END IF;
+
+  SELECT id, name INTO v_clinic_id, v_clinic_name
+  FROM public.clinics
+  WHERE LOWER(TRIM(invite_code)) = LOWER(TRIM(p_invite_code))
+  LIMIT 1;
+
+  IF v_clinic_id IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'كود الدعوة غير صحيح أو غير مسجل في النظام');
+  END IF;
+
+  UPDATE public.users
+  SET clinic_id = v_clinic_id,
+      role = 'secretary'::public.user_role,
+      is_active = true,
+      updated_at = now()
+  WHERE id = v_uid;
+
+  RETURN json_build_object(
+    'success', true,
+    'message', 'تم الانضمام إلى ' || coalesce(v_clinic_name, 'العيادة') || ' بنجاح',
+    'clinic_id', v_clinic_id,
+    'clinic_name', v_clinic_name
+  );
+END;
+$$;
+
+-- RPC: Ensure user profile & clinic exist (Self-healing RPC)
+CREATE OR REPLACE FUNCTION public.ensure_user_clinic_exists()
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_meta jsonb;
+  v_clinic_id uuid;
+  v_role_str text;
+  v_role public.user_role;
+  v_full_name text;
+  v_clinic_name text;
+  v_invite_code text;
+  v_phone text;
+  v_user_exists boolean;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'No authenticated user session');
+  END IF;
+
+  SELECT raw_user_meta_data INTO v_meta FROM auth.users WHERE id = v_uid;
+  SELECT EXISTS(SELECT 1 FROM public.users WHERE id = v_uid) INTO v_user_exists;
+
+  IF v_user_exists THEN
+    RETURN json_build_object('success', true, 'message', 'User profile already exists');
+  END IF;
+
+  v_role_str := lower(coalesce(v_meta ->> 'role', 'doctor'));
+  IF v_role_str = 'secretary' THEN
+    v_role := 'secretary'::public.user_role;
+  ELSE
+    v_role := 'doctor'::public.user_role;
+  END IF;
+
+  v_full_name := coalesce(nullif(v_meta ->> 'full_name', ''), 'مستخدم جديد');
+  v_clinic_name := coalesce(nullif(v_meta ->> 'clinic_name', ''), 'عيادة جديدة');
+  v_invite_code := trim(coalesce(v_meta ->> 'invite_code', ''));
+  v_phone := coalesce(nullif(v_meta ->> 'phone', ''), nullif(v_meta ->> 'user_phone', ''));
+
+  IF v_invite_code != '' THEN
+    SELECT id INTO v_clinic_id
+    FROM public.clinics
+    WHERE LOWER(TRIM(invite_code)) = LOWER(v_invite_code)
+    LIMIT 1;
+  END IF;
+
+  IF v_clinic_id IS NULL THEN
+    INSERT INTO public.clinics (name, whatsapp_phone, subscription_status, is_active, subscription_end_date)
+    VALUES (v_clinic_name, v_phone, 'pending_activation', false, now())
+    RETURNING id INTO v_clinic_id;
+  END IF;
+
+  INSERT INTO public.users (id, clinic_id, role, full_name, phone, is_active, can_delete_appointments, can_view_reports)
+  VALUES (v_uid, v_clinic_id, v_role, v_full_name, v_phone, true, v_role = 'doctor', v_role = 'doctor')
+  ON CONFLICT (id) DO UPDATE SET
+    clinic_id = EXCLUDED.clinic_id,
+    role = EXCLUDED.role,
+    full_name = EXCLUDED.full_name,
+    phone = coalesce(EXCLUDED.phone, public.users.phone);
+
+  RETURN json_build_object('success', true, 'clinic_id', v_clinic_id);
+END;
+$$;
 
 -- ==========================================
 -- Enabling Row-Level Security (RLS)

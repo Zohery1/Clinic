@@ -13,6 +13,8 @@ import 'src/features/auth/presentation/pending_activation_screen.dart';
 import 'src/features/auth/presentation/account_blocked_screen.dart';
 import 'src/features/auth/presentation/join_clinic_screen.dart';
 import 'src/features/auth/presentation/reset_password_screen.dart';
+import 'src/features/auth/presentation/register_screen.dart';
+import 'src/core/utils/invite_utils.dart';
 import 'src/features/auth/domain/user_model.dart';
 import 'src/features/dashboard/presentation/dashboard_screen.dart';
 
@@ -53,14 +55,31 @@ class MyApp extends ConsumerWidget {
       themeMode: themeMode,
       onGenerateRoute: (settings) {
         final name = settings.name ?? '/';
+        final inviteCode = InviteUtils.extractInviteCode(routeName: name);
+
         if (name.contains('/reset')) {
           return MaterialPageRoute(
             builder: (context) => const ResetPasswordScreen(isUpdateMode: true),
             settings: settings,
           );
         }
+
+        if (name.contains('/register') || (inviteCode != null && inviteCode.isNotEmpty)) {
+          return MaterialPageRoute(
+            builder: (context) => RegisterScreen(initialInviteCode: inviteCode),
+            settings: settings,
+          );
+        }
+
+        if (name == '/login') {
+          return MaterialPageRoute(
+            builder: (context) => const LoginScreen(),
+            settings: settings,
+          );
+        }
+
         return MaterialPageRoute(
-          builder: (context) => const AuthGate(),
+          builder: (context) => AuthGate(initialInviteCode: inviteCode),
           settings: settings,
         );
       },
@@ -70,7 +89,9 @@ class MyApp extends ConsumerWidget {
 
 /// بوابة المصادقة — توجيه تلقائي حسب حالة الجلسة والاشتراك
 class AuthGate extends ConsumerStatefulWidget {
-  const AuthGate({super.key});
+  final String? initialInviteCode;
+
+  const AuthGate({super.key, this.initialInviteCode});
 
   @override
   ConsumerState<AuthGate> createState() => _AuthGateState();
@@ -367,6 +388,9 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         clinicId: _clinicId,
       );
     } else {
+      if (widget.initialInviteCode != null && widget.initialInviteCode!.isNotEmpty) {
+        return RegisterScreen(initialInviteCode: widget.initialInviteCode);
+      }
       return const LoginScreen();
     }
   }
