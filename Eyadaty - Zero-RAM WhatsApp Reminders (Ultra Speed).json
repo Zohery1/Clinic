@@ -1,0 +1,181 @@
+{
+  "name": "Eyadaty - Zero-RAM WhatsApp Reminders (Ultra Speed)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        448
+      ],
+      "id": "ee96e8ce-62dd-43e5-8098-b59683af6f3f",
+      "name": "Every 15 Minutes"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sgbfmqplryyhypdvrlmn.supabase.co/rest/v1/rpc/get_due_reminders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnYmZtcXBscnl5aHlwZHZybG1uIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjMzMzMxNiwiZXhwIjoyMDk3OTA5MzE2fQ.eG2m24uSdByEWm9i9m1aamo_HxeYv0Lt2U_fmfngvkI"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnYmZtcXBscnl5aHlwZHZybG1uIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjMzMzMxNiwiZXhwIjoyMDk3OTA5MzE2fQ.eG2m24uSdByEWm9i9m1aamo_HxeYv0Lt2U_fmfngvkI"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        304,
+        448
+      ],
+      "id": "c77945d1-2b02-4c7d-a081-22d0b89bac09",
+      "name": "Fetch Pre-Formatted Reminders (Postgres)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://37.27.31.127:8081/message/sendText/{{ $json.whatsapp_instance_name }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "EyadatyEvoSecretKey2026!"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.patient_phone }}\",\n  \"text\": \"{{ $json.message_text }}\"\n}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 5000
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        448
+      ],
+      "id": "028f3ad9-a379-42a6-81b0-c674c2998ede",
+      "name": "Send WhatsApp via Evolution API",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://sgbfmqplryyhypdvrlmn.supabase.co/rest/v1/appointments?id=eq.{{ $('Fetch Pre-Formatted Reminders (Postgres)').item.json.appointment_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnYmZtcXBscnl5aHlwZHZybG1uIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjMzMzMxNiwiZXhwIjoyMDk3OTA5MzE2fQ.eG2m24uSdByEWm9i9m1aamo_HxeYv0Lt2U_fmfngvkI"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnYmZtcXBscnl5aHlwZHZybG1uIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjMzMzMxNiwiZXhwIjoyMDk3OTA5MzE2fQ.eG2m24uSdByEWm9i9m1aamo_HxeYv0Lt2U_fmfngvkI"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"reminder_sent\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        816,
+        448
+      ],
+      "id": "389e414c-8b62-4f29-a3bc-ed1df87b955e",
+      "name": "Mark Reminder Sent (Supabase)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every 15 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Fetch Pre-Formatted Reminders (Postgres)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Pre-Formatted Reminders (Postgres)": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp via Evolution API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp via Evolution API": {
+      "main": [
+        [
+          {
+            "node": "Mark Reminder Sent (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c9356a2f-c659-41ef-b5d5-85b9e645f6d0",
+  "meta": {
+    "instanceId": "c64f2b7c371af8be6b6bdd9ba156f3d61567a083eb0cc3f8be35349e82c54b58"
+  },
+  "nodeGroups": [],
+  "id": "tDGURxgNlT0okJUx",
+  "tags": []
+}

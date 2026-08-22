@@ -1,95 +1,57 @@
 ---
-name: Clinical Precision
+name: Clinical Precision — Eyadaty Design System
 colors:
-  surface: '#f9f9ff'
-  surface-dim: '#d8d9e3'
-  surface-bright: '#f9f9ff'
-  surface-container-lowest: '#ffffff'
-  surface-container-low: '#f2f3fd'
-  surface-container: '#ecedf7'
-  surface-container-high: '#e6e8f2'
-  surface-container-highest: '#e0e2ec'
-  on-surface: '#191c23'
-  on-surface-variant: '#414754'
-  inverse-surface: '#2d3038'
-  inverse-on-surface: '#eff0fa'
-  outline: '#727785'
-  outline-variant: '#c1c6d6'
-  surface-tint: '#005bc0'
-  primary: '#005bbf'
-  on-primary: '#ffffff'
-  primary-container: '#1a73e8'
-  on-primary-container: '#ffffff'
-  inverse-primary: '#adc7ff'
-  secondary: '#585f6c'
-  on-secondary: '#ffffff'
-  secondary-container: '#dce2f3'
-  on-secondary-container: '#5e6572'
-  tertiary: '#9e4300'
-  on-tertiary: '#ffffff'
-  tertiary-container: '#c55500'
-  on-tertiary-container: '#0e0200'
-  error: '#ba1a1a'
-  on-error: '#ffffff'
-  error-container: '#ffdad6'
-  on-error-container: '#93000a'
-  primary-fixed: '#d8e2ff'
-  primary-fixed-dim: '#adc7ff'
-  on-primary-fixed: '#001a41'
-  on-primary-fixed-variant: '#004493'
-  secondary-fixed: '#dce2f3'
-  secondary-fixed-dim: '#c0c7d6'
-  on-secondary-fixed: '#151c27'
-  on-secondary-fixed-variant: '#404754'
-  tertiary-fixed: '#ffdbcb'
-  tertiary-fixed-dim: '#ffb691'
-  on-tertiary-fixed: '#341100'
-  on-tertiary-fixed-variant: '#783100'
-  background: '#f9f9ff'
-  on-background: '#191c23'
-  surface-variant: '#e0e2ec'
-  canvas-light: '#F8F9FB'
-  pure-surface: '#FFFFFF'
-  primary-ink: '#1F2937'
-  whisper-border: '#E5E7EB'
-  primary-light-blue: '#E8F0FE'
+  primary: '#1A73E8'
+  primary-light: '#E8F0FE'
+  on-primary: '#FFFFFF'
+  background: '#F8F9FB'
+  surface: '#FFFFFF'
+  surface-dim: '#F1F5F9'
+  border: '#F1F5F9'
+  text-primary: '#1E293B'
+  text-secondary: '#64748B'
+  text-hint: '#9CA3AF'
   status-success: '#059669'
   status-warning: '#D97706'
   status-error: '#DC2626'
   status-completed: '#7C3AED'
+  dark-background: '#0F172A'
+  dark-surface: '#1E293B'
+  dark-primary: '#3B82F6'
+  dark-border: '#334155'
 typography:
   headline-xl:
-    fontFamily: Plus Jakarta Sans
-    fontSize: 40px
+    fontFamily: Cairo
+    fontSize: 26px
     fontWeight: '800'
-    lineHeight: 48px
-    letterSpacing: -0.02em
+    lineHeight: 1.3
   headline-lg:
-    fontFamily: Plus Jakarta Sans
-    fontSize: 32px
+    fontFamily: Cairo
+    fontSize: 22px
     fontWeight: '700'
-    lineHeight: 40px
-    letterSpacing: -0.01em
-  headline-md:
-    fontFamily: Plus Jakarta Sans
-    fontSize: 24px
-    fontWeight: '700'
-    lineHeight: 32px
-  body-lg:
-    fontFamily: Plus Jakarta Sans
+    lineHeight: 1.3
+  title-lg:
+    fontFamily: Cairo
     fontSize: 18px
-    fontWeight: '400'
-    lineHeight: 28px
-  body-md:
-    fontFamily: Plus Jakarta Sans
+    fontWeight: '700'
+  title-md:
+    fontFamily: Cairo
+    fontSize: 16px
+    fontWeight: '600'
+  body-lg:
+    fontFamily: Cairo
     fontSize: 16px
     fontWeight: '400'
-    lineHeight: 24px
-  body-sm:
-    fontFamily: Plus Jakarta Sans
+    lineHeight: 1.6
+  body-md:
+    fontFamily: Cairo
     fontSize: 14px
     fontWeight: '400'
-    lineHeight: 22px
+    lineHeight: 1.5
+  body-sm:
+    fontFamily: Cairo
+    fontSize: 12px
+    fontWeight: '500'
   label-mono:
     fontFamily: JetBrains Mono
     fontSize: 14px
@@ -101,69 +63,92 @@ typography:
     fontWeight: '500'
     lineHeight: 16px
 rounded:
-  sm: 0.25rem
-  DEFAULT: 0.5rem
-  md: 0.75rem
-  lg: 1rem
-  xl: 1.5rem
+  sm: 4px
+  DEFAULT: 10px
+  md: 12px
+  lg: 14px
+  xl: 16px
   full: 9999px
 spacing:
-  desktop-margin: 2rem
-  desktop-gutter: 1.5rem
-  mobile-margin: 1rem
   touch-target-min: 44px
+  card-padding: 16px
+  dialog-radius: 16px
 ---
 
-# Design System: Smart Clinic Management System
+# Design System: Eyadaty (عيادتي) — Smart Clinic Management SaaS
 
 ## 1. Visual Theme & Atmosphere
-A clean, trustworthy, and editorial medical SaaS design system. The atmosphere is professional, clinical, and comforting — balancing soft backgrounds with crisp structure to minimize cognitive load for healthcare staff and doctors. It uses precise layouts, functional dividers, and comfortable whitespace (Daily App Balanced density) with modern, subtle depth.
+نظام تصميم طبي سحابي هادئ وعصري (Clean Medical SaaS) مبني على مبادئ الثقة الطبية، الوضوح، والراحة البصرية لتقليل العبء المعرفي على الأطباء وفرق الاستقبال والسكرتارية. يعتمد النظام على تباين لوني مدروس، ومساحات تنفس مريحة، وزوايا ناعمة وبسيطة.
 
-## 2. Color Palette & Roles
-- **Canvas Light** (#F8F9FB) — Primary background surface, airy and calm.
-- *(Pure Surface** (#FFFFFF) — Card background, dialog surface, elevated areas.
-- **Primary Ink** (#1F2937) — Primary text, headings, dark gray depth.
-- **Secondary Muted** (#6B7280) — Subtitles, descriptive text, metadata.
-- **Whisper Border** (#E5E7EB) — Standard thin dividers, 1px card borders.
-- **Primary Blue** (#1A73E8) — Active states, primary action buttons, focus indicator.
-- **Primary Light Blue** (#E8F0FE) — Hover states, background highlights, subtle badges.
-- **Status Success** (#059669) — Muted green for confirmed appointments.
-- **Status Warning** (#D97706) — Amber for pending states.
-- **Status Error** (#DC2626) — Red for cancellations and error highlights.
-- **Status Completed** (#7C3AED) — Muted purple for completed visits.
+---
 
-*No neon glows, no dark purple gradients, no warm/cool grey fluctuations.*
+## 2. Color Palette & Roles (لوحة الألوان المعتمدة)
 
-## 3. Typography Rules
-- **Display & Headlines:** Cairo (Google Font) — Track-tight, controlled scale. Heavy weight (Bold/ExtraBold) for section anchors, primary titles. Left-aligned for tabular/grid views, right-aligned (RTL) for Arabic language blocks.
-- **Body & Labels:** Cairo — Muted color, relaxed leading (1.5 to 1.6), maximum 65 characters per line to ensure optimal legibility.
-- **Mono:** JetBrains Mono — Reserved exclusively for patient numbers, billing IDs, invoice prices, timestamps, and technical metrics.
-- **Banned:** Inter (generic AI tell), generic serif fonts (Times New Roman, Garamond).
+### ☀️ Light Theme (الوضع الفاتح - الأساسي):
+- **Primary Blue** (`#1A73E8`) — اللون الرئيسي، الأزرار الأساسية، التحديد، والشعارات.
+- **Primary Light** (`#E8F0FE`) — خلفيات التمييز، شارات الحالة النشطة، وتأثيرات الـ Hover.
+- **Canvas / Background** (`#F8F9FB`) — خلفية الشاشات العامة، مريحة للعين وتمنح إحساساً بالنظافة والاتساع.
+- **Surface / Cards** (`#FFFFFF`) — خلفية البطاقات، النوافذ المنبثقة، والأسطح المرتفعة.
+- **Surface Dim / Inputs** (`#F1F5F9`) — خلفية حقول الإدخال والألواح الجانبية المنسدلة.
+- **Border** (`#F1F5F9`) — خطوط الفواصل الدقيقة وحدود البطاقات الهادئة.
+- **Text Primary** (`#1E293B` - Slate 800) — العناوين الرئيسية والنصوص الهامة (بديل أسود ناعم ومريح).
+- **Text Secondary** (`#64748B` - Slate 500) — النصوص التوضيحية، البيانات الوصفية، والأوصاف الفرعية.
+- **Text Hint** (`#9CA3AF`) — النصوص التلميحية داخل الحقول.
 
-## 4. Component Stylings
-- **Buttons:** Flat surfaces, 10px rounded corners. Primary buttons use solid Primary Blue with white text. Secondary buttons use transparent fill with 1px border. No shadows, no neon outer glows. 
-- **Cards:** 12px rounded corners, flat borders (1px Whisper Border) or extremely soft diffused shadow (rgba(0,0,0,0.04)). Avoid stacking cards inside cards; use negative space or thin dividers for internal structures.
-- **Inputs:** Label above the input field, light gray background fill, placeholder text in neutral gray. Focus ring outlines in Primary Blue. No floating labels.
-- **Loaders:** Custom skeletal loaders matching the exact dimensions of cards/elements. Circular progress indicators are restricted to small button states.
-- **Empty States:** Composed illustration or icon composition with high-contrast text and a direct call to action.
+### 🌙 Dark Theme (الوضع الداكن):
+- **Scaffold Background** (`#0F172A` - Slate 900) — الخلفية العامة الداكنة.
+- **Card & Surface** (`#1E293B` - Slate 800) — أسطح البطاقات والحقول والألواح.
+- **Primary Accent** (`#3B82F6` - Blue 500) — لون التمييز والأزرار في الوضع المظلم.
+- **Borders & Dividers** (`#334155` - Slate 700) — فواصل الوضع الداكن.
 
-## 5. Layout Principles
-- **Grid Architecture:** 12-column desktop grid collapsing to single-column on mobile. No exceptions.
-- **Alignment:** RTL layout by default for Arabic clinics. The primary action area is placed on the top-left, and headers/labels align to the right.
-- **Spatial Separation:** All elements occupy their own clear spatial zones. No absolute-positioned overlaps.
-- **Feature Rows:** Banned 3 equal horizontal cards. Use asymmetrical layouts (e.g., 2/3 main dashboard area, 1/3 quick stats/activity list).
-- **Responsive Safety:** touch target size minimum 44px on mobile devices. No horizontal page overflow.
+### 🚦 Status Colors (ألوان الحالات والمواعيد):
+- **Status Success** (`#059669` - Emerald) — الكشوفات المكتملة، الدفع المؤكد، الحسابات النشطة.
+- **Status Warning** (`#D97706` - Amber) — في الانتظار (Queue)، اشتراك قارب على الانتهاء.
+- **Status Error** (`#DC2626` - Red) — الإلغاءات، الحسابات المحظورة، الحذف، أخطاء الإدخال.
+- **Status Completed / Special** (`#7C3AED` - Purple) — الزيارات المنتهية والملاحظات الطبية المؤرشفة.
 
-## 6. Motion & Interaction
-- **Spring Physics:** `stiffness: 100, damping: 20` for all screen transitions, list items, and modal mounts to create a weighty, premium physical feedback.
-- **Cascade Orchestration:** Lists (e.g., today's appointments) waterfall reveal with a 50ms stagger delay per item.
-- **Transforms Only:** Animate strictly using hardware-accelerated properties (`transform: translate/scale` and `opacity`). Never animate width, height, or absolute top/left coordinates.
+---
 
-## 7. Anti-Patterns (Banned)
-- No emojis anywhere in professional views.
-- No Inter font.
-- No pure black (#000000).
-- No oversaturated primary accents or gradients.
-- No AI copywriting clichés ("seamlessly manage", "next-gen dashboard").
-- No generic placeholder names ("John Doe", "Acme Corp").
-- No broken image links — use clean SVG/Vector medical symbols or high-quality avatars.
+## 3. Typography Rules (قواعد التايبوجرافي)
+
+- **الخط الأساسي للنظام**: **Cairo** (Google Fonts).
+  - خط عربي عصري ممتاز القراءة على مختلف الشاشات، مدعوم بأوزان متعددة:
+  - **ExtraBold (800)**: للعناوين الرئيسية للواجهات والصفحات الكبرى.
+  - **Bold (700)**: لعناوين البطاقات، النوافذ المنبثقة، ونصوص الأزرار الهامة.
+  - **SemiBold (600)**: للعناوين الفرعية وحقول الإدخال.
+  - **Regular (400) & Medium (500)**: لنصوص الجداول والملاحظات الطبية وبيانات المرضى.
+- **الخط الرقمي والمونو**: **JetBrains Mono**.
+  - مخصص حصرياً للمبالغ المالية (LE / EGP)، أكواد الحجز والدعوات (Invite Codes)، الطوابع الزمنية، وأرقام الهواتف.
+
+---
+
+## 4. Component Stylings (أنماط المكونات البرمجية)
+
+- **Buttons (الأزرار)**:
+  - حواف دائرية `10px` مع ارتفاع مريح (`minimumSize: 48px`).
+  - نصوص واضحة بوزن `Bold (700)`.
+  - تأثيرات ضغط خفيفة وبدون توهجات نيون مبالغ فيها.
+- **Cards (البطاقات)**:
+  - حواف دائرية `12px` مع ظل ناعم جداً (`boxShadow: color.withOpacity(0.02), blurRadius: 20, offset: (0,4)`).
+  - خيار البطاقات المسطحة (Flat Cards) للجداول ولوحات المواعيد.
+- **Inputs (حقول الإدخال)**:
+  - خلفية ناعمة (`#F1F5F9`) مع حواف دائرية `10px`.
+  - اختفاء الحدود في الحالة العادية، وظهور حدود زرقاء ناعمة `1.5px` عند التركيز (Focus).
+- **Dialogs & Sheets (النوافذ المنبثقة)**:
+  - حواف `16px`، خلفية بيضاء نقية، وأزرار إجراءات واضحة في الأسفل.
+
+---
+
+## 5. Layout & Interaction Principles (مبادئ التخطيط والتفاعل)
+
+- **دعم اللغة العربية و RTL بالكامل**: الواجهة مصممة أصلاً لتدفق القراءة من اليمين لليسار مع مراعاة محاذاة الأيقونات والأزرار.
+- **التصميم المتجاوب (Responsive Design)**: تجربة مستخدم موحدة على الويب (Desktop / Tablet) وتطبيقات الجوال (Mobile) مع حد أدنى لمساحة اللمس `44px`.
+- **لوحة الانتظار التفاعلية (Live Queue Board)**: تحديث فوري لحالات المرضى (في الانتظار، داخل الكشف، مكتمل، ملغي) بألوان الحالات المعتمدة.
+
+---
+
+## 6. Anti-Patterns (الممارسات المحظورة)
+- ❌ استخدام ألوان الأسود الصريح (`#000000`) — استخدم دائماً Slate الداكن (`#1E293B`).
+- ❌ استخدام خطوط غير معتمدة أو عشوائية خارج **Cairo** و **JetBrains Mono**.
+- ❌ استخدام تدرجات فاقعة أو ظلال حادة تشتت تركيز الكادر الطبي.
+- ❌ عناصر لمس أصغر من `44px` في شاشات الجوال أو التابلت.
