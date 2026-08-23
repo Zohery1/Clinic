@@ -37,6 +37,7 @@ CREATE TYPE public.user_role AS ENUM ('doctor', 'secretary');
 -- 2. Clinic Table (Tenant Container)
 CREATE TABLE public.clinics (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    owner_id uuid REFERENCES auth.users(id) ON DELETE SET NULL, -- مالك ومدير العيادة
     name text NOT NULL,
     invite_code text UNIQUE NOT NULL DEFAULT substring(md5(random()::text) from 1 for 6), -- كود دعوة عشوائي مكون من 6 رموز
     subscription_end_date timestamptz NOT NULL DEFAULT now(), -- Bounded to zero until admin activates
@@ -87,8 +88,9 @@ CREATE TABLE public.users (
     role public.user_role NOT NULL DEFAULT 'doctor',
     full_name text NOT NULL,
     is_active boolean NOT NULL DEFAULT true,                     -- هل الحساب نشط؟ (للحظر)
+    is_owner boolean NOT NULL DEFAULT false,                    -- هل المستخدم هو مدير/منشئ العيادة؟
     can_delete_appointments boolean NOT NULL DEFAULT false,       -- صلاحية حذف المواعيد للسكرتيرة
-    can_view_reports boolean NOT NULL DEFAULT false,              -- صلاحية رؤية التقارير المالية للسكرتيرة
+    can_view_reports boolean NOT NULL DEFAULT false,              -- صلاحية رؤية التقارير المالية العامة
     can_edit_services boolean NOT NULL DEFAULT false,             -- صلاحية تعديل الخدمات والأسعار
     can_view_medical_history boolean NOT NULL DEFAULT false,       -- صلاحية رؤية الروشتة والتاريخ الطبي
     can_cancel_appointments boolean NOT NULL DEFAULT true,        -- صلاحية إلغاء المواعيد
@@ -115,6 +117,7 @@ CREATE TABLE public.appointments (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
     patient_id uuid NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
+    doctor_id uuid REFERENCES public.users(id) ON DELETE SET NULL, -- الطبيب المعالج للحجز
     appointment_type_id uuid REFERENCES public.appointment_types(id) ON DELETE SET NULL,
     appointment_date timestamptz NOT NULL,
     status text NOT NULL CHECK (status IN ('pending', 'confirmed', 'cancelled', 'cancelled_by_clinic', 'cancelled_by_patient', 'completed')) DEFAULT 'pending',
@@ -129,6 +132,7 @@ CREATE TABLE public.visit_notes (
     clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
     appointment_id uuid UNIQUE NOT NULL REFERENCES public.appointments(id) ON DELETE CASCADE,
     patient_id uuid NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
+    doctor_id uuid REFERENCES public.users(id) ON DELETE SET NULL, -- الطبيب كاتب الروشتة/الكشف
     notes text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
@@ -191,8 +195,25 @@ $$;
 -- Self-Onboarding Triggers & RPCs (auth.users -> public.users)
 -- ==========================================
 
--- Ensure users table has phone column
+-- Helper: Check if current user is clinic owner
+CREATE OR REPLACE FUNCTION public.is_my_clinic_owner()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT coalesce(is_owner, false) FROM public.users WHERE id = auth.uid();
+$$;
+
+-- ==========================================
+-- Self-Onboarding Triggers & RPCs (auth.users -> public.users)
+-- ==========================================
+
+-- Ensure users table has phone and is_owner columns
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone text;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_owner boolean NOT NULL DEFAULT false;
+ALTER TABLE public.clinics ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS doctor_id uuid REFERENCES public.users(id) ON DELETE SET NULL;
+ALTER TABLE public.visit_notes ADD COLUMN IF NOT EXISTS doctor_id uuid REFERENCES public.users(id) ON DELETE SET NULL;
 
 -- Drop old unsafe BEFORE trigger on auth.users (to prevent GoTrue SMS/Phone unique constraint violations)
 DROP TRIGGER IF EXISTS tr_auth_user_before_created ON auth.users;
@@ -208,9 +229,10 @@ DECLARE
   v_clinic_name text;
   v_invite_code text;
   v_phone text;
-  v_is_active boolean;
-  v_can_delete_appointments boolean;
-  v_can_view_reports boolean;
+  v_is_active boolean := true;
+  v_is_owner boolean := false;
+  v_can_delete_appointments boolean := false;
+  v_can_view_reports boolean := false;
   v_role_str text;
 BEGIN
   BEGIN
@@ -246,7 +268,7 @@ BEGIN
       END;
     END IF;
 
-    -- If secretary or invite_code exists, find the matching clinic by invite code (case-insensitive & trimmed)
+    -- If invite_code exists, find the matching clinic by invite code (case-insensitive & trimmed)
     IF v_clinic_id IS NULL AND v_invite_code != '' THEN
       SELECT id INTO v_clinic_id
       FROM public.clinics
@@ -254,34 +276,38 @@ BEGIN
       LIMIT 1;
     END IF;
 
-    -- If doctor and no clinic found, create new clinic for the doctor
+    -- If no existing clinic found, create new clinic and make this user the Owner
     IF v_clinic_id IS NULL THEN
-      INSERT INTO public.clinics (name, whatsapp_phone, subscription_status, is_active, subscription_end_date)
-      VALUES (v_clinic_name, v_phone, 'pending_activation', false, now())
+      INSERT INTO public.clinics (name, whatsapp_phone, subscription_status, is_active, subscription_end_date, owner_id)
+      VALUES (v_clinic_name, v_phone, 'pending_activation', false, now(), NEW.id)
       RETURNING id INTO v_clinic_id;
+
+      v_is_owner := true;
+      v_can_view_reports := true;
+      v_can_delete_appointments := true;
     ELSE
-      -- If existing clinic and user is doctor, update whatsapp_phone if empty
-      IF v_role = 'doctor' AND v_phone IS NOT NULL AND v_phone != '' THEN
-        UPDATE public.clinics SET whatsapp_phone = v_phone WHERE id = v_clinic_id AND (whatsapp_phone IS NULL OR whatsapp_phone = '');
+      -- Joining existing clinic via invite code or metadata
+      v_is_owner := false;
+      IF v_role = 'doctor' THEN
+        v_can_delete_appointments := true;
+        v_can_view_reports := false; -- Default false for associate doctors unless granted by owner
+        -- If existing clinic has empty whatsapp_phone and owner is empty, link if appropriate
+        IF v_phone IS NOT NULL AND v_phone != '' THEN
+          UPDATE public.clinics SET whatsapp_phone = v_phone WHERE id = v_clinic_id AND (whatsapp_phone IS NULL OR whatsapp_phone = '');
+        END IF;
+      ELSE
+        v_can_delete_appointments := false;
+        v_can_view_reports := false;
       END IF;
     END IF;
 
-    IF v_role = 'doctor' THEN
-      v_is_active := true;
-      v_can_delete_appointments := true;
-      v_can_view_reports := true;
-    ELSE
-      v_is_active := true;
-      v_can_delete_appointments := false;
-      v_can_view_reports := false;
-    END IF;
-
-    INSERT INTO public.users (id, clinic_id, role, full_name, phone, is_active, can_delete_appointments, can_view_reports)
-    VALUES (NEW.id, v_clinic_id, v_role, v_full_name, v_phone, v_is_active, v_can_delete_appointments, v_can_view_reports)
+    INSERT INTO public.users (id, clinic_id, role, full_name, phone, is_active, is_owner, can_delete_appointments, can_view_reports)
+    VALUES (NEW.id, v_clinic_id, v_role, v_full_name, v_phone, v_is_active, v_is_owner, v_can_delete_appointments, v_can_view_reports)
     ON CONFLICT (id) DO UPDATE SET
       clinic_id = EXCLUDED.clinic_id,
       role = EXCLUDED.role,
       full_name = EXCLUDED.full_name,
+      is_owner = EXCLUDED.is_owner,
       phone = coalesce(EXCLUDED.phone, public.users.phone);
 
   EXCEPTION WHEN OTHERS THEN
@@ -298,8 +324,8 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- RPC: Switch or link assistant/secretary to a clinic using invite code
-CREATE OR REPLACE FUNCTION public.switch_user_clinic(p_invite_code text)
+-- RPC: Switch or link doctor/assistant to a clinic using invite code
+CREATE OR REPLACE FUNCTION public.switch_user_clinic(p_invite_code text, p_role text DEFAULT NULL)
 RETURNS json
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
@@ -308,6 +334,8 @@ DECLARE
   v_clinic_id uuid;
   v_clinic_name text;
   v_uid uuid := auth.uid();
+  v_role public.user_role;
+  v_role_str text;
 BEGIN
   IF v_uid IS NULL THEN
     RETURN json_build_object('success', false, 'message', 'يجب تسجيل الدخول أولاً');
@@ -326,10 +354,21 @@ BEGIN
     RETURN json_build_object('success', false, 'message', 'كود الدعوة غير صحيح أو غير مسجل في النظام');
   END IF;
 
+  IF p_role IS NOT NULL AND lower(p_role) = 'doctor' THEN
+    v_role := 'doctor'::public.user_role;
+  ELSE
+    SELECT role INTO v_role FROM public.users WHERE id = v_uid;
+    IF v_role IS NULL THEN
+      v_role := 'secretary'::public.user_role;
+    END IF;
+  END IF;
+
   UPDATE public.users
   SET clinic_id = v_clinic_id,
-      role = 'secretary'::public.user_role,
+      role = v_role,
       is_active = true,
+      is_owner = false,
+      can_view_reports = false,
       updated_at = now()
   WHERE id = v_uid;
 
@@ -359,6 +398,7 @@ DECLARE
   v_invite_code text;
   v_phone text;
   v_user_exists boolean;
+  v_is_owner boolean := false;
 BEGIN
   IF v_uid IS NULL THEN
     RETURN json_build_object('success', false, 'message', 'No authenticated user session');
@@ -391,17 +431,20 @@ BEGIN
   END IF;
 
   IF v_clinic_id IS NULL THEN
-    INSERT INTO public.clinics (name, whatsapp_phone, subscription_status, is_active, subscription_end_date)
-    VALUES (v_clinic_name, v_phone, 'pending_activation', false, now())
+    INSERT INTO public.clinics (name, whatsapp_phone, subscription_status, is_active, subscription_end_date, owner_id)
+    VALUES (v_clinic_name, v_phone, 'pending_activation', false, now(), v_uid)
     RETURNING id INTO v_clinic_id;
+
+    v_is_owner := true;
   END IF;
 
-  INSERT INTO public.users (id, clinic_id, role, full_name, phone, is_active, can_delete_appointments, can_view_reports)
-  VALUES (v_uid, v_clinic_id, v_role, v_full_name, v_phone, true, v_role = 'doctor', v_role = 'doctor')
+  INSERT INTO public.users (id, clinic_id, role, full_name, phone, is_active, is_owner, can_delete_appointments, can_view_reports)
+  VALUES (v_uid, v_clinic_id, v_role, v_full_name, v_phone, true, v_is_owner, v_is_owner OR v_role = 'doctor', v_is_owner)
   ON CONFLICT (id) DO UPDATE SET
     clinic_id = EXCLUDED.clinic_id,
     role = EXCLUDED.role,
     full_name = EXCLUDED.full_name,
+    is_owner = EXCLUDED.is_owner,
     phone = coalesce(EXCLUDED.phone, public.users.phone);
 
   RETURN json_build_object('success', true, 'clinic_id', v_clinic_id);
@@ -462,9 +505,13 @@ CREATE POLICY "Users can update their own profile" ON public.users
     USING (id = auth.uid() AND public.is_my_user_active())
     WITH CHECK (id = auth.uid());
 
-CREATE POLICY "Doctors can manage profiles in their clinic" ON public.users
+CREATE POLICY "Clinic owners can manage profiles in their clinic" ON public.users
     FOR ALL TO authenticated
-    USING (clinic_id = public.get_my_clinic_id() AND public.get_my_role() = 'doctor' AND public.is_my_user_active());
+    USING (
+        clinic_id = public.get_my_clinic_id() 
+        AND (public.is_my_clinic_owner() OR id = auth.uid()) 
+        AND public.is_my_user_active()
+    );
 
 -- 5. Patients Policies
 CREATE POLICY "Users can view patients in their clinic" ON public.patients
@@ -586,30 +633,31 @@ CREATE TRIGGER update_appointment_services_updated_at BEFORE UPDATE ON public.ap
 CREATE OR REPLACE VIEW public.clinic_financial_reports AS
 SELECT 
     clinic_id,
+    doctor_id,
     transaction_date::date as report_date,
     date_trunc('month', transaction_date)::date as report_month,
     sum(amount) as total_revenue
 FROM (
     -- Revenue from completed appointments (کشف طبي)
-    SELECT clinic_id, appointment_date as transaction_date, coalesce(price_charged, 0) as amount 
+    SELECT clinic_id, doctor_id, appointment_date as transaction_date, coalesce(price_charged, 0) as amount 
     FROM public.appointments 
     WHERE status = 'completed'
     
     UNION ALL
     
     -- Revenue from services in completed appointments
-    SELECT aps.clinic_id, app.appointment_date as transaction_date, coalesce(aps.price_charged, 0) as amount 
+    SELECT aps.clinic_id, app.doctor_id, app.appointment_date as transaction_date, coalesce(aps.price_charged, 0) as amount 
     FROM public.appointment_services aps
     JOIN public.appointments app ON aps.appointment_id = app.id
     WHERE app.status = 'completed'
 ) transactions
 WHERE (
-    -- التحقق من الصلاحيات: الطبيب أو سكرتيرة تملك صلاحية رؤية التقارير
-    SELECT (role = 'doctor' OR can_view_reports) 
+    -- التحقق من الصلاحيات: مدير العيادة، أو من يملك صلاحية رؤية التقارير العامة، أو الطبيب يرى إيراداته
+    SELECT (is_owner OR can_view_reports OR doctor_id = auth.uid()) 
     FROM public.users 
     WHERE id = auth.uid() AND is_active = true
 )
-GROUP BY clinic_id, transaction_date::date, date_trunc('month', transaction_date)::date;
+GROUP BY clinic_id, doctor_id, transaction_date::date, date_trunc('month', transaction_date)::date;
 
 -- ==========================================
 -- 10. Notifications Table & Automated Triggers

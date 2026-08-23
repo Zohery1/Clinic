@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/clinic_dialog.dart';
 import '../../../core/widgets/clinic_toast.dart';
 import '../../auth/presentation/login_controller.dart';
+import '../../auth/domain/user_model.dart';
 import '../domain/appointment_model.dart';
 import 'appointments_controller.dart';
 import '../data/appointment_repository.dart';

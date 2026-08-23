@@ -14,6 +14,8 @@ import '../../reports/presentation/reports_controller.dart';
 import '../../dashboard/presentation/notifications_controller.dart';
 import '../../../core/widgets/clinic_dialog.dart';
 import '../../../core/utils/arabic_utils.dart';
+import '../../auth/domain/user_model.dart';
+import '../../auth/presentation/login_controller.dart';
 
 /// حوار حجز موعد جديد — متوافق مع الهاتف والويب
 class BookAppointmentDialog extends ConsumerStatefulWidget {
@@ -42,6 +44,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
   final _formKey = GlobalKey<FormState>();
 
   String? _selectedPatientId;
+  String? _selectedDoctorId;
   String? _selectedAppointmentTypeId;
   double _priceCharged = 0.0;
   final List<ServiceModel> _selectedServices = [];
@@ -161,6 +164,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
       await ref.read(appointmentRepositoryProvider).bookAppointment(
             clinicId: widget.clinicId,
             patientId: _selectedPatientId!,
+            doctorId: _selectedDoctorId,
             appointmentTypeId: _selectedAppointmentTypeId,
             appointmentDate: appointmentDateTime,
             priceCharged: basePrice,
@@ -507,14 +511,15 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
   Widget build(BuildContext context) {
     final patientsAsync = ref.watch(patientsListProvider(widget.clinicId));
     final typesAsync = ref.watch(appointmentTypesProvider);
+    final doctorsAsync = ref.watch(clinicDoctorsProvider(widget.clinicId));
     final appointmentsAsync = ref.watch(appointmentsForDateProvider(_selectedDate));
 
     final isMobile = MediaQuery.of(context).size.width < 900;
 
     if (isMobile) {
-      return _buildMobileScaffold(context, patientsAsync, typesAsync, appointmentsAsync);
+      return _buildMobileScaffold(context, patientsAsync, typesAsync, doctorsAsync, appointmentsAsync);
     } else {
-      return _buildDesktopDialog(context, patientsAsync, typesAsync, appointmentsAsync);
+      return _buildDesktopDialog(context, patientsAsync, typesAsync, doctorsAsync, appointmentsAsync);
     }
   }
 
@@ -525,6 +530,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
     BuildContext context,
     AsyncValue<List<PatientModel>> patientsAsync,
     AsyncValue<List<AppointmentTypeModel>> typesAsync,
+    AsyncValue<List<UserModel>> doctorsAsync,
     AsyncValue<List<AppointmentModel>> appointmentsAsync,
   ) {
     return Directionality(
@@ -556,9 +562,11 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               _buildPatientField(patientsAsync),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 16),
+                              _buildDoctorField(doctorsAsync),
+                              const SizedBox(height: 16),
                               _buildServiceField(typesAsync),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 16),
                               _buildAdditionalServices(),
                               const SizedBox(height: 12),
                             ],
@@ -609,6 +617,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
     BuildContext context,
     AsyncValue<List<PatientModel>> patientsAsync,
     AsyncValue<List<AppointmentTypeModel>> typesAsync,
+    AsyncValue<List<UserModel>> doctorsAsync,
     AsyncValue<List<AppointmentModel>> appointmentsAsync,
   ) {
     return Directionality(
@@ -638,11 +647,13 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildPatientField(patientsAsync),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
+                      _buildDoctorField(doctorsAsync),
+                      const SizedBox(height: 16),
                       _buildServiceField(typesAsync),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
                       _buildAdditionalServices(),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
                       _buildDateField(),
                       const SizedBox(height: 20),
                       appointmentsAsync.when(
@@ -925,6 +936,68 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
           error: (err, _) => Text('خطأ: $err', style: TextStyle(color: _errorColor, fontSize: 11)),
         ),
       ],
+    );
+  }
+
+  Widget _buildDoctorField(AsyncValue<List<UserModel>> doctorsAsync) {
+    return doctorsAsync.when(
+      data: (doctors) {
+        if (doctors.isEmpty) return const SizedBox.shrink();
+        // ضبط الطبيب الافتراضي تلقائياً إن لم يكن محدداً
+        if (_selectedDoctorId == null) {
+          final user = ref.read(currentUserProvider);
+          if (user != null && doctors.any((d) => d.id == user.id)) {
+            _selectedDoctorId = user.id;
+          } else {
+            _selectedDoctorId = doctors.first.id;
+          }
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildFieldLabel('الطبيب المعالج'),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              initialValue: _selectedDoctorId,
+              style: TextStyle(color: _textColor, fontSize: 14),
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                prefixIcon: Icon(Icons.person_pin_outlined, size: 18, color: _textSecColor),
+                filled: true,
+                fillColor: _inputFillCol,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: _borderCol),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: _borderCol),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: _primaryColor, width: 2),
+                ),
+              ),
+              items: doctors.map((d) {
+                return DropdownMenuItem<String>(
+                  value: d.id,
+                  child: Text(
+                    'د. ${d.fullName}',
+                    style: TextStyle(fontSize: 14, color: _textColor),
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                setState(() {
+                  _selectedDoctorId = val;
+                });
+              },
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (err, _) => const SizedBox.shrink(),
     );
   }
 

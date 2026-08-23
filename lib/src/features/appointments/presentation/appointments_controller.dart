@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/presentation/login_controller.dart';
+import '../../auth/domain/user_model.dart';
 import '../data/appointment_repository.dart';
 import '../domain/appointment_model.dart';
 import '../domain/appointment_service_model.dart';
@@ -19,7 +20,25 @@ final selectedDateProvider = StateProvider<DateTime>((ref) {
   return DateTime(now.year, now.month, now.day);
 });
 
-// مزود لجلب المواعيد للتاريخ المحدد تلقائياً
+// مزود لتحديد الطبيب المختار لفلترة المواعيد (null = الكل أو الطبيب الافتراضي)
+final selectedDoctorFilterProvider = StateProvider<String?>((ref) => null);
+
+// دالة مساعدة لتحديد الطبيب المطبق على استعلام المواعيد
+String? getEffectiveDoctorIdForAppointments(Ref ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return null;
+  final filter = ref.watch(selectedDoctorFilterProvider);
+  if (filter != null) {
+    return filter.isEmpty ? null : filter;
+  }
+  // إذا كان المستخدم طبيب عادي ولا يملك صلاحية رؤية التقارير/الطابور العام
+  if (user.role == UserRole.doctor && !user.isOwner && !user.canViewReports) {
+    return user.id;
+  }
+  return null;
+}
+
+// مزود لجلب المواعيد للتاريخ المحدد تلقائياً مع دعم فلتر الطبيب
 final todayAppointmentsProvider = FutureProvider<List<AppointmentModel>>((ref) async {
   // مراقبة المستخدم الحالي لجلب معرف العيادة الخاصة به تلقائياً
   final user = ref.watch(currentUserProvider);
@@ -29,7 +48,8 @@ final todayAppointmentsProvider = FutureProvider<List<AppointmentModel>>((ref) a
 
   final selectedDate = ref.watch(selectedDateProvider);
   final repository = ref.watch(appointmentRepositoryProvider);
-  return repository.getAppointmentsByDate(user.clinicId, selectedDate);
+  final doctorId = getEffectiveDoctorIdForAppointments(ref);
+  return repository.getAppointmentsByDate(user.clinicId, selectedDate, doctorId: doctorId);
 });
 
 // مزود لجلب مواعيد تاريخ محدد (لتجنب حجز المواعيد المتعارضة)
@@ -37,7 +57,8 @@ final appointmentsForDateProvider = FutureProvider.family<List<AppointmentModel>
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   final repository = ref.watch(appointmentRepositoryProvider);
-  return repository.getAppointmentsByDate(user.clinicId, date);
+  final doctorId = getEffectiveDoctorIdForAppointments(ref);
+  return repository.getAppointmentsByDate(user.clinicId, date, doctorId: doctorId);
 });
 
 // مزود لتخزين فلتر قائمة المرضى المحدد حالياً

@@ -95,10 +95,12 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     try {
       // حفظ التقرير
       if (text.replaceAll(_fieldSeparator, '').trim().isNotEmpty) {
+        final currentUser = ref.read(currentUserProvider);
         await ref.read(visitNoteRepositoryProvider).upsertVisitNote(
               clinicId: widget.clinicId,
               appointmentId: widget.appointmentId,
               patientId: widget.patientId,
+              doctorId: currentUser?.id,
               notes: text,
             );
       }

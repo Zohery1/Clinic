@@ -161,6 +161,31 @@ class QueueCard extends ConsumerWidget {
                       ),
                     ),
                   ],
+                  if (appointment.doctorName != null && appointment.doctorName!.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person_pin_outlined, size: 9, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 2),
+                          Text(
+                            'د. ${appointment.doctorName}',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
               // الخدمات المقدمة — فقط في المكتمل والملغي

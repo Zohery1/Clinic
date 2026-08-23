@@ -42,6 +42,7 @@ class VisitNoteRepository {
     required String clinicId,
     required String appointmentId,
     required String patientId,
+    String? doctorId,
     required String notes,
   }) async {
     try {
@@ -51,9 +52,10 @@ class VisitNoteRepository {
             'clinic_id': clinicId,
             'appointment_id': appointmentId,
             'patient_id': patientId,
+            if (doctorId != null && doctorId.isNotEmpty) 'doctor_id': doctorId,
             'notes': notes,
           }, onConflict: 'appointment_id')
-          .select()
+          .select('*, users!doctor_id(full_name)')
           .single();
 
       return VisitNoteModel.fromJson(response);
@@ -79,7 +81,7 @@ class VisitNoteRepository {
     try {
       final data = await _supabase
           .from('visit_notes')
-          .select()
+          .select('*, users!doctor_id(full_name)')
           .eq('patient_id', patientId)
           .order('created_at', ascending: false);
 

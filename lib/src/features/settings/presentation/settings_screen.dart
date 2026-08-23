@@ -1018,28 +1018,159 @@ class StaffPermissionsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
 
-            // إدارة صلاحيات الفريق
-            Text(
-              'صلاحيات المساعدين المسجلين بالعيادة',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
-            ),
-            const SizedBox(height: 8),
-
             staffAsync.when(
               data: (staffList) {
+                final doctors = staffList.where((s) => s.role == UserRole.doctor).toList();
                 final secretaries = staffList.where((s) => s.role == UserRole.secretary).toList();
-                if (secretaries.isEmpty) {
-                  return Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: AppTheme.cardDecorationFlat(context),
-                    child: Center(
-                      child: Text('لا يوجد سكرتارية منضمين لعيادتك حالياً.', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
-                    ),
-                  );
-                }
 
                 return Column(
-                  children: secretaries.map((staff) {
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ─── 1. الأطباء بالعيادة ───
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'أطباء العيادة (${doctors.length})',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    if (doctors.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: AppTheme.cardDecorationFlat(context),
+                        child: Center(
+                          child: Text('لا يوجد أطباء منضمين للعيادة.', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                        ),
+                      )
+                    else
+                      ...doctors.map((doc) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: AppTheme.cardDecorationFlat(context),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 18,
+                                        backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                                        child: Icon(Icons.person_pin_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                'د. ${doc.fullName}',
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: doc.isOwner 
+                                                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
+                                                      : Colors.grey.withValues(alpha: 0.15),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  doc.isOwner ? 'مدير العيادة (المالك)' : 'طبيب ممارس',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: doc.isOwner ? Theme.of(context).colorScheme.primary : Theme.of(context).hintColor,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Text(
+                                            doc.isActive ? 'الحساب نشط' : 'الحساب محظور',
+                                            style: TextStyle(fontSize: 11, color: doc.isActive ? AppTheme.success : AppTheme.error),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  if (!doc.isOwner)
+                                    Switch(
+                                      value: doc.isActive,
+                                      onChanged: (val) async {
+                                        await ref.read(authRepositoryProvider).updateUserPermissions(
+                                              userId: doc.id,
+                                              isActive: val,
+                                              canDeleteAppointments: doc.canDeleteAppointments,
+                                              canViewReports: doc.canViewReports,
+                                              canEditServices: doc.canEditServices,
+                                              canViewMedicalHistory: doc.canViewMedicalHistory,
+                                              canCancelAppointments: doc.canCancelAppointments,
+                                            );
+                                        ref.invalidate(staffListProvider);
+                                      },
+                                    ),
+                                ],
+                              ),
+                              if (!doc.isOwner) ...[
+                                const SizedBox(height: 12),
+                                const Divider(height: 1),
+                                const SizedBox(height: 8),
+                                _buildPermissionTile(
+                                  title: 'صلاحية رؤية إيرادات وتقارير العيادة العامة',
+                                  subtitle: 'تتيح للطبيب الاطلاع على الدخل الإجمالي للعيادة بجانب إيراداته الشخصية',
+                                  icon: Icons.insights_rounded,
+                                  value: doc.canViewReports,
+                                  onChanged: !doc.isActive
+                                      ? null
+                                      : (val) async {
+                                          await ref.read(authRepositoryProvider).updateUserPermissions(
+                                                userId: doc.id,
+                                                isActive: doc.isActive,
+                                                canDeleteAppointments: doc.canDeleteAppointments,
+                                                canViewReports: val,
+                                                canEditServices: doc.canEditServices,
+                                                canViewMedicalHistory: doc.canViewMedicalHistory,
+                                                canEditMedicalNotes: doc.canEditMedicalNotes,
+                                                canCancelAppointments: doc.canCancelAppointments,
+                                              );
+                                          ref.invalidate(staffListProvider);
+                                        },
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      }),
+
+                    const SizedBox(height: 24),
+
+                    // ─── 2. المساعدين والسكرتارية ───
+                    Text(
+                      'صلاحيات المساعدين والسكرتارية (${secretaries.length})',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+                    ),
+                    const SizedBox(height: 8),
+
+                    if (secretaries.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: AppTheme.cardDecorationFlat(context),
+                        child: Center(
+                          child: Text('لا يوجد سكرتارية منضمين لعيادتك حالياً.', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                        ),
+                      )
+                    else
+                      ...secretaries.map((staff) {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(16),
@@ -1245,8 +1376,9 @@ class StaffPermissionsPage extends ConsumerWidget {
                         ],
                       ),
                     );
-                  }).toList(),
-                );
+                  }),
+                ],
+              );
               },
               loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
               error: (err, _) => Text('خطأ: $err', style: const TextStyle(color: AppTheme.error)),

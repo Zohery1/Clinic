@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/appointment_model.dart';
 import '../domain/service_model.dart';
 import '../domain/appointment_service_model.dart';
+import '../../auth/domain/user_model.dart';
 
 import '../../settings/data/whatsapp_service.dart';
 
@@ -20,6 +21,11 @@ final availableServicesProvider = FutureProvider.family<List<ServiceModel>, Stri
   return ref.watch(appointmentRepositoryProvider).getAvailableServices(clinicId);
 });
 
+// مزود لجلب قائمة الأطباء بالعيادة
+final clinicDoctorsProvider = FutureProvider.family<List<UserModel>, String>((ref, clinicId) async {
+  return ref.watch(appointmentRepositoryProvider).getClinicDoctors(clinicId);
+});
+
 class AppointmentRepository {
   final SupabaseClient _supabase;
   final WhatsAppService _whatsAppService;
@@ -27,20 +33,25 @@ class AppointmentRepository {
   AppointmentRepository(this._supabase, this._whatsAppService);
 
   // جلب مواعيد تاريخ محدد لعيادة محددة (clinicId) مرتبة زمنياً تصاعدياً
-  Future<List<AppointmentModel>> getAppointmentsByDate(String clinicId, DateTime date) async {
+  Future<List<AppointmentModel>> getAppointmentsByDate(String clinicId, DateTime date, {String? doctorId}) async {
     try {
       // بداية اليوم بالـ Local Time وتحويله للتوقيت العالمي الموحد UTC للتوافق مع قاعدة البيانات
       final start = DateTime(date.year, date.month, date.day).toUtc().toIso8601String();
       final end = DateTime(date.year, date.month, date.day, 23, 59, 59).toUtc().toIso8601String();
 
-      // جلب البيانات مع عمل JOIN لبيانات المريض (الاسم والهاتف والعنوان) ونوع الكشف والخدمات الإضافية
-      final List<dynamic> response = await _supabase
+      // جلب البيانات مع عمل JOIN لبيانات المريض (الاسم والهاتف والعنوان) ونوع الكشف والطبيب والخدمات الإضافية
+      var query = _supabase
           .from('appointments')
-          .select('*, patients(full_name, phone, address), appointment_types(name), appointment_services(price_charged, services(name))')
+          .select('*, patients(full_name, phone, address), appointment_types(name), users!doctor_id(full_name), appointment_services(price_charged, services(name))')
           .eq('clinic_id', clinicId)
           .gte('appointment_date', start)
-          .lte('appointment_date', end)
-          .order('appointment_date', ascending: true);
+          .lte('appointment_date', end);
+
+      if (doctorId != null && doctorId.isNotEmpty) {
+        query = query.eq('doctor_id', doctorId);
+      }
+
+      final List<dynamic> response = await query.order('appointment_date', ascending: true);
 
       // تحويل القائمة المستلمة لنماذج AppointmentModel
       return response.map((item) => AppointmentModel.fromJson(item as Map<String, dynamic>)).toList();
@@ -53,6 +64,7 @@ class AppointmentRepository {
   Future<void> bookAppointment({
     required String clinicId,
     required String patientId,
+    String? doctorId,
     required String? appointmentTypeId,
     required DateTime appointmentDate,
     required double priceCharged,
@@ -68,7 +80,7 @@ class AppointmentRepository {
       final startOfDay = DateTime(appointmentDate.year, appointmentDate.month, appointmentDate.day).toUtc().toIso8601String();
       final endOfDay = DateTime(appointmentDate.year, appointmentDate.month, appointmentDate.day, 23, 59, 59).toUtc().toIso8601String();
 
-      final existingAppointments = await _supabase
+      var duplicateQuery = _supabase
           .from('appointments')
           .select('id, status')
           .eq('clinic_id', clinicId)
@@ -78,6 +90,12 @@ class AppointmentRepository {
           .neq('status', 'cancelled_by_clinic')
           .neq('status', 'cancelled_by_patient');
 
+      if (doctorId != null && doctorId.isNotEmpty) {
+        duplicateQuery = duplicateQuery.eq('doctor_id', doctorId);
+      }
+
+      final existingAppointments = await duplicateQuery;
+
       if (existingAppointments.isNotEmpty) {
         throw 'المريض لديه حجز آخر في نفس اليوم';
       }
@@ -85,6 +103,7 @@ class AppointmentRepository {
       final response = await _supabase.from('appointments').insert({
         'clinic_id': clinicId,
         'patient_id': patientId,
+        if (doctorId != null && doctorId.isNotEmpty) 'doctor_id': doctorId,
         'appointment_type_id': appointmentTypeId,
         'appointment_date': appointmentDate.toUtc().toIso8601String(),
         'price_charged': priceCharged,
@@ -296,6 +315,7 @@ class AppointmentRepository {
     required String clinicId,
     required String appointmentId,
     required String patientId,
+    String? doctorId,
     required String? appointmentTypeId,
     required DateTime appointmentDate,
     required double priceCharged,
@@ -307,6 +327,7 @@ class AppointmentRepository {
           .from('appointments')
           .update({
             'patient_id': patientId,
+            if (doctorId != null) 'doctor_id': doctorId,
             'appointment_type_id': appointmentTypeId,
             'appointment_date': appointmentDate.toUtc().toIso8601String(),
             'price_charged': priceCharged,
@@ -321,6 +342,24 @@ class AppointmentRepository {
       );
     } catch (e) {
       rethrow;
+    }
+  }
+
+  // جلب قائمة الأطباء النشطين في العيادة
+  Future<List<UserModel>> getClinicDoctors(String clinicId) async {
+    try {
+      final List<dynamic> response = await _supabase
+          .from('users')
+          .select()
+          .eq('clinic_id', clinicId)
+          .eq('role', 'doctor')
+          .eq('is_active', true)
+          .order('full_name', ascending: true);
+
+      return response.map((item) => UserModel.fromJson(item as Map<String, dynamic>)).toList();
+    } catch (e) {
+      debugPrint('getClinicDoctors error: $e');
+      return [];
     }
   }
 }

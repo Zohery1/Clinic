@@ -120,19 +120,25 @@ class ReportsRepository {
   // استعلامات التقارير المالية (Financial Reports)
   // ==========================================
 
-  // جلب دخل اليوم المختار للعيادة المسجلة
-  Future<double> getTodayRevenue(String clinicId, DateTime date) async {
+  // جلب دخل اليوم المختار للعيادة أو لطبيب محدد
+  Future<double> getTodayRevenue(String clinicId, DateTime date, {String? doctorId}) async {
     try {
       final start = DateTime(date.year, date.month, date.day).toUtc().toIso8601String();
       final end = DateTime(date.year, date.month, date.day, 23, 59, 59).toUtc().toIso8601String();
 
-      final List<dynamic> response = await _supabase
+      var query = _supabase
           .from('appointments')
           .select('price_charged, appointment_services(price_charged)')
           .eq('clinic_id', clinicId)
           .eq('status', 'completed')
           .gte('appointment_date', start)
           .lte('appointment_date', end);
+
+      if (doctorId != null && doctorId.isNotEmpty) {
+        query = query.eq('doctor_id', doctorId);
+      }
+
+      final List<dynamic> response = await query;
 
       double total = 0.0;
       for (var row in response) {
@@ -150,21 +156,27 @@ class ReportsRepository {
     }
   }
 
-  // جلب دخل الشهر للعيادة المسجلة
-  Future<double> getMonthRevenue(String clinicId) async {
+  // جلب دخل الشهر للعيادة أو لطبيب محدد
+  Future<double> getMonthRevenue(String clinicId, {String? doctorId}) async {
     try {
       final today = DateTime.now();
       final start = DateTime(today.year, today.month, 1).toUtc().toIso8601String();
       final lastDay = DateTime(today.year, today.month + 1, 0, 23, 59, 59);
       final end = lastDay.toUtc().toIso8601String();
 
-      final List<dynamic> response = await _supabase
+      var query = _supabase
           .from('appointments')
           .select('price_charged, appointment_services(price_charged)')
           .eq('clinic_id', clinicId)
           .eq('status', 'completed')
           .gte('appointment_date', start)
           .lte('appointment_date', end);
+
+      if (doctorId != null && doctorId.isNotEmpty) {
+        query = query.eq('doctor_id', doctorId);
+      }
+
+      final List<dynamic> response = await query;
 
       double total = 0.0;
       for (var row in response) {
@@ -183,7 +195,7 @@ class ReportsRepository {
   }
 
   // جلب دخل آخر 7 أيام لعرضه في الرسم البياني
-  Future<List<Map<String, dynamic>>> getWeeklyRevenue(String clinicId) async {
+  Future<List<Map<String, dynamic>>> getWeeklyRevenue(String clinicId, {String? doctorId}) async {
     try {
       final today = DateTime.now();
       final diff = today.weekday >= DateTime.saturday ? today.weekday - DateTime.saturday : today.weekday + 7 - DateTime.saturday;
@@ -192,13 +204,19 @@ class ReportsRepository {
       final friday = saturday.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
       final end = friday.toUtc().toIso8601String();
 
-      final List<dynamic> response = await _supabase
+      var query = _supabase
           .from('appointments')
           .select('appointment_date, price_charged, appointment_services(price_charged)')
           .eq('clinic_id', clinicId)
           .eq('status', 'completed')
           .gte('appointment_date', start)
           .lte('appointment_date', end);
+
+      if (doctorId != null && doctorId.isNotEmpty) {
+        query = query.eq('doctor_id', doctorId);
+      }
+
+      final List<dynamic> response = await query;
 
       final Map<String, double> revenueMap = {};
       for (int i = 0; i < 7; i++) {
@@ -237,19 +255,26 @@ class ReportsRepository {
     required String clinicId,
     required String startDate,
     required String endDate,
+    String? doctorId,
   }) async {
     try {
       final start = DateTime.parse(startDate).toUtc().toIso8601String();
       final endParsed = DateTime.parse(endDate);
       final end = DateTime(endParsed.year, endParsed.month, endParsed.day, 23, 59, 59).toUtc().toIso8601String();
 
-      final List<dynamic> appointments = await _supabase
+      var query = _supabase
           .from('appointments')
           .select('appointment_date, price_charged, appointment_services(price_charged)')
           .eq('clinic_id', clinicId)
           .eq('status', 'completed')
           .gte('appointment_date', start)
           .lte('appointment_date', end);
+
+      if (doctorId != null && doctorId.isNotEmpty) {
+        query = query.eq('doctor_id', doctorId);
+      }
+
+      final List<dynamic> appointments = await query;
 
       final Map<String, double> revenues = {};
       final Map<String, int> visits = {};
@@ -297,17 +322,23 @@ class ReportsRepository {
   }
 
   // جلب إحصائيات الشهور التراكمية
-  Future<List<Map<String, dynamic>>> getMonthlyStats(String clinicId) async {
+  Future<List<Map<String, dynamic>>> getMonthlyStats(String clinicId, {String? doctorId}) async {
     try {
       final today = DateTime.now();
       final oneYearAgo = DateTime(today.year - 1, today.month, 1).toUtc().toIso8601String();
 
-      final List<dynamic> appointments = await _supabase
+      var query = _supabase
           .from('appointments')
           .select('appointment_date, price_charged, appointment_services(price_charged)')
           .eq('clinic_id', clinicId)
           .eq('status', 'completed')
           .gte('appointment_date', oneYearAgo);
+
+      if (doctorId != null && doctorId.isNotEmpty) {
+        query = query.eq('doctor_id', doctorId);
+      }
+
+      final List<dynamic> appointments = await query;
 
       final Map<String, double> revenues = {};
       final Map<String, int> visits = {};
@@ -361,6 +392,7 @@ class ReportsRepository {
     required String clinicId,
     required String startDate,
     required String endDate,
+    String? doctorId,
   }) async {
     try {
       final start = DateTime.parse(startDate).toUtc().toIso8601String();
@@ -370,11 +402,12 @@ class ReportsRepository {
           .toIso8601String();
 
       // Fire main queries in parallel (1 single network wait)
-      final appointmentsFuture = _supabase
+      var appointmentsQuery = _supabase
           .from('appointments')
           .select('''
             id,
             patient_id,
+            doctor_id,
             price_charged,
             appointment_date,
             appointment_types(name),
@@ -388,6 +421,10 @@ class ReportsRepository {
           .gte('appointment_date', start)
           .lte('appointment_date', end);
 
+      if (doctorId != null && doctorId.isNotEmpty) {
+        appointmentsQuery = appointmentsQuery.eq('doctor_id', doctorId);
+      }
+
       final newPatientsFuture = _supabase
           .from('patients')
           .select('id')
@@ -395,7 +432,7 @@ class ReportsRepository {
           .gte('created_at', start)
           .lte('created_at', end);
 
-      final cancelledFuture = _supabase
+      var cancelledQuery = _supabase
           .from('appointments')
           .select('id, status')
           .eq('clinic_id', clinicId)
@@ -403,10 +440,14 @@ class ReportsRepository {
           .lte('appointment_date', end)
           .inFilter('status', ['cancelled', 'cancelled_by_clinic', 'cancelled_by_patient']);
 
+      if (doctorId != null && doctorId.isNotEmpty) {
+        cancelledQuery = cancelledQuery.eq('doctor_id', doctorId);
+      }
+
       final parallelResults = await Future.wait([
-        appointmentsFuture,
+        appointmentsQuery,
         newPatientsFuture,
-        cancelledFuture,
+        cancelledQuery,
       ]);
 
       final List<dynamic> appointments = parallelResults[0];

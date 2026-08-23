@@ -548,6 +548,10 @@ extension ReportsScreenParts on _ReportsScreenState {
             const SizedBox(height: 20),
           ],
 
+          // شريط تصفية التقارير حسب الطبيب
+          if (ref.watch(currentUserProvider) != null)
+            _buildDoctorReportFilterBar(context, ref.watch(currentUserProvider)!),
+
           // بطاقات الدخل المتجاورة الثلاثة (Stitch Design)
           LayoutBuilder(
             builder: (context, constraints) {
@@ -1427,6 +1431,132 @@ extension ReportsScreenParts on _ReportsScreenState {
       },
       loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
       error: (err, _) => Center(child: Text('خطأ: $err')),
+    );
+  }
+
+  Widget _buildDoctorReportFilterBar(BuildContext context, UserModel user) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final doctorsAsync = ref.watch(clinicDoctorsProvider(user.clinicId));
+    final selectedDoctorId = ref.watch(selectedReportDoctorIdProvider);
+
+    final isOwnerOrHasPermission = user.isOwner || user.canViewReports;
+
+    if (!isOwnerOrHasPermission) {
+      // طبيب منتسب بدون صلاحية التقارير العامة
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.person_pin_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'عرض الإيرادات والتحليلات الخاصة بك فقط (د. ${user.fullName})',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                  fontFamily: 'Cairo',
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // مالك العيادة أو طبيب بصلاحية التقارير العامة
+    return doctorsAsync.when(
+      data: (doctors) {
+        if (doctors.length <= 1) return const SizedBox.shrink();
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.filter_alt_outlined, size: 18, color: Theme.of(context).hintColor),
+              const SizedBox(width: 8),
+              Text(
+                'تصفية حسب الطبيب:',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                  fontFamily: 'Cairo',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildDoctorChip(
+                        label: 'إجمالي العيادة',
+                        isSelected: selectedDoctorId == null || selectedDoctorId.isEmpty,
+                        onTap: () => ref.read(selectedReportDoctorIdProvider.notifier).state = null,
+                      ),
+                      ...doctors.map(
+                        (doc) => _buildDoctorChip(
+                          label: 'د. ${doc.fullName}',
+                          isSelected: selectedDoctorId == doc.id,
+                          onTap: () => ref.read(selectedReportDoctorIdProvider.notifier).state = doc.id,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildDoctorChip({required String label, required bool isSelected, required VoidCallback onTap}) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? theme.colorScheme.primary : theme.colorScheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : theme.colorScheme.primary,
+              fontFamily: 'Cairo',
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

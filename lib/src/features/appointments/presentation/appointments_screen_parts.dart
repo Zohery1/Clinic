@@ -382,6 +382,9 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
             ),
           ),
 
+          const SizedBox(width: 12),
+          _buildDoctorFilterChip(context, ref, user),
+
           if (MediaQuery.of(context).size.width >= 1150) ...[
             const SizedBox(width: 16),
             Column(
@@ -409,6 +412,58 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildDoctorFilterChip(BuildContext context, WidgetRef ref, dynamic user) {
+    if (user == null) return const SizedBox.shrink();
+    final doctorsAsync = ref.watch(clinicDoctorsProvider(user.clinicId));
+    final selectedDoctorId = ref.watch(selectedDoctorFilterProvider);
+
+    return doctorsAsync.when(
+      data: (doctors) {
+        if (doctors.length <= 1) return const SizedBox.shrink();
+        final canSeeAll = user.isOwner || user.canViewReports || user.role == UserRole.secretary;
+        if (!canSeeAll) return const SizedBox.shrink();
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF1F3F5),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String?>(
+              value: selectedDoctorId,
+              isDense: true,
+              icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Theme.of(context).hintColor),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontFamily: 'Cairo',
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('جميع الأطباء'),
+                ),
+                ...doctors.map(
+                  (doc) => DropdownMenuItem<String?>(
+                    value: doc.id,
+                    child: Text('د. ${doc.fullName}'),
+                  ),
+                ),
+              ],
+              onChanged: (val) {
+                ref.read(selectedDoctorFilterProvider.notifier).state = val;
+              },
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 

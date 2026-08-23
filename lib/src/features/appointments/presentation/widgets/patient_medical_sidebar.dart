@@ -428,6 +428,13 @@ class _VisitHistoryItemState extends State<_VisitHistoryItem> {
                             style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor, fontWeight: FontWeight.w600),
                           ),
                         ],
+                        if (widget.appt.doctorName != null && widget.appt.doctorName!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'الطبيب: د. ${widget.appt.doctorName}',
+                            style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ],
                     ),
                   ),

@@ -23,6 +23,7 @@ class UserModel {
   final UserRole role;
   final String fullName;
   final bool isActive;                     // حالة نشاط الحساب (مفعل/محظور)
+  final bool isOwner;                      // هل هو مالك ومدير العيادة؟
   final bool canDeleteAppointments;       // صلاحية حذف المواعيد
   final bool canViewReports;              // صلاحية رؤية التقارير المالية
   final bool canEditServices;             // صلاحية إدخال وتعديل الخدمات والأسعار
@@ -37,6 +38,7 @@ class UserModel {
     required this.role,
     required this.fullName,
     required this.isActive,
+    this.isOwner = false,
     required this.canDeleteAppointments,
     required this.canViewReports,
     this.canEditServices = false,
@@ -54,6 +56,7 @@ class UserModel {
       role: UserRole.fromString(json['role'] as String),
       fullName: json['full_name'] as String,
       isActive: json['is_active'] as bool? ?? true,
+      isOwner: json['is_owner'] as bool? ?? false,
       canDeleteAppointments: json['can_delete_appointments'] as bool? ?? false,
       canViewReports: json['can_view_reports'] as bool? ?? false,
       canEditServices: json['can_edit_services'] as bool? ?? false,
@@ -72,6 +75,7 @@ class UserModel {
       'role': role.toShortString(),
       'full_name': fullName,
       'is_active': isActive,
+      'is_owner': isOwner,
       'can_delete_appointments': canDeleteAppointments,
       'can_view_reports': canViewReports,
       'can_edit_services': canEditServices,

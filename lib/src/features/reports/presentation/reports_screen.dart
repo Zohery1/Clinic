@@ -4,6 +4,7 @@ import 'package:intl/intl.dart' as intl;
 import '../../../core/theme/app_theme.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
+import '../../appointments/data/appointment_repository.dart';
 import 'reports_controller.dart';
 import 'report_detail_screen.dart';
 import '../../../core/widgets/clinic_dialog.dart';
