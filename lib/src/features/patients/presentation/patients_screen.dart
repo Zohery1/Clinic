@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_motion.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
 import '../data/patient_repository.dart';
@@ -14,8 +15,9 @@ import '../../../core/widgets/send_whatsapp_dialog.dart';
 import 'widgets/add_patient_dialog.dart';
 import 'widgets/edit_patient_dialog.dart';
 import '../../../core/widgets/clinic_toast.dart';
-import '../../appointments/presentation/visit_notes_dialog.dart';
-import '../../appointments/data/visit_note_repository.dart';
+import '../../../core/widgets/doctor_badge.dart';
+import '../../../core/widgets/status_pill.dart';
+import '../../../core/widgets/state_views.dart';
 import '../../appointments/domain/appointment_model.dart';
 
 class PatientsScreen extends ConsumerStatefulWidget {
@@ -41,12 +43,9 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
     super.dispose();
   }
 
-  Map<String, int>? _cachedFileNumbers;
-  List<PatientModel>? _cachedSortedPatients;
-
   void _onSearchChanged(String query, String clinicId) {
     _debounceTimer?.cancel();
-    
+
     if (query.trim().isEmpty) {
       setState(() {
         _searchResults = null;
@@ -59,19 +58,16 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
 
     _debounceTimer = Timer(const Duration(milliseconds: 200), () async {
       try {
-        if (_cachedSortedPatients == null || _cachedFileNumbers == null) {
-          final allPatients = await ref.read(patientRepositoryProvider).getPatients(clinicId);
-          _cachedSortedPatients = List<PatientModel>.from(allPatients)
-            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        final cached = ref.read(patientsListProvider(clinicId)).value;
+        final allPatients =
+            cached ?? await ref.read(patientRepositoryProvider).getPatients(clinicId);
 
-          _cachedFileNumbers = {};
-          for (int i = 0; i < _cachedSortedPatients!.length; i++) {
-            _cachedFileNumbers![_cachedSortedPatients![i].id] = i + 1;
-          }
+        final sortedFullPatients = List<PatientModel>.from(allPatients)
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        final fileNumbers = <String, int>{};
+        for (int i = 0; i < sortedFullPatients.length; i++) {
+          fileNumbers[sortedFullPatients[i].id] = i + 1;
         }
-
-        final sortedFullPatients = _cachedSortedPatients!;
-        final fileNumbers = _cachedFileNumbers!;
         final cleanQuery = query.trim();
 
         if (_searchByFileOnly) {
@@ -86,12 +82,12 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             });
           }
         } else {
-          final results = await ref.read(patientRepositoryProvider).searchPatients(clinicId, query);
+          final results = ref.read(patientRepositoryProvider).searchPatients(sortedFullPatients, query);
           final byFile = sortedFullPatients.where((p) {
             final fileNo = fileNumbers[p.id] ?? 0;
             return fileNo.toString() == cleanQuery || fileNo.toString().contains(cleanQuery);
           }).toList();
-          
+
           final merged = [...results];
           for (var p in byFile) {
             if (!merged.any((existing) => existing.id == p.id)) {
@@ -178,8 +174,6 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
               onPressed: () async {
                 try {
                   await ref.read(patientRepositoryProvider).deletePatient(patient.id);
-                  _cachedSortedPatients = null;
-                  _cachedFileNumbers = null;
                   ref.invalidate(patientsListProvider(clinicId));
                   if (_searchController.text.isNotEmpty) {
                     _onSearchChanged(_searchController.text, clinicId);
@@ -222,8 +216,6 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
     }).join(' ');
   }
 
-
-
   String _translateStatus(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -239,18 +231,18 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
     }
   }
 
-  Color _getStatusColor(String status) {
+  Color _getStatusColor(BuildContext context, String status) {
     switch (status.toLowerCase()) {
       case 'pending':
-        return const Color(0xFF3B82F6); // Blue (مع الطبيب)
+        return Theme.of(context).colorScheme.primary;
       case 'confirmed':
-        return const Color(0xFFF59E0B); // Orange (في الانتظار)
+        return AppTheme.warning;
       case 'completed':
-        return const Color(0xFF10B981); // Green (منتهي)
+        return AppTheme.success;
       case 'cancelled':
-        return const Color(0xFFEF4444); // Red (ملغي)
+        return AppTheme.error;
       default:
-        return const Color(0xFFF59E0B); // Orange (في الانتظار)
+        return AppTheme.warning;
     }
   }
 
@@ -306,13 +298,11 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 10,
-                            offset: const Offset(-2, 0),
-                          )
-                        ],
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.darkBorder
+                              : AppTheme.border,
+                        ),
                       ),
                       child: Column(
                         children: [
@@ -333,6 +323,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                           prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textHint),
                                           suffixIcon: _searchController.text.isNotEmpty
                                               ? IconButton(
+                                                  tooltip: 'مسح البحث',
                                                   icon: const Icon(Icons.clear_rounded, color: AppTheme.textHint, size: 20),
                                                   onPressed: () {
                                                     _searchController.clear();
@@ -344,14 +335,21 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    IconButton(
-                                      icon: Icon(Icons.person_add_alt_1_rounded, color: Theme.of(context).colorScheme.primary),
-                                      style: IconButton.styleFrom(
-                                        backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                                    _HoverScaleButton(
+                                      tooltip: 'مريض جديد',
+                                      onTap: () => _showAddPatientDialog(context, user.clinicId),
+                                      child: Container(
                                         padding: const EdgeInsets.all(12),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Icon(
+                                          Icons.person_add_alt_1_rounded,
+                                          color: Theme.of(context).colorScheme.primary,
+                                          size: 20,
+                                        ),
                                       ),
-                                      onPressed: () => _showAddPatientDialog(context, user.clinicId),
                                     ),
                                   ],
                                 ),
@@ -370,7 +368,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                           },
                                           borderRadius: BorderRadius.circular(8),
                                           child: AnimatedContainer(
-                                            duration: const Duration(milliseconds: 150),
+                                            duration: AppMotion.fast,
                                             padding: const EdgeInsets.symmetric(vertical: 8),
                                             alignment: Alignment.center,
                                             decoration: BoxDecoration(
@@ -378,20 +376,15 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                                   ? Theme.of(context).colorScheme.primary
                                                   : Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                                               borderRadius: BorderRadius.circular(8),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.02),
-                                                  blurRadius: 4,
-                                                  offset: const Offset(0, 2),
-                                                ),
-                                              ],
                                             ),
                                             child: Text(
                                               'بحث برقم الملف فقط',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w700,
-                                                color: _searchByFileOnly ? Colors.white : Theme.of(context).colorScheme.primary,
+                                                color: _searchByFileOnly
+                                                    ? Theme.of(context).colorScheme.onPrimary
+                                                    : Theme.of(context).colorScheme.primary,
                                               ),
                                             ),
                                           ),
@@ -423,32 +416,11 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                   SizedBox(
                     width: profileWidth,
                     child: activePatient == null
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.surface,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(Icons.assignment_ind_outlined, size: 48, color: Theme.of(context).hintColor),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'يرجى اختيار مريض من القائمة الجانبية',
-                                  style: TextStyle(
-                                      color: Theme.of(context).textTheme.titleMedium?.color,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                 Text(
-                                  'لعرض وتعديل ملفه الطبي وسجل زياراته وتفاصيل الحالات',
-                                  style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 13),
-                                ),
-                              ],
+                        ? const Center(
+                            child: EmptyStateView(
+                              icon: Icons.assignment_ind_outlined,
+                              title: 'يرجى اختيار مريض من القائمة الجانبية',
+                              subtitle: 'لعرض وتعديل ملفه الطبي وسجل زياراته وتفاصيل الحالات',
                             ),
                           )
                         : _buildSelectedPatientProfile(context, user.clinicId, user, activePatient, fileNumbers),
@@ -478,6 +450,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                 prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textHint),
                                 suffixIcon: _searchController.text.isNotEmpty
                                     ? IconButton(
+                                        tooltip: 'مسح البحث',
                                         icon: const Icon(Icons.clear_rounded, color: AppTheme.textHint, size: 20),
                                         onPressed: () {
                                           _searchController.clear();
@@ -500,7 +473,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                               },
                               borderRadius: BorderRadius.circular(8),
                               child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 150),
+                                duration: AppMotion.fast,
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: _searchByFileOnly
@@ -514,7 +487,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: _searchByFileOnly
-                                        ? Colors.white
+                                        ? Theme.of(context).colorScheme.onPrimary
                                         : Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
@@ -555,181 +528,45 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
     );
   }
 
-
-
   Widget _buildDesktopPatientList(List<PatientModel> patients, String clinicId, UserModel user, PatientModel? activePatient, Map<String, int> fileNumbers) {
     if (patients.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF1F3F5),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.people_outline_rounded, size: 30, color: Theme.of(context).hintColor),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'لا توجد سجلات مطابقة',
-                style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13),
-              ),
-            ],
-          ),
+      return const Center(
+        child: EmptyStateView(
+          icon: Icons.people_outline_rounded,
+          title: 'لا توجد سجلات مطابقة',
         ),
       );
     }
 
-    return ListView.builder(physics: const BouncingScrollPhysics(),
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
       itemCount: patients.length,
       padding: const EdgeInsets.all(12),
       itemBuilder: (context, index) {
         final patient = patients[index];
         final isSelected = activePatient?.id == patient.id;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: isSelected
-              ? BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                )
-              : AppTheme.cardDecoration(context),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: () {
-              setState(() {
-                _selectedPatient = patient;
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
-                          : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '#${fileNumbers[patient.id] ?? ""}',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _capitalizeName(patient.fullName),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                  color: isSelected
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).textTheme.titleMedium?.color,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (patient.phone != null && patient.phone!.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            patient.phone!,
-                            style: TextStyle(
-                              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.add_task_rounded, color: AppTheme.primary, size: 16),
-                        style: IconButton.styleFrom(
-                          backgroundColor: AppTheme.primaryLight,
-                          padding: const EdgeInsets.all(6),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                        ),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => BookAppointmentDialog(
-                              clinicId: clinicId,
-                              preselectedPatientId: patient.id,
-                            ),
-                          );
-                        },
-                      ),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textHint, size: 16),
-                        onSelected: (action) {
-                          if (action == 'edit') {
-                            _showEditPatientDialog(context, clinicId, patient);
-                          } else if (action == 'delete') {
-                            _showDeleteConfirmationDialog(context, clinicId, patient);
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_outlined, color: AppTheme.primary, size: 16),
-                                SizedBox(width: 8),
-                                Text('تعديل البيانات', style: TextStyle(fontSize: 13)),
-                              ],
-                            ),
-                          ),
-                          if (user.role == UserRole.doctor)
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 16),
-                                  SizedBox(width: 8),
-                                  Text('حذف المريض', style: TextStyle(color: AppTheme.error, fontSize: 13)),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+
+        return _PatientListCard(
+          patient: patient,
+          fileNo: fileNumbers[patient.id] ?? 0,
+          isSelected: isSelected,
+          onTap: () {
+            setState(() {
+              _selectedPatient = patient;
+            });
+          },
+          onBookAppointment: () {
+            showDialog(
+              context: context,
+              builder: (context) => BookAppointmentDialog(
+                clinicId: clinicId,
+                preselectedPatientId: patient.id,
               ),
-            ),
-          ),
+            );
+          },
+          onEdit: () => _showEditPatientDialog(context, clinicId, patient),
+          onDelete: () => _showDeleteConfirmationDialog(context, clinicId, patient),
+          canDelete: user.role == UserRole.doctor,
         );
       },
     );
@@ -761,16 +598,10 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             ),
             child: Row(
               children: [
-                CircleAvatar(
+                _PatientAvatar(
+                  gender: patient.gender,
+                  
                   radius: 30,
-                  backgroundColor: patient.gender == 'female'
-                      ? const Color(0xFFEC4899).withValues(alpha: 0.12)
-                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                  child: Icon(
-                    patient.gender == 'female' ? Icons.woman_rounded : Icons.man_rounded,
-                    color: patient.gender == 'female' ? const Color(0xFFEC4899) : Theme.of(context).colorScheme.primary,
-                    size: 32,
-                  ),
                 ),
                 const SizedBox(width: 20),
                 Expanded(
@@ -797,13 +628,6 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                               decoration: BoxDecoration(
                                 color: Theme.of(context).scaffoldBackgroundColor,
                                 borderRadius: BorderRadius.circular(6),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.02),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ],
                               ),
                               child: Text(
                                 '$age سنة',
@@ -852,25 +676,31 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                 // Actions buttons
                 Row(
                   children: [
-                    IconButton(
-                      icon: Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.primary, size: 18),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.surface,
-                        // Removed border
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    _HoverScaleButton(
+                      tooltip: 'تعديل البيانات',
+                      onTap: () => _showEditPatientDialog(context, clinicId, patient),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.primary, size: 18),
                       ),
-                      onPressed: () => _showEditPatientDialog(context, clinicId, patient),
                     ),
                     const SizedBox(width: 6),
                     if (user.role == UserRole.doctor) ...[
-                      IconButton(
-                        icon: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error, size: 18),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.surface,
-                          // Removed border
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      _HoverScaleButton(
+                        tooltip: 'حذف المريض',
+                        onTap: () => _showDeleteConfirmationDialog(context, clinicId, patient),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error, size: 18),
                         ),
-                        onPressed: () => _showDeleteConfirmationDialog(context, clinicId, patient),
                       ),
                       const SizedBox(width: 12),
                     ],
@@ -888,7 +718,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                       label: const Text('حجز موعد جديد'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
                         elevation: 0,
                         minimumSize: const Size(0, 40),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -911,17 +741,17 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                   'رقم الهاتف',
                   patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير مسجل',
                   Icons.phone_rounded,
-                  Colors.blue,
+                  Theme.of(context).colorScheme.primary,
                   onActionTap: (patient.phone != null && patient.phone!.isNotEmpty)
                       ? () => showSendWhatsAppDialog(context, ref, phone: patient.phone!, patientName: patient.fullName)
                       : null,
                   actionTooltip: 'إرسال رسالة واتساب للمريض',
                 ),
-                _buildClinicalMetaItem('العنوان', displayAddress.isNotEmpty ? displayAddress : 'غير مسجل', Icons.location_on_outlined, Colors.teal),
-                _buildClinicalMetaItem('العمر', age != null ? '$age سنة' : 'غير مسجل', Icons.cake_outlined, Colors.orange),
-                _buildClinicalMetaItem('رقم الملف', fileNo, Icons.badge_rounded, Colors.purple),
+                _buildClinicalMetaItem('العنوان', displayAddress.isNotEmpty ? displayAddress : 'غير مسجل', Icons.location_on_outlined, AppTheme.success),
+                _buildClinicalMetaItem('العمر', age != null ? '$age سنة' : 'غير مسجل', Icons.cake_outlined, AppTheme.warning),
+                _buildClinicalMetaItem('رقم الملف', fileNo, Icons.badge_rounded, AppTheme.completed),
               ];
-              
+
               if (isWide) {
                 return Row(
                   children: [
@@ -964,22 +794,22 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.05),
+              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.description_outlined, color: Colors.red, size: 16),
-                    SizedBox(width: 6),
+                    Icon(Icons.description_outlined, color: Theme.of(context).colorScheme.error, size: 16),
+                    const SizedBox(width: 6),
                     Text(
                       'السجل المرضي للمريض',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
-                        color: Colors.red,
+                        color: Theme.of(context).colorScheme.error,
                       ),
                     ),
                   ],
@@ -1072,12 +902,12 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: (actionColor ?? const Color(0xFF10B981)).withValues(alpha: 0.18),
+                              color: (actionColor ?? AppTheme.success).withValues(alpha: 0.18),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Icon(
                               actionIcon ?? Icons.chat_bubble_outline_rounded,
-                              color: actionColor ?? const Color(0xFF10B981),
+                              color: actionColor ?? AppTheme.success,
                               size: 14,
                             ),
                           ),
@@ -1103,21 +933,23 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
     return appointmentsAsync.when(
       data: (appointments) {
         if (appointments.isEmpty) {
-          return Center(
-            child: Text(
-              'لا توجد زيارات سابقة مسجلة للمريض',
-              style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 13),
+          return const Center(
+            child: EmptyStateView(
+              icon: Icons.history_rounded,
+              title: 'لا توجد زيارات سابقة مسجلة للمريض',
             ),
           );
         }
 
-        return ListView.builder(physics: const BouncingScrollPhysics(),
+        return ListView.builder(
+          physics: const BouncingScrollPhysics(),
           itemCount: appointments.length,
           padding: const EdgeInsets.only(top: 8),
           itemBuilder: (context, index) {
             final app = appointments[index];
             final date = intl.DateFormat('yyyy/MM/dd', 'ar').format(app.appointmentDate.toLocal());
             final time = intl.DateFormat('hh:mm a', 'ar').format(app.appointmentDate.toLocal());
+            final isDark = Theme.of(context).brightness == Brightness.dark;
 
             return Stack(
               children: [
@@ -1128,7 +960,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                     right: 5,
                     child: Container(
                       width: 2,
-                      color: AppTheme.border,
+                      color: isDark ? AppTheme.darkBorder : AppTheme.border,
                     ),
                   ),
                 Positioned(
@@ -1144,7 +976,7 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(right: 28, bottom: 20),
+                  padding: const EdgeInsetsDirectional.only(start: 28, bottom: 20),
                   child: _TimelineAppointmentCard(
                     app: app,
                     date: date,
@@ -1162,194 +994,201 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
-      error: (err, _) => Center(child: Text('خطأ: $err', style: const TextStyle(color: AppTheme.error))),
+      error: (err, _) => ErrorStateView(
+        message: 'خطأ: $err',
+        onRetry: () => ref.invalidate(patientAppointmentsProvider(patient.id)),
+      ),
     );
   }
 
-
-
   Widget _buildPatientsList(List<PatientModel> patients, String clinicId, UserModel user, Map<String, int> fileNumbers) {
     if (patients.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.people_outline_rounded, size: 40, color: Theme.of(context).hintColor),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'لا توجد سجلات مطابقة',
-              style: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+      return const Center(
+        child: EmptyStateView(
+          icon: Icons.people_outline_rounded,
+          title: 'لا توجد سجلات مطابقة',
         ),
       );
     }
 
-    return ListView.builder(physics: const BouncingScrollPhysics(),
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
       itemCount: patients.length,
       padding: const EdgeInsets.only(bottom: 100),
       itemBuilder: (context, index) {
         final patient = patients[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: AppTheme.cardDecoration(context),
+        
+
+        return _PatientListCard(
+          patient: patient,
+          fileNo: fileNumbers[patient.id] ?? 0,
+          isSelected: false,
+          doctorColor: null,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PatientDetailsDialog(
+                  clinicId: clinicId,
+                  patient: patient,
+                ),
+              ),
+            );
+          },
+          onBookAppointment: () {
+            showDialog(
+              context: context,
+              builder: (context) => BookAppointmentDialog(
+                clinicId: clinicId,
+                preselectedPatientId: patient.id,
+              ),
+            );
+          },
+          onEdit: () => _showEditPatientDialog(context, clinicId, patient),
+          onDelete: () => _showDeleteConfirmationDialog(context, clinicId, patient),
+          canDelete: user.role == UserRole.doctor,
+        );
+      },
+    );
+  }
+}
+
+class _PatientListCard extends StatefulWidget {
+  final PatientModel patient;
+  final int fileNo;
+  final bool isSelected;
+  final Color? doctorColor;
+  final VoidCallback onTap;
+  final VoidCallback onBookAppointment;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final bool canDelete;
+
+  const _PatientListCard({
+    required this.patient,
+    required this.fileNo,
+    required this.isSelected,
+    this.doctorColor,
+    required this.onTap,
+    required this.onBookAppointment,
+    required this.onEdit,
+    required this.onDelete,
+    required this.canDelete,
+  });
+
+  @override
+  State<_PatientListCard> createState() => _PatientListCardState();
+}
+
+class _PatientListCardState extends State<_PatientListCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = widget.isSelected;
+    final isHovered = _isHovered;
+    final showHoverEffect = isHovered && !isSelected;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: AppMotion.fast,
+        curve: AppMotion.curve,
+        margin: const EdgeInsets.only(bottom: 8),
+        transform: showHoverEffect ? (Matrix4.identity()..scale(1.015)) : Matrix4.identity(),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  )
+                ],
+              )
+            : AppTheme.cardDecoration(context).copyWith(
+                boxShadow: showHoverEffect
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 4),
+                        )
+                      ]
+                    : AppTheme.cardDecoration(context).boxShadow,
+              ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: widget.onTap,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
+                _PatientAvatar(
+                  gender: widget.patient.gender,
+                  doctorColor: widget.doctorColor,
+                  radius: 22,
+                  showFileNumber: true,
+                  fileNo: widget.fileNo,
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PatientDetailsDialog(
-                            clinicId: clinicId,
-                            patient: patient,
-                          ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _capitalizeName(widget.patient.fullName),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).textTheme.titleMedium?.color,
                         ),
-                      );
-                    },
-                    child: Row(
-                      children: [
-                        // أفاتار المريض
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: patient.gender == 'female'
-                                ? const Color(0xFFFCE7F3)
-                                : AppTheme.primaryLight,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            patient.gender == 'female' ? Icons.woman_rounded : Icons.man_rounded,
-                            color: patient.gender == 'female'
-                                ? const Color(0xFFEC4899)
-                                : AppTheme.primary,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        // معلومات المريض
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      _capitalizeName(patient.fullName),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 14,
-                                        color: Theme.of(context).textTheme.bodyLarge?.color,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      '#${fileNumbers[patient.id] ?? ""}',
-                                      style: GoogleFonts.jetBrainsMono(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  if (patient.phone != null && patient.phone!.isNotEmpty) ...[
-                                    Icon(Icons.phone_rounded, size: 12, color: Theme.of(context).hintColor),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      patient.phone!,
-                                      style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 12),
-                                    ),
-                                  ],
-                                  if (patient.address != null && patient.address!.isNotEmpty) ...[
-                                    if (patient.phone != null && patient.phone!.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                                        child: Text('·',
-                                            style: TextStyle(color: Theme.of(context).hintColor, fontWeight: FontWeight.w900)),
-                                      ),
-                                    Icon(Icons.location_on_outlined,
-                                        size: 12, color: Theme.of(context).hintColor),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        patient.address!,
-                                         style:
-                                             TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 12),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (widget.patient.phone != null && widget.patient.phone!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.patient.phone!,
+                          style: GoogleFonts.jetBrainsMono(
+                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                            fontSize: 13,
                           ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                // أزرار الإجراءات
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // حجز سريع
-                    IconButton(
-                      icon: const Icon(Icons.add_task_rounded, color: AppTheme.primary, size: 18),
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppTheme.primaryLight,
+                    _HoverScaleButton(
+                      tooltip: 'حجز موعد جديد',
+                      onTap: widget.onBookAppointment,
+                      child: Container(
                         padding: const EdgeInsets.all(8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.add_task_rounded, color: AppTheme.primary, size: 18),
                       ),
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => BookAppointmentDialog(
-                            clinicId: patient.clinicId,
-                            preselectedPatientId: patient.id,
-                          ),
-                        );
-                      },
                     ),
+                    const SizedBox(width: 8),
                     PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert_rounded,
-                          color: AppTheme.textHint, size: 18),
+                      tooltip: 'خيارات أخرى',
+                      icon: Icon(Icons.more_vert_rounded, color: AppTheme.textHint, size: 18),
                       onSelected: (action) {
                         if (action == 'edit') {
-                          _showEditPatientDialog(context, clinicId, patient);
+                          widget.onEdit();
                         } else if (action == 'delete') {
-                          _showDeleteConfirmationDialog(context, clinicId, patient);
+                          widget.onDelete();
                         }
                       },
                       itemBuilder: (context) => [
@@ -1363,17 +1202,16 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
                             ],
                           ),
                         ),
-                        if (user.role == UserRole.doctor)
+                        if (widget.canDelete)
                           const PopupMenuItem(
                             value: 'delete',
                             child: Row(
                               children: [
                                 Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 16),
                                 SizedBox(width: 8),
-                                Text('حذف المريض',
-                                    style: TextStyle(color: AppTheme.error, fontSize: 13)),
+                                Text('حذف المريض', style: TextStyle(color: AppTheme.error, fontSize: 13)),
                               ],
-                             ),
+                            ),
                           ),
                       ],
                     ),
@@ -1382,8 +1220,150 @@ class _PatientsScreenState extends ConsumerState<PatientsScreen> {
               ],
             ),
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  String _capitalizeName(String name) {
+    if (name.isEmpty) return name;
+    return name.split(' ').map((word) {
+      if (word.isEmpty) return word;
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
+  }
+}
+
+class _PatientAvatar extends StatelessWidget {
+  final String? gender;
+  final Color? doctorColor;
+  final double radius;
+  final bool showFileNumber;
+  final int fileNo;
+
+  const _PatientAvatar({
+    this.gender,
+    this.doctorColor,
+    required this.radius,
+    this.showFileNumber = false,
+    this.fileNo = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDoctor = doctorColor != null;
+    final avatarColor = gender == 'female'
+        ? AppTheme.doctorPalette[4]
+        : Theme.of(context).colorScheme.primary;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: radius * 2,
+          height: radius * 2,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: hasDoctor
+                ? LinearGradient(
+                    colors: [
+                      doctorColor!.withValues(alpha: 0.3),
+                      doctorColor!.withValues(alpha: 0.1),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : LinearGradient(
+                    colors: [
+                      avatarColor.withValues(alpha: 0.3),
+                      avatarColor.withValues(alpha: 0.1),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            border: hasDoctor
+                ? Border.all(color: doctorColor!, width: 2)
+                : Border.all(color: avatarColor.withValues(alpha: 0.5), width: 1.5),
+          ),
+          child: Center(
+            child: Icon(
+              gender == 'female' ? Icons.woman_rounded : Icons.man_rounded,
+              color: hasDoctor ? doctorColor : avatarColor,
+              size: radius * 0.75,
+            ),
+          ),
+        ),
+        if (showFileNumber)
+          Positioned(
+            bottom: -4,
+            right: -4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                '#$fileNo',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _HoverScaleButton extends StatefulWidget {
+  final VoidCallback onTap;
+  final String? tooltip;
+  final Widget child;
+
+  const _HoverScaleButton({
+    required this.onTap,
+    this.tooltip,
+    required this.child,
+  });
+
+  @override
+  State<_HoverScaleButton> createState() => _HoverScaleButtonState();
+}
+
+class _HoverScaleButtonState extends State<_HoverScaleButton> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Tooltip(
+        message: widget.tooltip,
+        child: GestureDetector(
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          onTapCancel: () => setState(() => _isPressed = false),
+          onTap: widget.onTap,
+          child: AnimatedScale(
+            scale: _isPressed ? 0.95 : (_isHovered ? 1.1 : 1.0),
+            duration: AppMotion.fast,
+            curve: AppMotion.curve,
+            child: widget.child,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1395,7 +1375,7 @@ class _TimelineAppointmentCard extends ConsumerStatefulWidget {
   final String clinicId;
   final PatientModel patient;
   final UserModel user;
-  final Color Function(String) getStatusColor;
+  final Color Function(BuildContext, String) getStatusColor;
   final String Function(String) translateStatus;
 
   const _TimelineAppointmentCard({
@@ -1418,7 +1398,10 @@ class _TimelineAppointmentCardState extends ConsumerState<_TimelineAppointmentCa
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: AppTheme.cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1427,53 +1410,50 @@ class _TimelineAppointmentCardState extends ConsumerState<_TimelineAppointmentCa
             onTap: () => setState(() => _isExpanded = !_isExpanded),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.all(12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.calendar_today_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
-                      const SizedBox(width: 6),
-                      Text(widget.date, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                      const SizedBox(width: 12),
-                      Icon(Icons.access_time_rounded, size: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
-                      const SizedBox(width: 6),
-                      Text(widget.time, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
+                      Icon(Icons.calendar_today_rounded, size: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+                      const SizedBox(width: 4),
+                      Text(widget.date, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                      const SizedBox(width: 8),
+                      Text(widget.time, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
                     ],
                   ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: widget.getStatusColor(widget.app.status).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        DoctorBadge(
+                          doctorId: widget.app.doctorId,
+                          doctorName: widget.app.doctorName,
+                          compact: true,
                         ),
-                        child: Text(
-                          widget.translateStatus(widget.app.status),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: widget.getStatusColor(widget.app.status),
-                          ),
+                        const SizedBox(width: 8),
+                        StatusPill(
+                          label: widget.translateStatus(widget.app.status),
+                          color: widget.getStatusColor(context, widget.app.status),
+                          compact: true,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                        size: 20,
-                        color: Theme.of(context).hintColor.withValues(alpha: 0.5),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Icon(
+                          _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: Theme.of(context).hintColor.withValues(alpha: 0.5),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
+AnimatedSize(
+            duration: AppMotion.normal,
+            curve: AppMotion.curve,
             alignment: Alignment.topCenter,
             child: _isExpanded
                 ? Column(
@@ -1481,43 +1461,12 @@ class _TimelineAppointmentCardState extends ConsumerState<_TimelineAppointmentCa
                     children: [
                       const Divider(height: 1),
                       AppointmentServicesSection(appointmentId: widget.app.id),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: PatientVisitNoteSection(
-                                clinicId: widget.clinicId,
-                                appointmentId: widget.app.id,
-                                patientId: widget.patient.id,
-                                patientName: widget.patient.fullName,
-                                 isDoctor: widget.user.role == UserRole.doctor || widget.user.canEditMedicalNotes,
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.edit_note_rounded, color: Theme.of(context).colorScheme.primary),
-                              style: IconButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => VisitNotesDialog(
-                                    clinicId: widget.clinicId,
-                                    appointmentId: widget.app.id,
-                                    patientId: widget.patient.id,
-                                    patientName: widget.patient.fullName,
-                                  ),
-                                ).then((_) {
-                                  ref.invalidate(visitNoteProvider(widget.app.id));
-                                });
-                              },
-                            ),
-                          ],
-                        ),
+                      PatientVisitNoteSection(
+                        clinicId: widget.clinicId,
+                        appointmentId: widget.app.id,
+                        patientId: widget.patient.id,
+                        patientName: widget.patient.fullName,
+                        isDoctor: widget.user.role == UserRole.doctor,
                       ),
                     ],
                   )

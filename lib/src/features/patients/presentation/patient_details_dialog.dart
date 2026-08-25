@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/doctor_badge.dart';
 import '../../../core/widgets/send_whatsapp_dialog.dart';
+import '../../../core/widgets/status_pill.dart';
+import '../../../core/widgets/state_views.dart';
 import '../../appointments/data/appointment_repository.dart';
 import '../../appointments/domain/appointment_model.dart';
 import '../../appointments/domain/appointment_service_model.dart';
@@ -71,15 +74,15 @@ class PatientDetailsDialog extends ConsumerWidget {
   Color _getStatusColor(BuildContext context, String status) {
     switch (status.toLowerCase()) {
       case 'pending':
-        return const Color(0xFF3B82F6); // Blue (مع الطبيب)
+        return Theme.of(context).colorScheme.primary; // Blue (مع الطبيب)
       case 'confirmed':
-        return const Color(0xFFF59E0B); // Orange (في الانتظار)
+        return AppTheme.warning; // Orange (في الانتظار)
       case 'completed':
-        return const Color(0xFF10B981); // Green (منتهي)
+        return AppTheme.success; // Green (منتهي)
       case 'cancelled':
-        return const Color(0xFFEF4444); // Red (ملغي)
+        return AppTheme.error; // Red (ملغي)
       default:
-        return const Color(0xFFF59E0B); // Orange (في الانتظار)
+        return AppTheme.warning; // Orange (في الانتظار)
     }
   }
 
@@ -158,11 +161,11 @@ class PatientDetailsDialog extends ConsumerWidget {
                   CircleAvatar(
                     radius: 26,
                     backgroundColor: patient.gender == 'female'
-                        ? const Color(0xFFEC4899).withValues(alpha: 0.12)
+                        ? AppTheme.doctorPalette[4].withValues(alpha: 0.12)
                         : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                     child: Icon(
                       patient.gender == 'female' ? Icons.woman_rounded : Icons.man_rounded,
-                      color: patient.gender == 'female' ? const Color(0xFFEC4899) : Theme.of(context).colorScheme.primary,
+                      color: patient.gender == 'female' ? AppTheme.doctorPalette[4] : Theme.of(context).colorScheme.primary,
                       size: 28,
                     ),
                   ),
@@ -249,24 +252,24 @@ class PatientDetailsDialog extends ConsumerWidget {
                         'رقم الهاتف',
                         patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير مسجل',
                         Icons.phone_rounded,
-                        Colors.blue,
+                        Theme.of(context).colorScheme.primary,
                         onActionTap: (patient.phone != null && patient.phone!.isNotEmpty)
                             ? () => showSendWhatsAppDialog(context, ref, phone: patient.phone!, patientName: patient.fullName)
                             : null,
                         actionIcon: Icons.chat_bubble_outline_rounded,
-                        actionColor: const Color(0xFF10B981),
+                        actionColor: AppTheme.success,
                         actionTooltip: 'إرسال رسالة واتساب للمريض',
                       ),
                       const SizedBox(width: 8),
-                      _buildClinicalMetaItem(context, 'العنوان', displayAddress.isNotEmpty ? displayAddress : 'غير مسجل', Icons.location_on_outlined, Colors.teal),
+                      _buildClinicalMetaItem(context, 'العنوان', displayAddress.isNotEmpty ? displayAddress : 'غير مسجل', Icons.location_on_outlined, AppTheme.success),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildClinicalMetaItem(context, 'العمر', age != null ? '$age سنة' : 'غير مسجل', Icons.cake_outlined, Colors.orange),
+                      _buildClinicalMetaItem(context, 'العمر', age != null ? '$age سنة' : 'غير مسجل', Icons.cake_outlined, AppTheme.warning),
                       const SizedBox(width: 8),
-                      _buildClinicalMetaItem(context, 'رقم الملف', fileNo, Icons.badge_rounded, Colors.purple),
+                      _buildClinicalMetaItem(context, 'رقم الملف', fileNo, Icons.badge_rounded, AppTheme.completed),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -383,7 +386,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'الملف الطبي الموحد للمريض',
+                              'الملف الطبي',
                               style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 18,
@@ -392,7 +395,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'تفاصيل بيانات المريض والتاريخ المرضي للزيارات',
+                              'بيانات المريض وسجل زياراته',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
@@ -416,13 +419,6 @@ class PatientDetailsDialog extends ConsumerWidget {
                             color: Theme.of(context).brightness == Brightness.dark
                                 ? Colors.transparent
                                 : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.02),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              )
-                            ],
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(Icons.close_rounded,
@@ -448,27 +444,20 @@ class PatientDetailsDialog extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12), // surface-container-low
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            )
-                          ],
                         ),
                         child: Row(
                           children: [
                             CircleAvatar(
                               radius: 32,
                               backgroundColor: patient.gender == 'female'
-                                  ? const Color(0xFFEC4899).withValues(alpha: 0.12)
+                                  ? AppTheme.doctorPalette[4].withValues(alpha: 0.12)
                                   : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                               child: Icon(
                                 patient.gender == 'female'
                                     ? Icons.woman_rounded
                                     : Icons.man_rounded,
                                 color: patient.gender == 'female'
-                                    ? const Color(0xFFEC4899)
+                                    ? AppTheme.doctorPalette[4]
                                     : Theme.of(context).colorScheme.primary,
                                 size: 36,
                               ),
@@ -511,7 +500,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    'الملف الطبي الموحد للمريض',
+                                    'الملف الطبي للمريض',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
@@ -533,24 +522,24 @@ class PatientDetailsDialog extends ConsumerWidget {
                         'رقم الهاتف',
                         patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير مسجل',
                         Icons.phone_rounded,
-                        Colors.blue,
+                        Theme.of(context).colorScheme.primary,
                         onActionTap: (patient.phone != null && patient.phone!.isNotEmpty)
                             ? () => showSendWhatsAppDialog(context, ref, phone: patient.phone!, patientName: patient.fullName)
                             : null,
                         actionIcon: Icons.chat_bubble_outline_rounded,
-                        actionColor: const Color(0xFF10B981),
+                        actionColor: AppTheme.success,
                         actionTooltip: 'إرسال رسالة واتساب للمريض',
                       ),
                           const SizedBox(width: 8),
-                          _buildClinicalMetaItem(context, 'العنوان', displayAddress.isNotEmpty ? displayAddress : 'غير مسجل', Icons.location_on_outlined, Colors.teal),
+                          _buildClinicalMetaItem(context, 'العنوان', displayAddress.isNotEmpty ? displayAddress : 'غير مسجل', Icons.location_on_outlined, AppTheme.success),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          _buildClinicalMetaItem(context, 'العمر', age != null ? '$age سنة' : 'غير مسجل', Icons.cake_outlined, Colors.orange),
+                          _buildClinicalMetaItem(context, 'العمر', age != null ? '$age سنة' : 'غير مسجل', Icons.cake_outlined, AppTheme.warning),
                           const SizedBox(width: 8),
-                          _buildClinicalMetaItem(context, 'رقم الملف', fileNo, Icons.badge_rounded, Colors.purple),
+                          _buildClinicalMetaItem(context, 'رقم الملف', fileNo, Icons.badge_rounded, AppTheme.completed),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -599,7 +588,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                           Icon(Icons.history_rounded, size: 16, color: Theme.of(context).colorScheme.primary),
                           const SizedBox(width: 8),
                           Text(
-                            'سجل الزيارات والتشخيص الطبي للمريض',
+                            'سجل الزيارات والتشخيص',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -704,12 +693,12 @@ class PatientDetailsDialog extends ConsumerWidget {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: (actionColor ?? const Color(0xFF10B981)).withValues(alpha: 0.18),
+                                color: (actionColor ?? AppTheme.success).withValues(alpha: 0.18),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Icon(
                                 actionIcon ?? Icons.chat_bubble_outline_rounded,
-                                color: actionColor ?? const Color(0xFF10B981),
+                                color: actionColor ?? AppTheme.success,
                                 size: 14,
                               ),
                             ),
@@ -758,10 +747,10 @@ class PatientDetailsDialog extends ConsumerWidget {
     return appointmentsAsync.when(
       data: (appointments) {
         if (appointments.isEmpty) {
-          return Center(
-            child: Text(
-              'لا توجد زيارات سابقة مسجلة للمريض',
-              style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 13),
+          return const Center(
+            child: EmptyStateView(
+              icon: Icons.history_rounded,
+              title: 'لا توجد زيارات سابقة مسجلة للمريض',
             ),
           );
         }
@@ -799,7 +788,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(right: 22, bottom: 8),
+                  padding: const EdgeInsetsDirectional.only(start: 22, bottom: 8),
                   child: _DialogTimelineAppointmentCard(
                     app: app,
                     date: date,
@@ -817,7 +806,10 @@ class PatientDetailsDialog extends ConsumerWidget {
         );
       },
       loading: () => Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
-      error: (err, _) => Center(child: Text('خطأ: $err', style: TextStyle(color: Theme.of(context).colorScheme.error))),
+      error: (err, _) => ErrorStateView(
+        message: 'خطأ: $err',
+        onRetry: () => ProviderScope.containerOf(context).invalidate(patientAppointmentsProvider(patient.id)),
+      ),
     );
   }
 
@@ -842,12 +834,13 @@ class PatientVisitNoteSection extends ConsumerWidget {
   });
 
   Widget _buildNoteBox(BuildContext context, String title, String content, IconData icon) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
+        border: Border.all(color: isDark ? AppTheme.darkBorder : AppTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1065,13 +1058,6 @@ class AppointmentServicesSection extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        )
-                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1095,9 +1081,9 @@ class AppointmentServicesSection extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: SizedBox(height: 12, width: 12, child: CircularProgressIndicator(strokeWidth: 1.5))),
-      error: (err, stack) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Text('خطأ في تحميل الخدمات: $err', style: const TextStyle(color: Colors.red, fontSize: 11)),
+      error: (err, stack) => ErrorStateView(
+        message: 'خطأ في تحميل الخدمات: $err',
+        onRetry: () => ref.invalidate(appointmentServicesProvider(appointmentId)),
       ),
     );
   }
@@ -1156,30 +1142,29 @@ class _DialogTimelineAppointmentCardState extends ConsumerState<_DialogTimelineA
                       Text(widget.time, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
                     ],
                   ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: widget.getStatusColor(context, widget.app.status).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(4),
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        DoctorBadge(
+                          doctorId: widget.app.doctorId,
+                          doctorName: widget.app.doctorName,
+                          compact: true,
                         ),
-                        child: Text(
-                          widget.translateStatus(widget.app.status),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: widget.getStatusColor(context, widget.app.status),
-                          ),
+                        const SizedBox(width: 8),
+                        StatusPill(
+                          label: widget.translateStatus(widget.app.status),
+                          color: widget.getStatusColor(context, widget.app.status),
+                          compact: true,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                        size: 18,
-                        color: Theme.of(context).hintColor.withValues(alpha: 0.5),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Icon(
+                          _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: Theme.of(context).hintColor.withValues(alpha: 0.5),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

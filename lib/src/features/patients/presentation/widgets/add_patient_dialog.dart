@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/patient_repository.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
 import '../../../../core/widgets/clinic_toast.dart';
 
@@ -247,10 +248,10 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
               elevation: 0,
             ),
             child: _isSaving
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary),
                   )
                 : Text('تسجيل وحفظ',
                     style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
@@ -271,10 +272,13 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
       final fullName = _nameController.text.trim();
       final phone = _phoneController.text.trim();
 
-      // Smart similarity warning check (Solution 4)
+      // Smart similarity warning check — فلترة على الكاش المحلي بدون تنزيل القائمة
       if (!forceSave) {
-        final similar = await ref.read(patientRepositoryProvider).findSimilarPatients(
-              widget.clinicId,
+        final cached = ref.read(patientsListProvider(widget.clinicId)).value;
+        final allPatients = cached ??
+            await ref.read(patientRepositoryProvider).getPatients(widget.clinicId);
+        final similar = ref.read(patientRepositoryProvider).findSimilarPatients(
+              allPatients,
               fullName,
               phone,
             );
@@ -290,7 +294,7 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
               child: AlertDialog(
                 title: Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.amber.shade700),
+                    Icon(Icons.warning_amber_rounded, color: AppTheme.warning),
                     const SizedBox(width: 8),
                     const Text('تنبيه: مريض مشابه مسجل مسبقاً'),
                   ],

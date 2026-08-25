@@ -270,10 +270,10 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 elevation: 0),
             child: _isSaving
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary),
                   )
                 : Text('حفظ التعديل',
                     style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),

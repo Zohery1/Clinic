@@ -28,6 +28,8 @@ class AppTheme {
   static const Color error = Color(0xFFDC2626);
   static const Color completed = Color(0xFF7C3AED);
 
+  static const Color darkBorder = Color(0xFF334155);
+
   // ─── أدوات مساعدة ───
   static BoxDecoration cardDecoration(BuildContext context) => BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -46,6 +48,30 @@ class AppTheme {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
       );
+
+  static BoxDecoration statusDecoration(Color color) => BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      );
+
+  static const List<Color> doctorPalette = [
+    Color(0xFF2563EB),
+    Color(0xFF0D9488),
+    Color(0xFF7C3AED),
+    Color(0xFFD97706),
+    Color(0xFFDB2777),
+    Color(0xFF059669),
+    Color(0xFF4F46E5),
+    Color(0xFFEA580C),
+  ];
+
+  static Color doctorColor(String? doctorId) {
+    if (doctorId == null || doctorId.isEmpty) {
+      return doctorPalette.first;
+    }
+    final hash = doctorId.codeUnits.fold<int>(0, (acc, c) => acc + c);
+    return doctorPalette[hash % doctorPalette.length];
+  }
 
   // ─── الثيم الأساسي الفاتح ───
   static ThemeData get lightTheme {
