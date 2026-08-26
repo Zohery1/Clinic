@@ -19,7 +19,8 @@ class ClinicsRepository {
       final response = await _supabase.rpc('get_user_clinics');
       if (response == null || response is! List) return [];
       return response
-          .map((item) => ClinicSummaryModel.fromJson(item as Map<String, dynamic>))
+          .whereType<Map>()
+          .map((item) => ClinicSummaryModel.fromJson(item))
           .toList();
     } catch (e) {
       debugPrint('getUserClinics error: $e');
@@ -58,15 +59,18 @@ class ClinicsRepository {
   }
 
   // الانضمام إلى عيادة إضافية بكود الدعوة
-  Future<Map<String, dynamic>> joinClinic(String inviteCode, {String? role}) async {
+  Future<Map<String, dynamic>> joinClinicWithInviteCode({
+    required String inviteCode,
+    String role = 'doctor',
+  }) async {
     try {
       final response = await _supabase.rpc('join_additional_clinic', params: {
-        'p_invite_code': inviteCode,
+        'p_invite_code': inviteCode.trim(),
         'p_role': role,
       });
       return response as Map<String, dynamic>? ?? {'success': true};
     } catch (e) {
-      debugPrint('joinClinic error: $e');
+      debugPrint('joinClinicWithInviteCode error: $e');
       rethrow;
     }
   }
@@ -79,7 +83,8 @@ class ClinicsRepository {
       });
       if (response == null || response is! List) return [];
       return response
-          .map((item) => BranchModel.fromJson(item as Map<String, dynamic>))
+          .whereType<Map>()
+          .map((item) => BranchModel.fromJson(item))
           .toList();
     } catch (e) {
       debugPrint('getClinicBranches error: $e');

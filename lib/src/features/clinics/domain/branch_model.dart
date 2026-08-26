@@ -17,14 +17,15 @@ class BranchModel {
     this.createdAt,
   });
 
-  factory BranchModel.fromJson(Map<String, dynamic> json) {
+  factory BranchModel.fromJson(Map<dynamic, dynamic> rawJson) {
+    final json = Map<String, dynamic>.from(rawJson);
     return BranchModel(
-      id: json['id'] as String,
-      clinicId: json['clinic_id'] as String,
-      name: json['name'] as String? ?? 'الفرع الرئيسي',
-      address: json['address'] as String?,
-      phone: json['phone'] as String?,
-      isMain: json['is_main'] as bool? ?? false,
+      id: json['id']?.toString() ?? '',
+      clinicId: json['clinic_id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'الفرع الرئيسي',
+      address: json['address']?.toString(),
+      phone: json['phone']?.toString(),
+      isMain: json['is_main'] == true,
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null,
     );
   }

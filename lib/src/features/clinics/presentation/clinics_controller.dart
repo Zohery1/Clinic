@@ -82,8 +82,8 @@ class ClinicsController extends StateNotifier<AsyncValue<void>> {
       );
 
       if (res['success'] == true) {
-        // إعادة تعيين الفلاتر
-        _ref.read(selectedBranchFilterProvider.notifier).state = null;
+        // تعيين فلتر الفرع المختار أو الفرع العائد من قاعدة البيانات
+        _ref.read(selectedBranchFilterProvider.notifier).state = branchId ?? res['branch_id']?.toString();
         _ref.read(selectedDoctorFilterProvider.notifier).state = null;
 
         // تحديث بيانات المستخدم والعيادات والمواعيد
@@ -134,7 +134,10 @@ class ClinicsController extends StateNotifier<AsyncValue<void>> {
   Future<bool> joinClinic(String inviteCode, {String? role}) async {
     state = const AsyncValue.loading();
     try {
-      final res = await _repository.joinClinic(inviteCode, role: role);
+      final res = await _repository.joinClinicWithInviteCode(
+        inviteCode: inviteCode,
+        role: role ?? 'doctor',
+      );
       if (res['success'] == true) {
         // إعادة تعيين الفلاتر
         _ref.read(selectedBranchFilterProvider.notifier).state = null;

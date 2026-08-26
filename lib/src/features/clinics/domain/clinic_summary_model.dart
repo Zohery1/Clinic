@@ -32,23 +32,31 @@ class ClinicSummaryModel {
     );
   }
 
-  factory ClinicSummaryModel.fromJson(Map<String, dynamic> json) {
+  factory ClinicSummaryModel.fromJson(Map<dynamic, dynamic> rawJson) {
+    final json = Map<String, dynamic>.from(rawJson);
     List<BranchModel> parsedBranches = [];
-    if (json['branches'] != null && json['branches'] is List) {
-      parsedBranches = (json['branches'] as List)
-          .map((b) => BranchModel.fromJson(b as Map<String, dynamic>))
-          .toList();
+    final rawBranches = json['branches'];
+    if (rawBranches is List) {
+      for (final b in rawBranches) {
+        if (b is Map) {
+          final branchMap = Map<String, dynamic>.from(b);
+          if (branchMap['clinic_id'] == null || branchMap['clinic_id'].toString().isEmpty) {
+            branchMap['clinic_id'] = json['clinic_id']?.toString() ?? '';
+          }
+          parsedBranches.add(BranchModel.fromJson(branchMap));
+        }
+      }
     }
 
     return ClinicSummaryModel(
-      clinicId: json['clinic_id'] as String,
-      clinicName: json['clinic_name'] as String? ?? 'العيادة',
-      role: UserRole.fromString(json['role'] as String? ?? 'doctor'),
-      isOwner: json['is_owner'] as bool? ?? false,
-      isActive: json['is_active'] as bool? ?? true,
-      canViewReports: json['can_view_reports'] as bool? ?? false,
-      subscriptionStatus: json['subscription_status'] as String? ?? 'active',
-      inviteCode: json['invite_code'] as String?,
+      clinicId: json['clinic_id']?.toString() ?? '',
+      clinicName: json['clinic_name']?.toString() ?? 'العيادة',
+      role: UserRole.fromString(json['role']?.toString() ?? 'doctor'),
+      isOwner: json['is_owner'] == true,
+      isActive: json['is_active'] == true,
+      canViewReports: json['can_view_reports'] == true,
+      subscriptionStatus: json['subscription_status']?.toString() ?? 'active',
+      inviteCode: json['invite_code']?.toString(),
       branches: parsedBranches,
     );
   }

@@ -18,6 +18,7 @@ class ClinicSwitcherButton extends ConsumerWidget {
   });
 
   static void showSwitcherModal(BuildContext context, WidgetRef ref) {
+    ref.invalidate(userClinicsProvider);
     final theme = Theme.of(context);
 
     showModalBottomSheet(
@@ -92,6 +93,11 @@ class ClinicSwitcherButton extends ConsumerWidget {
                                 ),
                               ],
                             ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.refresh_rounded, size: 20),
+                            tooltip: 'تحديث العيادات',
+                            onPressed: () => ref.invalidate(userClinicsProvider),
                           ),
                           IconButton(
                             icon: const Icon(Icons.close_rounded, size: 20),
@@ -365,10 +371,32 @@ class ClinicSwitcherButton extends ConsumerWidget {
                       ),
                     )
                   else
-                    Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      size: 14,
-                      color: theme.hintColor.withValues(alpha: 0.6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: primaryColor.withValues(alpha: 0.25)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'دخول العيادة',
+                            style: GoogleFonts.cairo(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: primaryColor,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 13,
+                            color: primaryColor,
+                          ),
+                        ],
+                      ),
                     ),
                 ],
               ),
