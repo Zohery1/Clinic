@@ -262,6 +262,8 @@ DECLARE
   v_role public.user_role;
   v_full_name text;
   v_clinic_name text;
+  v_branch_name text;
+  v_extra_rec record;
   v_invite_code text;
   v_phone text;
   v_is_active boolean := true;
@@ -280,6 +282,7 @@ BEGIN
 
     v_full_name := coalesce(nullif(NEW.raw_user_meta_data ->> 'full_name', ''), 'مستخدم جديد');
     v_clinic_name := coalesce(nullif(NEW.raw_user_meta_data ->> 'clinic_name', ''), 'عيادة جديدة');
+    v_branch_name := coalesce(nullif(NEW.raw_user_meta_data ->> 'branch_name', ''), 'الفرع الرئيسي');
     v_invite_code := trim(coalesce(NEW.raw_user_meta_data ->> 'invite_code', ''));
     v_phone := coalesce(nullif(NEW.raw_user_meta_data ->> 'phone', ''), nullif(NEW.phone::text, ''));
 
@@ -317,10 +320,27 @@ BEGIN
       VALUES (v_clinic_name, v_phone, 'pending_activation', false, now(), NEW.id)
       RETURNING id INTO v_clinic_id;
 
-      -- Create default Main Branch for new clinic
+      -- Create Main Branch for new clinic
       INSERT INTO public.branches (clinic_id, name, is_main)
-      VALUES (v_clinic_id, 'الفرع الرئيسي', true)
+      VALUES (v_clinic_id, v_branch_name, true)
       RETURNING id INTO v_branch_id;
+
+      -- Create any extra branches if provided in metadata
+      IF NEW.raw_user_meta_data -> 'extra_branches' IS NOT NULL AND jsonb_typeof(NEW.raw_user_meta_data -> 'extra_branches') = 'array' THEN
+        BEGIN
+          FOR v_extra_rec IN
+            SELECT * FROM jsonb_to_recordset((NEW.raw_user_meta_data -> 'extra_branches')::jsonb)
+            AS x(name text, address text, phone text)
+          LOOP
+            IF v_extra_rec.name IS NOT NULL AND trim(v_extra_rec.name) != '' THEN
+              INSERT INTO public.branches (clinic_id, name, address, phone, is_main)
+              VALUES (v_clinic_id, trim(v_extra_rec.name), nullif(trim(v_extra_rec.address), ''), nullif(trim(v_extra_rec.phone), ''), false);
+            END IF;
+          END LOOP;
+        EXCEPTION WHEN OTHERS THEN
+          RAISE WARNING 'Error inserting extra branches in handle_new_user: %', SQLERRM;
+        END;
+      END IF;
 
       v_is_owner := true;
       v_can_view_reports := true;
@@ -831,6 +851,8 @@ DECLARE
   v_role public.user_role;
   v_full_name text;
   v_clinic_name text;
+  v_branch_name text;
+  v_extra_rec record;
   v_invite_code text;
   v_phone text;
   v_user_exists boolean;
@@ -856,6 +878,7 @@ BEGIN
 
   v_full_name := coalesce(nullif(v_meta ->> 'full_name', ''), 'مستخدم جديد');
   v_clinic_name := coalesce(nullif(v_meta ->> 'clinic_name', ''), 'عيادة جديدة');
+  v_branch_name := coalesce(nullif(v_meta ->> 'branch_name', ''), 'الفرع الرئيسي');
   v_invite_code := trim(coalesce(v_meta ->> 'invite_code', ''));
   v_phone := coalesce(nullif(v_meta ->> 'phone', ''), nullif(v_meta ->> 'user_phone', ''));
 
@@ -872,8 +895,24 @@ BEGIN
     RETURNING id INTO v_clinic_id;
 
     INSERT INTO public.branches (clinic_id, name, is_main)
-    VALUES (v_clinic_id, 'الفرع الرئيسي', true)
+    VALUES (v_clinic_id, v_branch_name, true)
     RETURNING id INTO v_branch_id;
+
+    IF v_meta -> 'extra_branches' IS NOT NULL AND jsonb_typeof(v_meta -> 'extra_branches') = 'array' THEN
+      BEGIN
+        FOR v_extra_rec IN
+          SELECT * FROM jsonb_to_recordset((v_meta -> 'extra_branches')::jsonb)
+          AS x(name text, address text, phone text)
+        LOOP
+          IF v_extra_rec.name IS NOT NULL AND trim(v_extra_rec.name) != '' THEN
+            INSERT INTO public.branches (clinic_id, name, address, phone, is_main)
+            VALUES (v_clinic_id, trim(v_extra_rec.name), nullif(trim(v_extra_rec.address), ''), nullif(trim(v_extra_rec.phone), ''), false);
+          END IF;
+        END LOOP;
+      EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING 'Error inserting extra branches in ensure_user_clinic_exists: %', SQLERRM;
+      END;
+    END IF;
 
     v_is_owner := true;
   ELSE

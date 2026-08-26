@@ -54,8 +54,10 @@ class AuthRepository {
     required String fullName,
     required String role, // 'doctor' or 'secretary'
     String? phone,
-    String? clinicName,   // required if doctor
-    String? inviteCode,   // required if secretary
+    String? clinicName,   // if creating clinic
+    String? branchName,   // main branch name
+    List<Map<String, String>>? extraBranches, // additional branches
+    String? inviteCode,   // if joining clinic
   }) async {
     try {
       final String? formattedPhone = _formatE164Phone(phone);
@@ -68,6 +70,8 @@ class AuthRepository {
           'role': role,
           if (formattedPhone != null) 'phone': formattedPhone,
           if (clinicName != null) 'clinic_name': clinicName,
+          if (branchName != null && branchName.trim().isNotEmpty) 'branch_name': branchName.trim(),
+          if (extraBranches != null && extraBranches.isNotEmpty) 'extra_branches': extraBranches,
           if (inviteCode != null) 'invite_code': inviteCode,
         },
       );

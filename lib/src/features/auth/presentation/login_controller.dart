@@ -129,6 +129,8 @@ class LoginController extends StateNotifier<LoginState> {
     required String role,
     String? phone,
     String? clinicName,
+    String? branchName,
+    List<Map<String, String>>? extraBranches,
     String? inviteCode,
   }) async {
     if (email.trim().isEmpty || password.trim().isEmpty || fullName.trim().isEmpty) {
@@ -139,12 +141,11 @@ class LoginController extends StateNotifier<LoginState> {
       state = LoginState(errorMessage: 'يرجى إدخال رقم الهاتف للتواصل');
       return;
     }
-    if (role == 'doctor' && (clinicName == null || clinicName.trim().isEmpty)) {
-      state = LoginState(errorMessage: 'يرجى إدخال اسم العيادة لتسجيل حساب طبيب');
-      return;
-    }
-    if (role == 'secretary' && (inviteCode == null || inviteCode.trim().isEmpty)) {
-      state = LoginState(errorMessage: 'يرجى إدخال كود الدعوة للانضمام للعيادة');
+    final isCreatingClinic = clinicName != null && clinicName.trim().isNotEmpty;
+    final isJoiningClinic = inviteCode != null && inviteCode.trim().isNotEmpty;
+
+    if (!isCreatingClinic && !isJoiningClinic) {
+      state = LoginState(errorMessage: 'يرجى إدخال اسم العيادة لتأسيسها أو كود الدعوة للانضمام');
       return;
     }
 
@@ -158,6 +159,8 @@ class LoginController extends StateNotifier<LoginState> {
         role: role,
         phone: phone?.trim(),
         clinicName: clinicName?.trim(),
+        branchName: branchName?.trim(),
+        extraBranches: extraBranches,
         inviteCode: inviteCode?.trim(),
       );
 
