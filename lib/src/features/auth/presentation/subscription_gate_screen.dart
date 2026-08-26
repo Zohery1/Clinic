@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
 import 'login_controller.dart';
 import 'login_screen.dart';
 
@@ -116,6 +117,8 @@ class _SubscriptionGateScreenState extends ConsumerState<SubscriptionGateScreen>
                       color: AppTheme.primary,
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  const ClinicSwitcherButton(),
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(16),

@@ -227,13 +227,14 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   Future<void> _verifySubscription() async {
     try {
       final user = ref.read(currentUserProvider);
-      if (user != null && user.clinicId.isNotEmpty) {
-        _clinicId = user.clinicId;
-        _listenToClinicRealtime(user.clinicId);
+      final targetClinicId = user?.activeClinicId ?? user?.clinicId;
+      if (user != null && targetClinicId != null && targetClinicId.isNotEmpty) {
+        _clinicId = targetClinicId;
+        _listenToClinicRealtime(targetClinicId);
         final res = await Supabase.instance.client
             .from('clinics')
             .select('name, invite_code, is_active, subscription_end_date, subscription_status')
-            .eq('id', user.clinicId)
+            .eq('id', targetClinicId)
             .maybeSingle();
 
         if (res != null) {
@@ -314,6 +315,16 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         ),
       );
     }
+
+    ref.listen<UserModel?>(currentUserProvider, (previous, next) {
+      if (next != null) {
+        final prevClinicId = previous?.activeClinicId ?? previous?.clinicId;
+        final nextClinicId = next.activeClinicId ?? next.clinicId;
+        if (prevClinicId != nextClinicId) {
+          _verifySubscription();
+        }
+      }
+    });
 
     if (_isLoggedIn) {
       final currentUser = ref.watch(currentUserProvider);

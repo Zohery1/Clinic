@@ -147,6 +147,40 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               )
             : Column(
                 children: [
+                  if (_currentIndex != 0)
+                    SafeArea(
+                      bottom: false,
+                      child: Container(
+                        height: 56,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              _currentIndex == 1
+                                  ? 'سجل المرضى'
+                                  : _currentIndex == 2
+                                      ? 'التقارير المالية'
+                                      : 'الإعدادات العامة',
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Theme.of(context).textTheme.titleMedium?.color,
+                              ),
+                            ),
+                            const Spacer(),
+                            const ClinicSwitcherButton(isCompact: true),
+                          ],
+                        ),
+                      ),
+                    ),
                   Expanded(
                     child: _currentIndex == 0
                         ? AppointmentsScreen(

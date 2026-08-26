@@ -1398,8 +1398,6 @@ class _TimelineAppointmentCardState extends ConsumerState<_TimelineAppointmentCa
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: AppTheme.cardDecoration(context),

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
 import 'login_controller.dart';
 import 'login_screen.dart';
 
@@ -196,7 +197,9 @@ class _PendingActivationScreenState extends ConsumerState<PendingActivationScree
                       color: AppTheme.primary,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
+                  const ClinicSwitcherButton(),
+                  const SizedBox(height: 14),
 
                   // ─── Clinic Code Badge ───
                   Container(

@@ -25,6 +25,7 @@ import '../data/whatsapp_service.dart';
 import 'clinic_branches_page.dart';
 import '../../clinics/presentation/widgets/create_clinic_dialog.dart';
 import '../../clinics/presentation/widgets/join_clinic_dialog.dart';
+import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
 
 class ClinicSubscriptionInfo {
   final DateTime? endDate;
@@ -206,6 +207,15 @@ class SettingsScreen extends ConsumerWidget {
                   );
                 },
               ),
+            _buildSettingTile(
+              context: context,
+              icon: Icons.swap_horiz_rounded,
+              title: 'التبديل بين العيادات والفروع',
+              subtitle: 'التنقل الفوري بين عياداتك وفروعها المسجلة',
+              onTap: () {
+                ClinicSwitcherButton.showSwitcherModal(context, ref);
+              },
+            ),
             const SizedBox(height: 16),
 
             // ─── القسم الثاني: إدارة الأسعار والخدمات ───
