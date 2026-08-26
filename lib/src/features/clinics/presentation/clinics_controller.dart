@@ -160,6 +160,33 @@ class ClinicsController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  // مغادرة العيادة الحالية (في حال لم يكن المستخدم مالكاً)
+  Future<Map<String, dynamic>> leaveClinic(String clinicId) async {
+    state = const AsyncValue.loading();
+    try {
+      final res = await _repository.leaveClinic(clinicId);
+      if (res['success'] == true) {
+        // إعادة تعيين الفلاتر
+        _ref.read(selectedBranchFilterProvider.notifier).state = null;
+        _ref.read(selectedDoctorFilterProvider.notifier).state = null;
+
+        // تحديث المستخدم والعيادات
+        await _refreshCurrentUser();
+        _ref.invalidate(userClinicsProvider);
+        _ref.invalidate(clinicBranchesProvider);
+        invalidateAppointmentsAndReports(_ref);
+
+        state = const AsyncValue.data(null);
+        return res;
+      } else {
+        throw res['message'] ?? 'فشل مغادرة العيادة';
+      }
+    } catch (e, s) {
+      state = AsyncValue.error(e, s);
+      rethrow;
+    }
+  }
+
   // إنشاء فرع جديد
   Future<bool> createBranch({
     required String clinicId,

@@ -528,6 +528,106 @@ BEGIN
 END;
 $$;
 
+-- RPC: Leave clinic if user is not the owner
+CREATE OR REPLACE FUNCTION public.leave_clinic(p_clinic_id uuid)
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_membership public.clinic_memberships%ROWTYPE;
+  v_remaining_clinic_id uuid;
+  v_remaining_branch_id uuid;
+  v_next_membership public.clinic_memberships%ROWTYPE;
+  v_clinic_name text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'غير مسجل الدخول');
+  END IF;
+
+  SELECT * INTO v_membership
+  FROM public.clinic_memberships
+  WHERE user_id = v_uid AND clinic_id = p_clinic_id;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'message', 'لست عضواً في هذه العيادة');
+  END IF;
+
+  IF v_membership.is_owner THEN
+    RETURN json_build_object('success', false, 'message', 'أنت مالك هذه العيادة ولا يمكنك مغادرتها كعضو');
+  END IF;
+
+  SELECT name INTO v_clinic_name FROM public.clinics WHERE id = p_clinic_id;
+
+  -- حذف عضوية المستخدم من هذه العيادة
+  DELETE FROM public.clinic_memberships
+  WHERE user_id = v_uid AND clinic_id = p_clinic_id;
+
+  -- البحث عن عيادة أخرى ينتمي إليها المستخدم
+  SELECT clinic_id INTO v_remaining_clinic_id
+  FROM public.clinic_memberships
+  WHERE user_id = v_uid AND is_active = true
+  ORDER BY is_owner DESC, joined_at ASC
+  LIMIT 1;
+
+  IF v_remaining_clinic_id IS NOT NULL THEN
+    -- التبديل التلقائي إلى العيادة المتبقية
+    SELECT * INTO v_next_membership
+    FROM public.clinic_memberships
+    WHERE user_id = v_uid AND clinic_id = v_remaining_clinic_id;
+
+    SELECT id INTO v_remaining_branch_id
+    FROM public.branches
+    WHERE clinic_id = v_remaining_clinic_id
+    ORDER BY is_main DESC, created_at ASC
+    LIMIT 1;
+
+    UPDATE public.users
+    SET
+      clinic_id = v_remaining_clinic_id,
+      active_clinic_id = v_remaining_clinic_id,
+      active_branch_id = v_remaining_branch_id,
+      role = v_next_membership.role,
+      is_owner = v_next_membership.is_owner,
+      can_view_reports = v_next_membership.can_view_reports,
+      can_delete_appointments = v_next_membership.can_delete_appointments,
+      can_edit_services = v_next_membership.can_edit_services,
+      can_view_medical_history = v_next_membership.can_view_medical_history,
+      can_cancel_appointments = v_next_membership.can_cancel_appointments
+    WHERE id = v_uid;
+
+    RETURN json_build_object(
+      'success', true,
+      'has_other_clinics', true,
+      'switched_to_clinic_id', v_remaining_clinic_id,
+      'message', 'تمت مغادرة عيادة ' || COALESCE(v_clinic_name, '') || ' والتبديل إلى عيادتك الأخرى بنجاح'
+    );
+  ELSE
+    -- لا توجد عيادات أخرى، تفريغ العيادة النشطة
+    UPDATE public.users
+    SET
+      clinic_id = null,
+      active_clinic_id = null,
+      active_branch_id = null,
+      is_owner = false,
+      can_delete_appointments = false,
+      can_view_reports = false,
+      can_edit_services = false,
+      can_view_medical_history = false,
+      can_edit_medical_notes = false,
+      can_cancel_appointments = true
+    WHERE id = v_uid;
+
+    RETURN json_build_object(
+      'success', true,
+      'has_other_clinics', false,
+      'message', 'تمت مغادرة عيادة ' || COALESCE(v_clinic_name, '') || ' بنجاح'
+    );
+  END IF;
+END;
+$$;
+
 -- RPC: Create an additional clinic for the current user
 CREATE OR REPLACE FUNCTION public.create_additional_clinic(p_clinic_name text)
 RETURNS json

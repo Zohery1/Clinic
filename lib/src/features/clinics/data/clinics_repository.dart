@@ -75,6 +75,19 @@ class ClinicsRepository {
     }
   }
 
+  // مغادرة عيادة ليس المستخدم مالكاً لها
+  Future<Map<String, dynamic>> leaveClinic(String clinicId) async {
+    try {
+      final response = await _supabase.rpc('leave_clinic', params: {
+        'p_clinic_id': clinicId,
+      });
+      return response as Map<String, dynamic>? ?? {'success': true};
+    } catch (e) {
+      debugPrint('leaveClinic error: $e');
+      rethrow;
+    }
+  }
+
   // جلب فروع عيادة محددة
   Future<List<BranchModel>> getClinicBranches(String clinicId) async {
     try {

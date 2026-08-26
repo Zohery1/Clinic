@@ -23,8 +23,6 @@ import '../../../core/widgets/clinic_dialog.dart';
 import '../../../core/widgets/clinic_toast.dart';
 import '../data/whatsapp_service.dart';
 import 'clinic_branches_page.dart';
-import '../../clinics/presentation/widgets/create_clinic_dialog.dart';
-import '../../clinics/presentation/widgets/join_clinic_dialog.dart';
 import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
 import '../../clinics/presentation/clinics_controller.dart';
 
@@ -268,44 +266,6 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            // ─── تعدد العيادات والاشتراكات ───
-            _buildSectionHeader(context, 'تعدد العيادات والاشتراكات'),
-            _buildSettingTile(
-              context: context,
-              icon: Icons.swap_horiz_rounded,
-              title: 'التبديل السريع بين العيادات والفروع',
-              subtitle: 'فتح قائمة العيادات والفروع للانتقال الفوري بلمسة واحدة دون كود',
-              onTap: () {
-                ClinicSwitcherButton.showSwitcherModal(context, ref);
-              },
-            ),
-            _buildSettingsClinicsSection(context, ref, user),
-            _buildSettingTile(
-              context: context,
-              icon: Icons.add_business_outlined,
-              title: 'إنشاء عيادة جديدة',
-              subtitle: 'تأسيس عيادة إضافية بحساب واشتراك مستقل',
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const CreateClinicDialog(),
-                );
-              },
-            ),
-            _buildSettingTile(
-              context: context,
-              icon: Icons.group_add_outlined,
-              title: 'الانضمام لعيادة أخرى (بكود دعوة)',
-              subtitle: 'الانضمام كطبيب أو مساعد لعيادة جديدة عبر كود الدعوة',
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const JoinClinicDialog(),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-
             // ─── أزرار الحساب والخروج ───
             _buildActionCard(
               context: context,
@@ -314,11 +274,11 @@ class SettingsScreen extends ConsumerWidget {
               color: AppTheme.error,
               onTap: () => _showLogoutDialog(context, ref),
             ),
-            if (!isDoctor) ...[
+            if (!user.isOwner) ...[
               const SizedBox(height: 12),
               _buildActionCard(
                 context: context,
-                title: 'الخروج من العيادة والمسح',
+                title: 'الخروج من العيادة',
                 icon: Icons.no_accounts_outlined,
                 color: AppTheme.error,
                 onTap: () => _showLeaveClinicDialog(context, ref),
@@ -597,257 +557,6 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSettingsClinicsSection(BuildContext context, WidgetRef ref, UserModel user) {
-    final clinicsAsync = ref.watch(userClinicsProvider);
-    final theme = Theme.of(context);
-    final activeClinicId = user.activeClinicId ?? user.clinicId;
-    final activeBranchId = user.activeBranchId;
-
-    return clinicsAsync.when(
-      data: (clinics) {
-        if (clinics.isEmpty) return const SizedBox.shrink();
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.dividerColor.withValues(alpha: 0.15),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(Icons.apartment_rounded, size: 16, color: theme.colorScheme.primary),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'عياداتك المسجلة (${clinics.length}):',
-                        style: GoogleFonts.cairo(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13.5,
-                          color: theme.textTheme.titleSmall?.color,
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextButton.icon(
-                    onPressed: () => ref.invalidate(userClinicsProvider),
-                    icon: const Icon(Icons.refresh_rounded, size: 14),
-                    label: Text(
-                      'تحديث',
-                      style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ...clinics.map((clinic) {
-                final isCurrent = clinic.clinicId == activeClinicId;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isCurrent
-                        ? theme.colorScheme.primary.withValues(alpha: 0.05)
-                        : theme.scaffoldBackgroundColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isCurrent
-                          ? theme.colorScheme.primary
-                          : theme.dividerColor.withValues(alpha: 0.2),
-                      width: isCurrent ? 1.5 : 1.0,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 14,
-                            backgroundColor: isCurrent
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.surfaceContainerHighest,
-                            child: Icon(
-                              clinic.isOwner
-                                  ? Icons.local_hospital_rounded
-                                  : Icons.medical_services_rounded,
-                              size: 14,
-                              color: isCurrent ? Colors.white : theme.hintColor,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  clinic.clinicName,
-                                  style: GoogleFonts.cairo(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13.5,
-                                    color: theme.textTheme.bodyLarge?.color,
-                                  ),
-                                ),
-                                Text(
-                                  clinic.isOwner
-                                      ? 'مدير العيادة'
-                                      : (clinic.role == UserRole.doctor ? 'طبيب' : 'مساعد'),
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 10.5,
-                                    color: theme.hintColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (isCurrent)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'النشطة حالياً ✓',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                            )
-                          else
-                            ElevatedButton(
-                              onPressed: () async {
-                                final success = await ref
-                                    .read(clinicsControllerProvider.notifier)
-                                    .switchActiveClinic(clinic.clinicId, branchId: clinic.mainBranch?.id);
-                                if (success && context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('تم الانتقال إلى عيادة: ${clinic.clinicName}'),
-                                      backgroundColor: Colors.green.shade700,
-                                    ),
-                                  );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: theme.colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                minimumSize: const Size(60, 30),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                textStyle: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                              child: const Text('دخول'),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'الفروع (اضغط لدخول الفرع مباشرة دون كود):',
-                        style: GoogleFonts.cairo(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.bold,
-                          color: theme.hintColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: (clinic.branches.isEmpty
-                            ? [
-                                // فرع افتراضي
-                              ]
-                            : clinic.branches).map((branch) {
-                          final isCurrentBranch = isCurrent &&
-                              (activeBranchId == branch.id || (activeBranchId == null && branch.isMain));
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(8),
-                            onTap: () async {
-                              final success = await ref
-                                  .read(clinicsControllerProvider.notifier)
-                                  .switchActiveClinic(clinic.clinicId, branchId: branch.id);
-                              if (success && context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('تم الانتقال إلى: ${clinic.clinicName} (${branch.name})'),
-                                    backgroundColor: Colors.green.shade700,
-                                  ),
-                                );
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: isCurrentBranch
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.surface,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isCurrentBranch
-                                      ? theme.colorScheme.primary
-                                      : theme.dividerColor.withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    isCurrentBranch
-                                        ? Icons.check_circle_rounded
-                                        : Icons.location_on_outlined,
-                                    size: 12,
-                                    color: isCurrentBranch ? Colors.white : theme.hintColor,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    branch.name,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 10.5,
-                                      fontWeight: isCurrentBranch ? FontWeight.bold : FontWeight.w600,
-                                      color: isCurrentBranch ? Colors.white : theme.textTheme.bodyMedium?.color,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
-        );
-      },
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
@@ -985,70 +694,88 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showLeaveClinicDialog(BuildContext context, WidgetRef ref) {
+    final user = ref.read(currentUserProvider);
+    final activeClinicId = user?.activeClinicId ?? user?.clinicId;
+
+    if (user == null || activeClinicId == null) return;
+
     showDialog(
       context: context,
-      builder: (context) => Directionality(
+      builder: (ctx) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          title: const Text(
-            'الخروج من العيادة والمسح',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppTheme.error, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'الخروج من العيادة',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              ),
+            ],
           ),
           content: const Text(
-            'تحذير: هذا الإجراء سيقوم بفصل حسابك عن هذه العيادة نهائياً ومسح ملفك الشخصي منها. ستحتاج إلى كود دعوة جديد من عيادة أخرى للانضمام مجدداً. هل أنت متأكد؟',
-            style: TextStyle(fontSize: 14),
+            'تحذير: هذا الإجراء سيقوم بفصل حسابك عن هذه العيادة نهائياً ومغادرتها. في حال كان لديك عيادات أخرى مسجلة بحسابك فسيتم التبديل إليها تلقائياً. هل أنت متأكد؟',
+            style: TextStyle(fontSize: 13.5, height: 1.5),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(ctx),
               child: const Text('إلغاء'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.error,
-                minimumSize: const Size(0, 40),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () async {
-                final user = ref.read(currentUserProvider);
-                Navigator.of(context).pop(); // إغلاق المربع الحواري أولاً
-                if (user != null) {
-                  try {
-                    // إلغاء ربط المساعد بالعيادة كلياً في الداتابيز
-                    await Supabase.instance.client.from('users').update({
-                      'clinic_id': null,
-                      'is_active': true,
-                      'can_delete_appointments': false,
-                      'can_view_reports': false,
-                      'can_edit_services': false,
-                      'can_view_medical_history': false,
-                      'can_edit_medical_notes': false,
-                    }).eq('id', user.id);
-
-                    final updatedUser = await ref.read(authRepositoryProvider).getUserProfile(user.id);
-                    ref.read(currentUserProvider.notifier).state = updatedUser;
-                  } catch (e) {
-                    print('Error unlinking clinic: $e');
-                  }
+                Navigator.of(ctx).pop();
+                try {
+                  final res = await ref
+                      .read(clinicsControllerProvider.notifier)
+                      .leaveClinic(activeClinicId);
 
                   if (context.mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => JoinClinicScreen(
-                          userName: user.fullName,
-                          onRefresh: () {
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(builder: (_) => const AuthGate()),
-                              (route) => false,
-                            );
-                          },
-                        ),
+                    final message = res['message']?.toString() ?? 'تمت مغادرة العيادة بنجاح';
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(message, style: GoogleFonts.cairo()),
+                        backgroundColor: Colors.green.shade700,
                       ),
-                      (route) => false,
+                    );
+
+                    final hasOtherClinics = res['has_other_clinics'] == true;
+                    if (!hasOtherClinics) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (_) => JoinClinicScreen(
+                            userName: user.fullName,
+                            onRefresh: () {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(builder: (_) => const AuthGate()),
+                                (route) => false,
+                              );
+                            },
+                          ),
+                        ),
+                        (route) => false,
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('حدث خطأ: $e', style: GoogleFonts.cairo()),
+                        backgroundColor: AppTheme.error,
+                      ),
                     );
                   }
                 }
               },
-              child: const Text('نعم، الخروج والمسح', style: TextStyle(fontWeight: FontWeight.w700)),
+              child: const Text('نعم، مغادرة العيادة', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ],
         ),
