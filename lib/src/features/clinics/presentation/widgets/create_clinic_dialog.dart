@@ -44,10 +44,15 @@ class _CreateClinicDialogState extends ConsumerState<CreateClinicDialog> {
         ),
       );
     } else {
-      final error = ref.read(clinicsControllerProvider).error?.toString() ?? 'حدث خطأ أثناء إنشاء العيادة';
+      final err = ref.read(clinicsControllerProvider).error;
+      String errorMsg = 'حدث خطأ أثناء إنشاء العيادة';
+      if (err != null) {
+        final s = err.toString();
+        errorMsg = s.startsWith('Exception: ') ? s.substring(11) : s;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error, style: GoogleFonts.cairo()),
+          content: Text(errorMsg, style: GoogleFonts.cairo()),
           backgroundColor: Colors.red.shade700,
         ),
       );
