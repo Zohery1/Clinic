@@ -14,6 +14,8 @@ import 'appointments_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../../dashboard/presentation/notifications_controller.dart';
 import '../../auth/domain/user_model.dart';
+import '../../clinics/presentation/clinics_controller.dart';
+import '../../clinics/domain/branch_model.dart';
 
 /// حوار حجز موعد جديد — متوافق مع الهاتف والويب
 class EditAppointmentDialog extends ConsumerStatefulWidget {
@@ -42,6 +44,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
   final _formKey = GlobalKey<FormState>();
 
   String? _selectedDoctorId;
+  String? _selectedBranchId;
   String? _selectedAppointmentTypeId;
   double _priceCharged = 0.0;
   final List<ServiceModel> _selectedServices = [];
@@ -56,6 +59,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
   void initState() {
     super.initState();
     _selectedDoctorId = widget.appointment.doctorId;
+    _selectedBranchId = widget.appointment.branchId;
     _selectedAppointmentTypeId = widget.appointment.appointmentTypeId;
     _selectedDate = widget.appointment.appointmentDate.toLocal();
     _selectedTime = TimeOfDay.fromDateTime(_selectedDate);
@@ -169,6 +173,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
             clinicId: widget.clinicId,
             appointmentId: widget.appointment.id,
             patientId: widget.appointment.patientId,
+            branchId: _selectedBranchId,
             doctorId: _selectedDoctorId,
             appointmentTypeId: _selectedAppointmentTypeId,
             appointmentDate: appointmentDateTime,
@@ -274,14 +279,15 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
     final patientsAsync = ref.watch(patientsListProvider(widget.clinicId));
     final typesAsync = ref.watch(appointmentTypesProvider);
     final doctorsAsync = ref.watch(clinicDoctorsProvider(widget.clinicId));
+    final branchesAsync = ref.watch(clinicBranchesProvider(widget.clinicId));
     final appointmentsAsync = ref.watch(appointmentsForDateProvider(_selectedDate));
 
     final isMobile = MediaQuery.of(context).size.width < 900;
 
     if (isMobile) {
-      return _buildMobileScaffold(context, patientsAsync, typesAsync, doctorsAsync, appointmentsAsync);
+      return _buildMobileScaffold(context, patientsAsync, typesAsync, doctorsAsync, branchesAsync, appointmentsAsync);
     } else {
-      return _buildDesktopDialog(context, patientsAsync, typesAsync, doctorsAsync, appointmentsAsync);
+      return _buildDesktopDialog(context, patientsAsync, typesAsync, doctorsAsync, branchesAsync, appointmentsAsync);
     }
   }
 
@@ -293,6 +299,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
     AsyncValue<List<PatientModel>> patientsAsync,
     AsyncValue<List<AppointmentTypeModel>> typesAsync,
     AsyncValue<List<UserModel>> doctorsAsync,
+    AsyncValue<List<BranchModel>> branchesAsync,
     AsyncValue<List<AppointmentModel>> appointmentsAsync,
   ) {
     return Directionality(
@@ -326,6 +333,8 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
                               _buildPatientInfoCard(),
                               const SizedBox(height: 16),
                               _buildDoctorField(doctorsAsync),
+                              const SizedBox(height: 16),
+                              _buildBranchField(branchesAsync),
                               const SizedBox(height: 16),
                               _buildServiceField(typesAsync),
                               const SizedBox(height: 16),
@@ -380,6 +389,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
     AsyncValue<List<PatientModel>> patientsAsync,
     AsyncValue<List<AppointmentTypeModel>> typesAsync,
     AsyncValue<List<UserModel>> doctorsAsync,
+    AsyncValue<List<BranchModel>> branchesAsync,
     AsyncValue<List<AppointmentModel>> appointmentsAsync,
   ) {
     return Directionality(
@@ -411,6 +421,8 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
                       _buildPatientInfoCard(),
                       const SizedBox(height: 16),
                       _buildDoctorField(doctorsAsync),
+                      const SizedBox(height: 16),
+                      _buildBranchField(branchesAsync),
                       const SizedBox(height: 16),
                       _buildServiceField(typesAsync),
                       const SizedBox(height: 16),
@@ -637,6 +649,65 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
               onChanged: (val) {
                 setState(() {
                   _selectedDoctorId = val;
+                });
+              },
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (err, _) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildBranchField(AsyncValue<List<BranchModel>> branchesAsync) {
+    return branchesAsync.when(
+      data: (branches) {
+        if (branches.isEmpty) return const SizedBox.shrink();
+        if (_selectedBranchId == null) {
+          final mainBranch = branches.where((b) => b.isMain).firstOrNull;
+          _selectedBranchId = mainBranch?.id ?? branches.first.id;
+        }
+        if (branches.length <= 1) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildFieldLabel('الفرع'),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              initialValue: _selectedBranchId,
+              style: TextStyle(color: _textColor, fontSize: 14),
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                prefixIcon: Icon(Icons.store_mall_directory_outlined, size: 18, color: _textSecColor),
+                filled: true,
+                fillColor: _inputFillCol,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: _borderCol),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: _borderCol),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: _primaryColor, width: 2),
+                ),
+              ),
+              items: branches.map((b) {
+                return DropdownMenuItem<String>(
+                  value: b.id,
+                  child: Text(
+                    b.isMain ? '${b.name} (الرئيسي)' : b.name,
+                    style: TextStyle(fontSize: 14, color: _textColor),
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                setState(() {
+                  _selectedBranchId = val;
                 });
               },
             ),

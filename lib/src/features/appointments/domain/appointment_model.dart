@@ -24,6 +24,8 @@ class AppointmentPatient {
 class AppointmentModel {
   final String id;
   final String clinicId;
+  final String? branchId; // معرف فرع العيادة
+  final String? branchName; // اسم فرع العيادة
   final String patientId;
   final String? doctorId; // معرف الطبيب المعالج
   final String? doctorName; // اسم الطبيب المعالج
@@ -40,6 +42,8 @@ class AppointmentModel {
   AppointmentModel({
     required this.id,
     required this.clinicId,
+    this.branchId,
+    this.branchName,
     required this.patientId,
     this.doctorId,
     this.doctorName,
@@ -62,6 +66,10 @@ class AppointmentModel {
     final doctorName = doctorJson != null ? doctorJson['full_name'] as String? : null;
     final doctorId = json['doctor_id'] as String?;
 
+    final branchJson = json['branches'] as Map<String, dynamic>?;
+    final branchName = branchJson != null ? branchJson['name'] as String? : null;
+    final branchId = json['branch_id'] as String?;
+
     final services = json['appointment_services'] as List<dynamic>?;
     double servicesTotal = 0.0;
     List<String> serviceNamesList = [];
@@ -79,6 +87,8 @@ class AppointmentModel {
     return AppointmentModel(
       id: json['id'] as String,
       clinicId: json['clinic_id'] as String,
+      branchId: branchId,
+      branchName: branchName,
       patientId: json['patient_id'] as String,
       doctorId: doctorId,
       doctorName: doctorName,
@@ -113,6 +123,7 @@ class AppointmentModel {
       'id': id,
       'clinic_id': clinicId,
       'patient_id': patientId,
+      if (branchId != null) 'branch_id': branchId,
       if (doctorId != null) 'doctor_id': doctorId,
       'appointment_type_id': appointmentTypeId,
       'appointment_date': appointmentDate.toIso8601String(),
@@ -120,5 +131,43 @@ class AppointmentModel {
       'price_charged': priceCharged,
       'updated_at': updatedAt?.toIso8601String(),
     };
+  }
+
+  AppointmentModel copyWith({
+    String? id,
+    String? clinicId,
+    String? branchId,
+    String? branchName,
+    String? patientId,
+    String? doctorId,
+    String? doctorName,
+    String? appointmentTypeId,
+    String? appointmentTypeName,
+    DateTime? appointmentDate,
+    String? status,
+    double? priceCharged,
+    AppointmentPatient? patient,
+    double? totalPaid,
+    DateTime? updatedAt,
+    List<String>? serviceNames,
+  }) {
+    return AppointmentModel(
+      id: id ?? this.id,
+      clinicId: clinicId ?? this.clinicId,
+      branchId: branchId ?? this.branchId,
+      branchName: branchName ?? this.branchName,
+      patientId: patientId ?? this.patientId,
+      doctorId: doctorId ?? this.doctorId,
+      doctorName: doctorName ?? this.doctorName,
+      appointmentTypeId: appointmentTypeId ?? this.appointmentTypeId,
+      appointmentTypeName: appointmentTypeName ?? this.appointmentTypeName,
+      appointmentDate: appointmentDate ?? this.appointmentDate,
+      status: status ?? this.status,
+      priceCharged: priceCharged ?? this.priceCharged,
+      patient: patient ?? this.patient,
+      totalPaid: totalPaid ?? this.totalPaid,
+      updatedAt: updatedAt ?? this.updatedAt,
+      serviceNames: serviceNames ?? this.serviceNames,
+    );
   }
 }

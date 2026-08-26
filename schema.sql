@@ -61,6 +61,36 @@ CREATE TABLE public.clinics (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- 2.1 Branches Table (فروع العيادة)
+CREATE TABLE public.branches (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    address text,
+    phone text,
+    is_main boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- 2.2 Clinic Memberships Table (عضويات وصلاحيات المستخدم بالعيادات)
+CREATE TABLE public.clinic_memberships (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+    role public.user_role NOT NULL DEFAULT 'doctor',
+    is_owner boolean NOT NULL DEFAULT false,
+    is_active boolean NOT NULL DEFAULT true,
+    can_view_reports boolean NOT NULL DEFAULT false,
+    can_delete_appointments boolean NOT NULL DEFAULT false,
+    can_edit_services boolean NOT NULL DEFAULT false,
+    can_view_medical_history boolean NOT NULL DEFAULT false,
+    can_cancel_appointments boolean NOT NULL DEFAULT true,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE(user_id, clinic_id)
+);
+
 -- 3. Appointment Types Table (أنواع الكشوفات)
 CREATE TABLE public.appointment_types (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -85,8 +115,11 @@ CREATE TABLE public.services (
 CREATE TABLE public.users (
     id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+    active_clinic_id uuid REFERENCES public.clinics(id) ON DELETE SET NULL,
+    active_branch_id uuid REFERENCES public.branches(id) ON DELETE SET NULL,
     role public.user_role NOT NULL DEFAULT 'doctor',
     full_name text NOT NULL,
+    phone text,
     is_active boolean NOT NULL DEFAULT true,                     -- هل الحساب نشط؟ (للحظر)
     is_owner boolean NOT NULL DEFAULT false,                    -- هل المستخدم هو مدير/منشئ العيادة؟
     can_delete_appointments boolean NOT NULL DEFAULT false,       -- صلاحية حذف المواعيد للسكرتيرة
@@ -116,6 +149,7 @@ CREATE TABLE public.patients (
 CREATE TABLE public.appointments (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+    branch_id uuid REFERENCES public.branches(id) ON DELETE SET NULL, -- فرع العيادة المحدد للحجز
     patient_id uuid NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
     doctor_id uuid REFERENCES public.users(id) ON DELETE SET NULL, -- الطبيب المعالج للحجز
     appointment_type_id uuid REFERENCES public.appointment_types(id) ON DELETE SET NULL,
@@ -224,6 +258,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 DECLARE
   v_clinic_id uuid;
+  v_branch_id uuid;
   v_role public.user_role;
   v_full_name text;
   v_clinic_name text;
@@ -282,6 +317,11 @@ BEGIN
       VALUES (v_clinic_name, v_phone, 'pending_activation', false, now(), NEW.id)
       RETURNING id INTO v_clinic_id;
 
+      -- Create default Main Branch for new clinic
+      INSERT INTO public.branches (clinic_id, name, is_main)
+      VALUES (v_clinic_id, 'الفرع الرئيسي', true)
+      RETURNING id INTO v_branch_id;
+
       v_is_owner := true;
       v_can_view_reports := true;
       v_can_delete_appointments := true;
@@ -290,8 +330,7 @@ BEGIN
       v_is_owner := false;
       IF v_role = 'doctor' THEN
         v_can_delete_appointments := true;
-        v_can_view_reports := false; -- Default false for associate doctors unless granted by owner
-        -- If existing clinic has empty whatsapp_phone and owner is empty, link if appropriate
+        v_can_view_reports := false;
         IF v_phone IS NOT NULL AND v_phone != '' THEN
           UPDATE public.clinics SET whatsapp_phone = v_phone WHERE id = v_clinic_id AND (whatsapp_phone IS NULL OR whatsapp_phone = '');
         END IF;
@@ -299,12 +338,51 @@ BEGIN
         v_can_delete_appointments := false;
         v_can_view_reports := false;
       END IF;
+
+      -- Get or create main branch
+      SELECT id INTO v_branch_id
+      FROM public.branches
+      WHERE clinic_id = v_clinic_id
+      ORDER BY is_main DESC, created_at ASC
+      LIMIT 1;
+
+      IF v_branch_id IS NULL THEN
+        INSERT INTO public.branches (clinic_id, name, is_main)
+        VALUES (v_clinic_id, 'الفرع الرئيسي', true)
+        RETURNING id INTO v_branch_id;
+      END IF;
     END IF;
 
-    INSERT INTO public.users (id, clinic_id, role, full_name, phone, is_active, is_owner, can_delete_appointments, can_view_reports)
-    VALUES (NEW.id, v_clinic_id, v_role, v_full_name, v_phone, v_is_active, v_is_owner, v_can_delete_appointments, v_can_view_reports)
+    -- Insert/Update membership in clinic_memberships
+    INSERT INTO public.clinic_memberships (
+      user_id, clinic_id, role, is_owner, is_active,
+      can_view_reports, can_delete_appointments, can_edit_services,
+      can_view_medical_history, can_cancel_appointments
+    ) VALUES (
+      NEW.id, v_clinic_id, v_role, v_is_owner, v_is_active,
+      v_can_view_reports, v_can_delete_appointments, v_is_owner,
+      v_is_owner OR v_role = 'doctor', true
+    )
+    ON CONFLICT (user_id, clinic_id) DO UPDATE SET
+      role = EXCLUDED.role,
+      is_owner = EXCLUDED.is_owner,
+      is_active = EXCLUDED.is_active;
+
+    -- Insert/Update active user profile
+    INSERT INTO public.users (
+      id, clinic_id, active_clinic_id, active_branch_id,
+      role, full_name, phone, is_active, is_owner,
+      can_delete_appointments, can_view_reports
+    )
+    VALUES (
+      NEW.id, v_clinic_id, v_clinic_id, v_branch_id,
+      v_role, v_full_name, v_phone, v_is_active, v_is_owner,
+      v_can_delete_appointments, v_can_view_reports
+    )
     ON CONFLICT (id) DO UPDATE SET
       clinic_id = EXCLUDED.clinic_id,
+      active_clinic_id = EXCLUDED.clinic_id,
+      active_branch_id = coalesce(EXCLUDED.active_branch_id, public.users.active_branch_id),
       role = EXCLUDED.role,
       full_name = EXCLUDED.full_name,
       is_owner = EXCLUDED.is_owner,
@@ -324,18 +402,180 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- RPC: Switch or link doctor/assistant to a clinic using invite code
-CREATE OR REPLACE FUNCTION public.switch_user_clinic(p_invite_code text, p_role text DEFAULT NULL)
+-- RPC: Get all clinics and branches user belongs to
+CREATE OR REPLACE FUNCTION public.get_user_clinics()
 RETURNS json
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
+  v_uid uuid := auth.uid();
+  v_result json;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN '[]'::json;
+  END IF;
+
+  SELECT json_agg(
+    json_build_object(
+      'clinic_id', c.id,
+      'clinic_name', c.name,
+      'role', cm.role,
+      'is_owner', cm.is_owner,
+      'is_active', cm.is_active,
+      'can_view_reports', cm.can_view_reports,
+      'subscription_status', c.subscription_status,
+      'invite_code', c.invite_code,
+      'branches', coalesce((
+        SELECT json_agg(
+          json_build_object(
+            'id', b.id,
+            'clinic_id', b.clinic_id,
+            'name', b.name,
+            'address', b.address,
+            'phone', b.phone,
+            'is_main', b.is_main
+          ) ORDER BY b.is_main DESC, b.created_at ASC
+        )
+        FROM public.branches b
+        WHERE b.clinic_id = c.id
+      ), '[]'::json)
+    )
+  ) INTO v_result
+  FROM public.clinic_memberships cm
+  JOIN public.clinics c ON cm.clinic_id = c.id
+  WHERE cm.user_id = v_uid AND cm.is_active = true;
+
+  RETURN coalesce(v_result, '[]'::json);
+END;
+$$;
+
+-- RPC: Switch user's active clinic and branch
+CREATE OR REPLACE FUNCTION public.switch_user_active_clinic(p_clinic_id uuid, p_branch_id uuid DEFAULT NULL)
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_membership public.clinic_memberships%ROWTYPE;
+  v_branch_id uuid := p_branch_id;
+  v_clinic_name text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'يجب تسجيل الدخول أولاً');
+  END IF;
+
+  SELECT * INTO v_membership
+  FROM public.clinic_memberships
+  WHERE user_id = v_uid AND clinic_id = p_clinic_id AND is_active = true;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'message', 'ليس لديك صلاحية وصول لهذه العيادة');
+  END IF;
+
+  SELECT name INTO v_clinic_name FROM public.clinics WHERE id = p_clinic_id;
+
+  IF v_branch_id IS NULL THEN
+    SELECT id INTO v_branch_id
+    FROM public.branches
+    WHERE clinic_id = p_clinic_id
+    ORDER BY is_main DESC, created_at ASC
+    LIMIT 1;
+  END IF;
+
+  UPDATE public.users
+  SET clinic_id = p_clinic_id,
+      active_clinic_id = p_clinic_id,
+      active_branch_id = v_branch_id,
+      role = v_membership.role,
+      is_owner = v_membership.is_owner,
+      can_view_reports = v_membership.can_view_reports,
+      can_delete_appointments = v_membership.can_delete_appointments,
+      can_edit_services = v_membership.can_edit_services,
+      can_view_medical_history = v_membership.can_view_medical_history,
+      can_cancel_appointments = v_membership.can_cancel_appointments,
+      updated_at = now()
+  WHERE id = v_uid;
+
+  RETURN json_build_object(
+    'success', true,
+    'message', 'تم التبديل إلى ' || coalesce(v_clinic_name, 'العيادة') || ' بنجاح',
+    'clinic_id', p_clinic_id,
+    'branch_id', v_branch_id,
+    'clinic_name', v_clinic_name
+  );
+END;
+$$;
+
+-- RPC: Create an additional clinic for the current user
+CREATE OR REPLACE FUNCTION public.create_additional_clinic(p_clinic_name text)
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_clinic_id uuid;
+  v_branch_id uuid;
+  v_user_phone text;
+  v_user_full_name text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'يجب تسجيل الدخول أولاً');
+  END IF;
+
+  IF p_clinic_name IS NULL OR trim(p_clinic_name) = '' THEN
+    RETURN json_build_object('success', false, 'message', 'يرجى إدخال اسم العيادة');
+  END IF;
+
+  SELECT phone, full_name INTO v_user_phone, v_user_full_name FROM public.users WHERE id = v_uid;
+
+  INSERT INTO public.clinics (name, whatsapp_phone, subscription_status, is_active, subscription_end_date, owner_id)
+  VALUES (trim(p_clinic_name), v_user_phone, 'pending_activation', false, now(), v_uid)
+  RETURNING id INTO v_clinic_id;
+
+  INSERT INTO public.branches (clinic_id, name, is_main)
+  VALUES (v_clinic_id, 'الفرع الرئيسي', true)
+  RETURNING id INTO v_branch_id;
+
+  INSERT INTO public.clinic_memberships (
+    user_id, clinic_id, role, is_owner, is_active,
+    can_view_reports, can_delete_appointments, can_edit_services,
+    can_view_medical_history, can_cancel_appointments
+  ) VALUES (
+    v_uid, v_clinic_id, 'doctor'::public.user_role, true, true,
+    true, true, true, true, true
+  )
+  ON CONFLICT (user_id, clinic_id) DO UPDATE SET
+    role = 'doctor'::public.user_role,
+    is_owner = true,
+    can_view_reports = true;
+
+  PERFORM public.switch_user_active_clinic(v_clinic_id, v_branch_id);
+
+  RETURN json_build_object(
+    'success', true,
+    'message', 'تم إنشاء عيادة ' || trim(p_clinic_name) || ' بنجاح',
+    'clinic_id', v_clinic_id,
+    'branch_id', v_branch_id,
+    'clinic_name', trim(p_clinic_name)
+  );
+END;
+$$;
+
+-- RPC: Join another clinic using invite code
+CREATE OR REPLACE FUNCTION public.join_additional_clinic(p_invite_code text, p_role text DEFAULT NULL)
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
   v_clinic_id uuid;
   v_clinic_name text;
-  v_uid uuid := auth.uid();
+  v_branch_id uuid;
   v_role public.user_role;
-  v_role_str text;
 BEGIN
   IF v_uid IS NULL THEN
     RETURN json_build_object('success', false, 'message', 'يجب تسجيل الدخول أولاً');
@@ -363,21 +603,216 @@ BEGIN
     END IF;
   END IF;
 
-  UPDATE public.users
-  SET clinic_id = v_clinic_id,
-      role = v_role,
-      is_active = true,
-      is_owner = false,
-      can_view_reports = false,
-      updated_at = now()
-  WHERE id = v_uid;
+  SELECT id INTO v_branch_id
+  FROM public.branches
+  WHERE clinic_id = v_clinic_id
+  ORDER BY is_main DESC, created_at ASC
+  LIMIT 1;
+
+  IF v_branch_id IS NULL THEN
+    INSERT INTO public.branches (clinic_id, name, is_main)
+    VALUES (v_clinic_id, 'الفرع الرئيسي', true)
+    RETURNING id INTO v_branch_id;
+  END IF;
+
+  INSERT INTO public.clinic_memberships (
+    user_id, clinic_id, role, is_owner, is_active,
+    can_view_reports, can_delete_appointments, can_edit_services,
+    can_view_medical_history, can_cancel_appointments
+  ) VALUES (
+    v_uid, v_clinic_id, v_role, false, true,
+    false, v_role = 'doctor', false, false, true
+  )
+  ON CONFLICT (user_id, clinic_id) DO UPDATE SET
+    role = EXCLUDED.role,
+    is_active = true;
+
+  PERFORM public.switch_user_active_clinic(v_clinic_id, v_branch_id);
 
   RETURN json_build_object(
     'success', true,
     'message', 'تم الانضمام إلى ' || coalesce(v_clinic_name, 'العيادة') || ' بنجاح',
     'clinic_id', v_clinic_id,
+    'branch_id', v_branch_id,
     'clinic_name', v_clinic_name
   );
+END;
+$$;
+
+-- RPC: Switch or link doctor/assistant to a clinic using invite code (Legacy Alias)
+CREATE OR REPLACE FUNCTION public.switch_user_clinic(p_invite_code text, p_role text DEFAULT NULL)
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN public.join_additional_clinic(p_invite_code, p_role);
+END;
+$$;
+
+-- RPC: Manage Clinic Branches
+CREATE OR REPLACE FUNCTION public.create_clinic_branch(
+  p_clinic_id uuid,
+  p_name text,
+  p_address text DEFAULT NULL,
+  p_phone text DEFAULT NULL,
+  p_is_main boolean DEFAULT false
+)
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_branch_id uuid;
+  v_is_owner boolean;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'يجب تسجيل الدخول أولاً');
+  END IF;
+
+  SELECT is_owner INTO v_is_owner
+  FROM public.clinic_memberships
+  WHERE user_id = v_uid AND clinic_id = p_clinic_id;
+
+  IF NOT coalesce(v_is_owner, false) THEN
+    RETURN json_build_object('success', false, 'message', 'فقط مالك العيادة مصرح له بإنشاء فروع');
+  END IF;
+
+  IF p_is_main THEN
+    UPDATE public.branches SET is_main = false WHERE clinic_id = p_clinic_id;
+  END IF;
+
+  INSERT INTO public.branches (clinic_id, name, address, phone, is_main)
+  VALUES (p_clinic_id, trim(p_name), trim(p_address), trim(p_phone), p_is_main)
+  RETURNING id INTO v_branch_id;
+
+  RETURN json_build_object(
+    'success', true,
+    'message', 'تم إنشاء الفرع بنجاح',
+    'branch_id', v_branch_id
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.update_clinic_branch(
+  p_branch_id uuid,
+  p_name text,
+  p_address text DEFAULT NULL,
+  p_phone text DEFAULT NULL,
+  p_is_main boolean DEFAULT false
+)
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_clinic_id uuid;
+  v_is_owner boolean;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'يجب تسجيل الدخول أولاً');
+  END IF;
+
+  SELECT clinic_id INTO v_clinic_id FROM public.branches WHERE id = p_branch_id;
+  IF v_clinic_id IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'الفرع غير موجود');
+  END IF;
+
+  SELECT is_owner INTO v_is_owner
+  FROM public.clinic_memberships
+  WHERE user_id = v_uid AND clinic_id = v_clinic_id;
+
+  IF NOT coalesce(v_is_owner, false) THEN
+    RETURN json_build_object('success', false, 'message', 'فقط مالك العيادة مصرح له بتعديل الفروع');
+  END IF;
+
+  IF p_is_main THEN
+    UPDATE public.branches SET is_main = false WHERE clinic_id = v_clinic_id;
+  END IF;
+
+  UPDATE public.branches
+  SET name = trim(p_name),
+      address = trim(p_address),
+      phone = trim(p_phone),
+      is_main = p_is_main,
+      updated_at = now()
+  WHERE id = p_branch_id;
+
+  RETURN json_build_object('success', true, 'message', 'تم تحديث بيانات الفرع بنجاح');
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.delete_clinic_branch(p_branch_id uuid)
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_clinic_id uuid;
+  v_is_owner boolean;
+  v_count int;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'يجب تسجيل الدخول أولاً');
+  END IF;
+
+  SELECT clinic_id INTO v_clinic_id FROM public.branches WHERE id = p_branch_id;
+  IF v_clinic_id IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'الفرع غير موجود');
+  END IF;
+
+  SELECT is_owner INTO v_is_owner
+  FROM public.clinic_memberships
+  WHERE user_id = v_uid AND clinic_id = v_clinic_id;
+
+  IF NOT coalesce(v_is_owner, false) THEN
+    RETURN json_build_object('success', false, 'message', 'فقط مالك العيادة مصرح له بحذف الفروع');
+  END IF;
+
+  SELECT count(*) INTO v_count FROM public.branches WHERE clinic_id = v_clinic_id;
+  IF v_count <= 1 THEN
+    RETURN json_build_object('success', false, 'message', 'لا يمكن حذف الفرع الوحيد المتبقي بالعيادة');
+  END IF;
+
+  DELETE FROM public.branches WHERE id = p_branch_id;
+
+  -- If main was deleted, make another one main
+  IF NOT EXISTS(SELECT 1 FROM public.branches WHERE clinic_id = v_clinic_id AND is_main = true) THEN
+    UPDATE public.branches
+    SET is_main = true
+    WHERE id = (SELECT id FROM public.branches WHERE clinic_id = v_clinic_id ORDER BY created_at ASC LIMIT 1);
+  END IF;
+
+  RETURN json_build_object('success', true, 'message', 'تم حذف الفرع بنجاح');
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_clinic_branches(p_clinic_id uuid)
+RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_result json;
+BEGIN
+  SELECT json_agg(
+    json_build_object(
+      'id', id,
+      'clinic_id', clinic_id,
+      'name', name,
+      'address', address,
+      'phone', phone,
+      'is_main', is_main,
+      'created_at', created_at
+    ) ORDER BY is_main DESC, created_at ASC
+  ) INTO v_result
+  FROM public.branches
+  WHERE clinic_id = p_clinic_id;
+
+  RETURN coalesce(v_result, '[]'::json);
 END;
 $$;
 
@@ -391,6 +826,7 @@ DECLARE
   v_uid uuid := auth.uid();
   v_meta jsonb;
   v_clinic_id uuid;
+  v_branch_id uuid;
   v_role_str text;
   v_role public.user_role;
   v_full_name text;
@@ -435,19 +871,59 @@ BEGIN
     VALUES (v_clinic_name, v_phone, 'pending_activation', false, now(), v_uid)
     RETURNING id INTO v_clinic_id;
 
+    INSERT INTO public.branches (clinic_id, name, is_main)
+    VALUES (v_clinic_id, 'الفرع الرئيسي', true)
+    RETURNING id INTO v_branch_id;
+
     v_is_owner := true;
+  ELSE
+    SELECT id INTO v_branch_id
+    FROM public.branches
+    WHERE clinic_id = v_clinic_id
+    ORDER BY is_main DESC, created_at ASC
+    LIMIT 1;
+
+    IF v_branch_id IS NULL THEN
+      INSERT INTO public.branches (clinic_id, name, is_main)
+      VALUES (v_clinic_id, 'الفرع الرئيسي', true)
+      RETURNING id INTO v_branch_id;
+    END IF;
   END IF;
 
-  INSERT INTO public.users (id, clinic_id, role, full_name, phone, is_active, is_owner, can_delete_appointments, can_view_reports)
-  VALUES (v_uid, v_clinic_id, v_role, v_full_name, v_phone, true, v_is_owner, v_is_owner OR v_role = 'doctor', v_is_owner)
+  INSERT INTO public.clinic_memberships (
+    user_id, clinic_id, role, is_owner, is_active,
+    can_view_reports, can_delete_appointments, can_edit_services,
+    can_view_medical_history, can_cancel_appointments
+  ) VALUES (
+    v_uid, v_clinic_id, v_role, v_is_owner, true,
+    v_is_owner, v_is_owner OR v_role = 'doctor', v_is_owner,
+    v_is_owner OR v_role = 'doctor', true
+  )
+  ON CONFLICT (user_id, clinic_id) DO UPDATE SET
+    role = EXCLUDED.role,
+    is_owner = EXCLUDED.is_owner,
+    is_active = true;
+
+  INSERT INTO public.users (
+    id, clinic_id, active_clinic_id, active_branch_id,
+    role, full_name, phone, is_active, is_owner,
+    can_delete_appointments, can_view_reports
+  )
+  VALUES (
+    v_uid, v_clinic_id, v_clinic_id, v_branch_id,
+    v_role, v_full_name, v_phone, true, v_is_owner,
+    v_is_owner OR v_role = 'doctor', v_is_owner
+  )
   ON CONFLICT (id) DO UPDATE SET
     clinic_id = EXCLUDED.clinic_id,
+    active_clinic_id = EXCLUDED.clinic_id,
+    active_branch_id = coalesce(EXCLUDED.active_branch_id, public.users.active_branch_id),
     role = EXCLUDED.role,
     full_name = EXCLUDED.full_name,
     is_owner = EXCLUDED.is_owner,
     phone = coalesce(EXCLUDED.phone, public.users.phone);
 
-  RETURN json_build_object('success', true, 'clinic_id', v_clinic_id);
+  RETURN json_build_object('success', true, 'clinic_id', v_clinic_id, 'branch_id', v_branch_id);
 END;
 $$;
 
@@ -456,6 +932,8 @@ $$;
 -- ==========================================
 
 ALTER TABLE public.clinics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.branches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clinic_memberships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.appointment_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
@@ -476,6 +954,24 @@ CREATE POLICY "Users can read their own clinic" ON public.clinics
 CREATE POLICY "Doctors can update their clinic settings" ON public.clinics
     FOR UPDATE TO authenticated
     USING (id = public.get_my_clinic_id() AND public.get_my_role() = 'doctor' AND public.is_my_user_active());
+
+-- 1.1 Branches Policies
+CREATE POLICY "Users can view branches in their clinic" ON public.branches
+    FOR SELECT TO authenticated
+    USING (clinic_id = public.get_my_clinic_id() AND public.is_my_user_active());
+
+CREATE POLICY "Owners can manage branches in their clinic" ON public.branches
+    FOR ALL TO authenticated
+    USING (clinic_id = public.get_my_clinic_id() AND public.is_my_clinic_owner() AND public.is_my_user_active());
+
+-- 1.2 Clinic Memberships Policies
+CREATE POLICY "Users can view memberships in their clinic or their own" ON public.clinic_memberships
+    FOR SELECT TO authenticated
+    USING (user_id = auth.uid() OR (clinic_id = public.get_my_clinic_id() AND public.is_my_user_active()));
+
+CREATE POLICY "Owners can manage memberships in their clinic" ON public.clinic_memberships
+    FOR ALL TO authenticated
+    USING (clinic_id = public.get_my_clinic_id() AND public.is_my_clinic_owner() AND public.is_my_user_active());
 
 -- 2. Appointment Types Policies
 CREATE POLICY "Users can view appointment types in their clinic" ON public.appointment_types
@@ -618,6 +1114,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_clinics_updated_at BEFORE UPDATE ON public.clinics FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_branches_updated_at BEFORE UPDATE ON public.branches FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_clinic_memberships_updated_at BEFORE UPDATE ON public.clinic_memberships FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_appointment_types_updated_at BEFORE UPDATE ON public.appointment_types FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_services_updated_at BEFORE UPDATE ON public.services FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -633,6 +1131,7 @@ CREATE TRIGGER update_appointment_services_updated_at BEFORE UPDATE ON public.ap
 CREATE OR REPLACE VIEW public.clinic_financial_reports AS
 SELECT 
     clinic_id,
+    branch_id,
     doctor_id,
     transaction_date::date as report_date,
     date_trunc('month', transaction_date)::date as report_month,
@@ -1236,3 +1735,10 @@ BEGIN
     WHERE created_at < (NOW() - INTERVAL '14 days');
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 7. Branches & Memberships Indexes
+CREATE INDEX IF NOT EXISTS idx_branches_clinic ON public.branches (clinic_id, is_main);
+CREATE INDEX IF NOT EXISTS idx_clinic_memberships_user ON public.clinic_memberships (user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_clinic_memberships_clinic ON public.clinic_memberships (clinic_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_appointments_branch ON public.appointments (clinic_id, branch_id);
+

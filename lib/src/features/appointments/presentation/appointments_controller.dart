@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
+import '../../clinics/presentation/clinics_controller.dart';
 import '../data/appointment_repository.dart';
 import '../domain/appointment_model.dart';
 import '../domain/appointment_service_model.dart';
@@ -38,7 +39,7 @@ String? getEffectiveDoctorIdForAppointments(Ref ref) {
   return null;
 }
 
-// مزود لجلب المواعيد للتاريخ المحدد تلقائياً مع دعم فلتر الطبيب
+// مزود لجلب المواعيد للتاريخ المحدد تلقائياً مع دعم فلتر الطبيب والفرع
 final todayAppointmentsProvider = FutureProvider<List<AppointmentModel>>((ref) async {
   // مراقبة المستخدم الحالي لجلب معرف العيادة الخاصة به تلقائياً
   final user = ref.watch(currentUserProvider);
@@ -49,7 +50,8 @@ final todayAppointmentsProvider = FutureProvider<List<AppointmentModel>>((ref) a
   final selectedDate = ref.watch(selectedDateProvider);
   final repository = ref.watch(appointmentRepositoryProvider);
   final doctorId = getEffectiveDoctorIdForAppointments(ref);
-  return repository.getAppointmentsByDate(user.clinicId, selectedDate, doctorId: doctorId);
+  final branchId = ref.watch(selectedBranchFilterProvider);
+  return repository.getAppointmentsByDate(user.clinicId, selectedDate, doctorId: doctorId, branchId: branchId);
 });
 
 // مزود لجلب مواعيد تاريخ محدد (لتجنب حجز المواعيد المتعارضة)
@@ -58,7 +60,8 @@ final appointmentsForDateProvider = FutureProvider.family<List<AppointmentModel>
   if (user == null) return [];
   final repository = ref.watch(appointmentRepositoryProvider);
   final doctorId = getEffectiveDoctorIdForAppointments(ref);
-  return repository.getAppointmentsByDate(user.clinicId, date, doctorId: doctorId);
+  final branchId = ref.watch(selectedBranchFilterProvider);
+  return repository.getAppointmentsByDate(user.clinicId, date, doctorId: doctorId, branchId: branchId);
 });
 
 // مزود لتخزين فلتر قائمة المرضى المحدد حالياً

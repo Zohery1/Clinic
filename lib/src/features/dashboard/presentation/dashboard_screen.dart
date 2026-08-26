@@ -17,6 +17,7 @@ import '../../auth/presentation/subscription_warning_banner.dart';
 import '../../auth/presentation/top_up_subscription_screen.dart';
 import 'notifications_controller.dart';
 import 'financial_panel.dart';
+import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
 
 /// الداشبورد الرئيسي — مطابق لتصميم Stitch
 /// Sidebar (يمين RTL) + Top Header + محتوى 2/3 مواعيد + 1/3 مالية
@@ -462,6 +463,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               letterSpacing: -0.01,
             ),
           ),
+          const SizedBox(width: 16),
+          const ClinicSwitcherButton(),
           Expanded(
             child: showWarning
                 ? Center(

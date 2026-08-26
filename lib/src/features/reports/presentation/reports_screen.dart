@@ -8,6 +8,7 @@ import '../../appointments/data/appointment_repository.dart';
 import 'reports_controller.dart';
 import 'report_detail_screen.dart';
 import '../../../core/widgets/clinic_dialog.dart';
+import '../../clinics/presentation/clinics_controller.dart';
 
 part 'reports_screen_parts.dart';
 
@@ -24,6 +25,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   // Default date range: last 90 days
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 89));
   DateTime _endDate = DateTime.now();
+
+  void setDateRange(DateTime start, DateTime end) {
+    setState(() {
+      _startDate = start;
+      _endDate = end;
+    });
+  }
+
+  void setSelectedSubTab(int index) {
+    setState(() => _selectedSubTab = index);
+  }
 
   @override
   void initState() {

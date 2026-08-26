@@ -24,6 +24,9 @@ final servicesProvider = FutureProvider<List<ServiceModel>>((ref) async {
 // مزود لتحديد الطبيب المختار في التقارير (null = كل العيادة لمن يملك الصلاحية)
 final selectedReportDoctorIdProvider = StateProvider<String?>((ref) => null);
 
+// مزود لتحديد الفرع المختار في التقارير (null = كل الفروع)
+final selectedReportBranchIdProvider = StateProvider<String?>((ref) => null);
+
 // دالة مساعدة لتحديد معرف الطبيب الفعال في التقارير
 String? getEffectiveDoctorIdForReport(Ref ref) {
   final user = ref.watch(currentUserProvider);
@@ -36,13 +39,20 @@ String? getEffectiveDoctorIdForReport(Ref ref) {
   return selectedDoctor != null && selectedDoctor.isNotEmpty ? selectedDoctor : null;
 }
 
-// مزود دخل اليوم المختار (مفلتر حسب الطبيب أو العيادة)
+// دالة مساعدة لتحديد معرف الفرع الفعال في التقارير
+String? getEffectiveBranchIdForReport(Ref ref) {
+  final selectedBranch = ref.watch(selectedReportBranchIdProvider);
+  return selectedBranch != null && selectedBranch.isNotEmpty ? selectedBranch : null;
+}
+
+// مزود دخل اليوم المختار (مفلتر حسب الطبيب أو العيادة والفرع)
 final todayRevenueProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
   final selectedDate = ref.watch(selectedDateProvider);
   final doctorId = getEffectiveDoctorIdForReport(ref);
-  return ref.watch(reportsRepositoryProvider).getTodayRevenue(user.clinicId, selectedDate, doctorId: doctorId);
+  final branchId = getEffectiveBranchIdForReport(ref);
+  return ref.watch(reportsRepositoryProvider).getTodayRevenue(user.clinicId, selectedDate, doctorId: doctorId, branchId: branchId);
 });
 
 // مزود الدخل الشخصي للطبيب اليوم (My Today Revenue)
@@ -50,22 +60,25 @@ final myTodayRevenueProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
   final selectedDate = ref.watch(selectedDateProvider);
-  return ref.watch(reportsRepositoryProvider).getTodayRevenue(user.clinicId, selectedDate, doctorId: user.id);
+  final branchId = getEffectiveBranchIdForReport(ref);
+  return ref.watch(reportsRepositoryProvider).getTodayRevenue(user.clinicId, selectedDate, doctorId: user.id, branchId: branchId);
 });
 
-// مزود دخل الشهر الحالي (مفلتر حسب الطبيب أو العيادة)
+// مزود دخل الشهر الحالي (مفلتر حسب الطبيب أو العيادة والفرع)
 final monthRevenueProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
   final doctorId = getEffectiveDoctorIdForReport(ref);
-  return ref.watch(reportsRepositoryProvider).getMonthRevenue(user.clinicId, doctorId: doctorId);
+  final branchId = getEffectiveBranchIdForReport(ref);
+  return ref.watch(reportsRepositoryProvider).getMonthRevenue(user.clinicId, doctorId: doctorId, branchId: branchId);
 });
 
 // مزود الدخل الشخصي للطبيب للشهر الحالي (My Month Revenue)
 final myMonthRevenueProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
-  return ref.watch(reportsRepositoryProvider).getMonthRevenue(user.clinicId, doctorId: user.id);
+  final branchId = getEffectiveBranchIdForReport(ref);
+  return ref.watch(reportsRepositoryProvider).getMonthRevenue(user.clinicId, doctorId: user.id, branchId: branchId);
 });
 
 // مزود دخل آخر 7 أيام للرسم البياني
@@ -73,7 +86,8 @@ final weeklyRevenueProvider = FutureProvider<List<Map<String, dynamic>>>((ref) a
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   final doctorId = getEffectiveDoctorIdForReport(ref);
-  return ref.watch(reportsRepositoryProvider).getWeeklyRevenue(user.clinicId, doctorId: doctorId);
+  final branchId = getEffectiveBranchIdForReport(ref);
+  return ref.watch(reportsRepositoryProvider).getWeeklyRevenue(user.clinicId, doctorId: doctorId, branchId: branchId);
 });
 
 // مزود دخل آخر 6 أسابيع للرسم البياني الأسبوعي
@@ -90,12 +104,14 @@ final sixWeeksRevenueProvider = FutureProvider<List<double>>((ref) async {
   final startStr = "${thirtyFiveDaysAgo.year}-${thirtyFiveDaysAgo.month.toString().padLeft(2, '0')}-${thirtyFiveDaysAgo.day.toString().padLeft(2, '0')}";
   final endStr = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
   final doctorId = getEffectiveDoctorIdForReport(ref);
+  final branchId = getEffectiveBranchIdForReport(ref);
 
   final dailyData = await ref.read(reportsRepositoryProvider).getDailyStats(
         clinicId: user.clinicId,
         startDate: startStr,
         endDate: endStr,
         doctorId: doctorId,
+        branchId: branchId,
       );
 
   final List<double> weeklyRevenues = List.filled(6, 0.0);
@@ -131,11 +147,13 @@ final dailyStatsProvider = FutureProvider.family<List<Map<String, dynamic>>, Str
   final startDate = parts[0];
   final endDate = parts[1];
   final doctorId = getEffectiveDoctorIdForReport(ref);
+  final branchId = getEffectiveBranchIdForReport(ref);
   return ref.watch(reportsRepositoryProvider).getDailyStats(
         clinicId: user.clinicId,
         startDate: startDate,
         endDate: endDate,
         doctorId: doctorId,
+        branchId: branchId,
       );
 });
 
@@ -144,7 +162,8 @@ final monthlyStatsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) as
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   final doctorId = getEffectiveDoctorIdForReport(ref);
-  return ref.watch(reportsRepositoryProvider).getMonthlyStats(user.clinicId, doctorId: doctorId);
+  final branchId = getEffectiveBranchIdForReport(ref);
+  return ref.watch(reportsRepositoryProvider).getMonthlyStats(user.clinicId, doctorId: doctorId, branchId: branchId);
 });
 
 // مزود التقرير التفصيلي لفترة زمنية محددة (يوم أو شهر)
@@ -167,10 +186,12 @@ final detailedReportProvider = FutureProvider.family<Map<String, dynamic>, Strin
   final startDate = parts[0];
   final endDate = parts[1];
   final doctorId = getEffectiveDoctorIdForReport(ref);
+  final branchId = getEffectiveBranchIdForReport(ref);
   return ref.watch(reportsRepositoryProvider).getDetailedReport(
         clinicId: user.clinicId,
         startDate: startDate,
         endDate: endDate,
         doctorId: doctorId,
+        branchId: branchId,
       );
 });

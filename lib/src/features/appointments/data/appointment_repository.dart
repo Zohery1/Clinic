@@ -33,22 +33,31 @@ class AppointmentRepository {
   AppointmentRepository(this._supabase, this._whatsAppService);
 
   // جلب مواعيد تاريخ محدد لعيادة محددة (clinicId) مرتبة زمنياً تصاعدياً
-  Future<List<AppointmentModel>> getAppointmentsByDate(String clinicId, DateTime date, {String? doctorId}) async {
+  Future<List<AppointmentModel>> getAppointmentsByDate(
+    String clinicId,
+    DateTime date, {
+    String? doctorId,
+    String? branchId,
+  }) async {
     try {
       // بداية اليوم بالـ Local Time وتحويله للتوقيت العالمي الموحد UTC للتوافق مع قاعدة البيانات
       final start = DateTime(date.year, date.month, date.day).toUtc().toIso8601String();
       final end = DateTime(date.year, date.month, date.day, 23, 59, 59).toUtc().toIso8601String();
 
-      // جلب البيانات مع عمل JOIN لبيانات المريض (الاسم والهاتف والعنوان) ونوع الكشف والطبيب والخدمات الإضافية
+      // جلب البيانات مع عمل JOIN لبيانات المريض والفرع ونوع الكشف والطبيب والخدمات الإضافية
       var query = _supabase
           .from('appointments')
-          .select('*, patients(full_name, phone, address), appointment_types(name), users!doctor_id(full_name), appointment_services(price_charged, services(name))')
+          .select('*, patients(full_name, phone, address), appointment_types(name), users!doctor_id(full_name), branches!branch_id(name), appointment_services(price_charged, services(name))')
           .eq('clinic_id', clinicId)
           .gte('appointment_date', start)
           .lte('appointment_date', end);
 
       if (doctorId != null && doctorId.isNotEmpty) {
         query = query.eq('doctor_id', doctorId);
+      }
+
+      if (branchId != null && branchId.isNotEmpty) {
+        query = query.eq('branch_id', branchId);
       }
 
       final List<dynamic> response = await query.order('appointment_date', ascending: true);
@@ -63,6 +72,7 @@ class AppointmentRepository {
   // حجز موعد جديد وحفظه في قاعدة البيانات مع الخدمات المرافقة
   Future<void> bookAppointment({
     required String clinicId,
+    String? branchId,
     required String patientId,
     String? doctorId,
     required String? appointmentTypeId,
@@ -94,6 +104,10 @@ class AppointmentRepository {
         duplicateQuery = duplicateQuery.eq('doctor_id', doctorId);
       }
 
+      if (branchId != null && branchId.isNotEmpty) {
+        duplicateQuery = duplicateQuery.eq('branch_id', branchId);
+      }
+
       final existingAppointments = await duplicateQuery;
 
       if (existingAppointments.isNotEmpty) {
@@ -102,6 +116,7 @@ class AppointmentRepository {
 
       final response = await _supabase.from('appointments').insert({
         'clinic_id': clinicId,
+        if (branchId != null && branchId.isNotEmpty) 'branch_id': branchId,
         'patient_id': patientId,
         if (doctorId != null && doctorId.isNotEmpty) 'doctor_id': doctorId,
         'appointment_type_id': appointmentTypeId,
@@ -200,7 +215,7 @@ class AppointmentRepository {
     try {
       final List<dynamic> response = await _supabase
           .from('appointments')
-          .select('*, patients(full_name, phone, address), appointment_types(name), appointment_services(price_charged, services(name))')
+          .select('*, patients(full_name, phone, address), appointment_types(name), users!doctor_id(full_name), branches!branch_id(name), appointment_services(price_charged, services(name))')
           .eq('patient_id', patientId)
           .order('appointment_date', ascending: false);
 
@@ -315,6 +330,7 @@ class AppointmentRepository {
     required String clinicId,
     required String appointmentId,
     required String patientId,
+    String? branchId,
     String? doctorId,
     required String? appointmentTypeId,
     required DateTime appointmentDate,
@@ -327,6 +343,7 @@ class AppointmentRepository {
           .from('appointments')
           .update({
             'patient_id': patientId,
+            if (branchId != null) 'branch_id': branchId,
             if (doctorId != null) 'doctor_id': doctorId,
             'appointment_type_id': appointmentTypeId,
             'appointment_date': appointmentDate.toUtc().toIso8601String(),

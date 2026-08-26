@@ -16,6 +16,8 @@ import 'widgets/queue_board.dart';
 import 'widgets/queue_card.dart';
 import '../../dashboard/presentation/notifications_controller.dart';
 import '../../auth/presentation/subscription_status_sheet.dart';
+import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
+import '../../clinics/presentation/clinics_controller.dart';
 
 /// شاشة المواعيد — مطابقة لتصميم Stitch
 /// شريط أيام أفقي + بطاقات مواعيد بتأثير waterfall
@@ -41,6 +43,10 @@ class AppointmentsScreen extends ConsumerStatefulWidget {
 
 class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
   int _selectedMobileTab = 0;
+
+  void setSelectedMobileTab(int index) {
+    setState(() => _selectedMobileTab = index);
+  }
 
   String _getShortDayName(String label) {
     if (label.startsWith('ال')) {

@@ -120,8 +120,8 @@ class ReportsRepository {
   // استعلامات التقارير المالية (Financial Reports)
   // ==========================================
 
-  // جلب دخل اليوم المختار للعيادة أو لطبيب محدد
-  Future<double> getTodayRevenue(String clinicId, DateTime date, {String? doctorId}) async {
+  // جلب دخل اليوم المختار للعيادة أو لطبيب/فرع محدد
+  Future<double> getTodayRevenue(String clinicId, DateTime date, {String? doctorId, String? branchId}) async {
     try {
       final start = DateTime(date.year, date.month, date.day).toUtc().toIso8601String();
       final end = DateTime(date.year, date.month, date.day, 23, 59, 59).toUtc().toIso8601String();
@@ -136,6 +136,10 @@ class ReportsRepository {
 
       if (doctorId != null && doctorId.isNotEmpty) {
         query = query.eq('doctor_id', doctorId);
+      }
+
+      if (branchId != null && branchId.isNotEmpty) {
+        query = query.eq('branch_id', branchId);
       }
 
       final List<dynamic> response = await query;
@@ -156,8 +160,8 @@ class ReportsRepository {
     }
   }
 
-  // جلب دخل الشهر للعيادة أو لطبيب محدد
-  Future<double> getMonthRevenue(String clinicId, {String? doctorId}) async {
+  // جلب دخل الشهر للعيادة أو لطبيب/فرع محدد
+  Future<double> getMonthRevenue(String clinicId, {String? doctorId, String? branchId}) async {
     try {
       final today = DateTime.now();
       final start = DateTime(today.year, today.month, 1).toUtc().toIso8601String();
@@ -174,6 +178,10 @@ class ReportsRepository {
 
       if (doctorId != null && doctorId.isNotEmpty) {
         query = query.eq('doctor_id', doctorId);
+      }
+
+      if (branchId != null && branchId.isNotEmpty) {
+        query = query.eq('branch_id', branchId);
       }
 
       final List<dynamic> response = await query;
@@ -195,7 +203,7 @@ class ReportsRepository {
   }
 
   // جلب دخل آخر 7 أيام لعرضه في الرسم البياني
-  Future<List<Map<String, dynamic>>> getWeeklyRevenue(String clinicId, {String? doctorId}) async {
+  Future<List<Map<String, dynamic>>> getWeeklyRevenue(String clinicId, {String? doctorId, String? branchId}) async {
     try {
       final today = DateTime.now();
       final diff = today.weekday >= DateTime.saturday ? today.weekday - DateTime.saturday : today.weekday + 7 - DateTime.saturday;
@@ -214,6 +222,10 @@ class ReportsRepository {
 
       if (doctorId != null && doctorId.isNotEmpty) {
         query = query.eq('doctor_id', doctorId);
+      }
+
+      if (branchId != null && branchId.isNotEmpty) {
+        query = query.eq('branch_id', branchId);
       }
 
       final List<dynamic> response = await query;
@@ -256,6 +268,7 @@ class ReportsRepository {
     required String startDate,
     required String endDate,
     String? doctorId,
+    String? branchId,
   }) async {
     try {
       final start = DateTime.parse(startDate).toUtc().toIso8601String();
@@ -272,6 +285,10 @@ class ReportsRepository {
 
       if (doctorId != null && doctorId.isNotEmpty) {
         query = query.eq('doctor_id', doctorId);
+      }
+
+      if (branchId != null && branchId.isNotEmpty) {
+        query = query.eq('branch_id', branchId);
       }
 
       final List<dynamic> appointments = await query;
@@ -322,7 +339,7 @@ class ReportsRepository {
   }
 
   // جلب إحصائيات الشهور التراكمية
-  Future<List<Map<String, dynamic>>> getMonthlyStats(String clinicId, {String? doctorId}) async {
+  Future<List<Map<String, dynamic>>> getMonthlyStats(String clinicId, {String? doctorId, String? branchId}) async {
     try {
       final today = DateTime.now();
       final oneYearAgo = DateTime(today.year - 1, today.month, 1).toUtc().toIso8601String();
@@ -336,6 +353,10 @@ class ReportsRepository {
 
       if (doctorId != null && doctorId.isNotEmpty) {
         query = query.eq('doctor_id', doctorId);
+      }
+
+      if (branchId != null && branchId.isNotEmpty) {
+        query = query.eq('branch_id', branchId);
       }
 
       final List<dynamic> appointments = await query;
@@ -393,6 +414,7 @@ class ReportsRepository {
     required String startDate,
     required String endDate,
     String? doctorId,
+    String? branchId,
   }) async {
     try {
       final start = DateTime.parse(startDate).toUtc().toIso8601String();
@@ -408,6 +430,7 @@ class ReportsRepository {
             id,
             patient_id,
             doctor_id,
+            branch_id,
             price_charged,
             appointment_date,
             appointment_types(name),
@@ -423,6 +446,10 @@ class ReportsRepository {
 
       if (doctorId != null && doctorId.isNotEmpty) {
         appointmentsQuery = appointmentsQuery.eq('doctor_id', doctorId);
+      }
+
+      if (branchId != null && branchId.isNotEmpty) {
+        appointmentsQuery = appointmentsQuery.eq('branch_id', branchId);
       }
 
       final newPatientsFuture = _supabase
@@ -442,6 +469,10 @@ class ReportsRepository {
 
       if (doctorId != null && doctorId.isNotEmpty) {
         cancelledQuery = cancelledQuery.eq('doctor_id', doctorId);
+      }
+
+      if (branchId != null && branchId.isNotEmpty) {
+        cancelledQuery = cancelledQuery.eq('branch_id', branchId);
       }
 
       final parallelResults = await Future.wait([

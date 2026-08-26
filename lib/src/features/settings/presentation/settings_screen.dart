@@ -22,6 +22,9 @@ import '../../appointments/domain/service_model.dart';
 import '../../../core/widgets/clinic_dialog.dart';
 import '../../../core/widgets/clinic_toast.dart';
 import '../data/whatsapp_service.dart';
+import 'clinic_branches_page.dart';
+import '../../clinics/presentation/widgets/create_clinic_dialog.dart';
+import '../../clinics/presentation/widgets/join_clinic_dialog.dart';
 
 class ClinicSubscriptionInfo {
   final DateTime? endDate;
@@ -191,6 +194,18 @@ class SettingsScreen extends ConsumerWidget {
                   );
                 },
               ),
+            if (user.isOwner)
+              _buildSettingTile(
+                context: context,
+                icon: Icons.store_mall_directory_outlined,
+                title: 'إدارة فروع العيادة',
+                subtitle: 'إضافة وتعديل فروع المركز والعيادات الفرعية',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ClinicBranchesPage()),
+                  );
+                },
+              ),
             const SizedBox(height: 16),
 
             // ─── القسم الثاني: إدارة الأسعار والخدمات ───
@@ -237,6 +252,34 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ThemeSettingsPage()),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // ─── تعدد العيادات والاشتراكات ───
+            _buildSectionHeader(context, 'تعدد العيادات والاشتراكات'),
+            _buildSettingTile(
+              context: context,
+              icon: Icons.add_business_outlined,
+              title: 'إنشاء عيادة جديدة',
+              subtitle: 'تأسيس عيادة إضافية بحساب واشتراك مستقل',
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => const CreateClinicDialog(),
+                );
+              },
+            ),
+            _buildSettingTile(
+              context: context,
+              icon: Icons.group_add_outlined,
+              title: 'الانضمام لعيادة أخرى',
+              subtitle: 'الانضمام كطبيب أو مساعد لعيادة عبر كود الدعوة',
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => const JoinClinicDialog(),
                 );
               },
             ),

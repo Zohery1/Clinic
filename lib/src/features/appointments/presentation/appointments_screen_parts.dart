@@ -382,8 +382,10 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
             ),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           _buildDoctorFilterChip(context, ref, user),
+          const SizedBox(width: 8),
+          _buildBranchFilterChip(context, ref, user),
 
           if (MediaQuery.of(context).size.width >= 1150) ...[
             const SizedBox(width: 16),
@@ -457,6 +459,56 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
               ],
               onChanged: (val) {
                 ref.read(selectedDoctorFilterProvider.notifier).state = val;
+              },
+            ),
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildBranchFilterChip(BuildContext context, WidgetRef ref, dynamic user) {
+    if (user == null) return const SizedBox.shrink();
+    final branchesAsync = ref.watch(clinicBranchesProvider(user.clinicId));
+    final selectedBranchId = ref.watch(selectedBranchFilterProvider);
+
+    return branchesAsync.when(
+      data: (branches) {
+        if (branches.length <= 1) return const SizedBox.shrink();
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF1F3F5),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String?>(
+              value: selectedBranchId,
+              isDense: true,
+              icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Theme.of(context).hintColor),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontFamily: 'Cairo',
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('جميع الفروع'),
+                ),
+                ...branches.map(
+                  (br) => DropdownMenuItem<String?>(
+                    value: br.id,
+                    child: Text(br.name),
+                  ),
+                ),
+              ],
+              onChanged: (val) {
+                ref.read(selectedBranchFilterProvider.notifier).state = val;
               },
             ),
           ),
@@ -786,6 +838,9 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
                             ],
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        const ClinicSwitcherButton(),
+                        const SizedBox(width: 8),
                         // Orange Receipt / Invoice Top-Up Button (فاتورة الاشتراك)
                         Material(
                           color: Colors.transparent,
@@ -1002,6 +1057,19 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
                   ),
                 ),
               ),
+              // ─── فلاتر الأطباء والفروع (موبايل) ───
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                  child: Row(
+                    children: [
+                      _buildDoctorFilterChip(context, ref, user),
+                      const SizedBox(width: 8),
+                      _buildBranchFilterChip(context, ref, user),
+                    ],
+                  ),
+                ),
+              ),
               // ─── عنوان القائمة ───
               SliverToBoxAdapter(
                 child: Padding(
@@ -1055,7 +1123,7 @@ extension AppointmentsScreenParts on _AppointmentsScreenState {
                   context,
                   appointments,
                   _selectedMobileTab,
-                  (index) => (this as State).setState(() => _selectedMobileTab = index),
+                  (index) => setSelectedMobileTab(index),
                 ),
                 loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
                 error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),

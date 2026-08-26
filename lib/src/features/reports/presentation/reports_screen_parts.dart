@@ -63,10 +63,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final now = DateTime.now();
                             final start = DateTime(now.year, now.month, now.day, 0, 0, 0);
                             final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-                            (this as State).setState(() {
-                              _startDate = start;
-                              _endDate = end;
-                            });
+                            setDateRange(start, end);
                             Navigator.pop(context);
                           },
                         ),
@@ -79,10 +76,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final yesterday = now.subtract(const Duration(days: 1));
                             final start = DateTime(yesterday.year, yesterday.month, yesterday.day, 0, 0, 0);
                             final end = DateTime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59);
-                            (this as State).setState(() {
-                              _startDate = start;
-                              _endDate = end;
-                            });
+                            setDateRange(start, end);
                             Navigator.pop(context);
                           },
                         ),
@@ -94,10 +88,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final now = DateTime.now();
                             final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
                             final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-                            (this as State).setState(() {
-                              _startDate = start;
-                              _endDate = end;
-                            });
+                            setDateRange(start, end);
                             Navigator.pop(context);
                           },
                         ),
@@ -109,10 +100,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final now = DateTime.now();
                             final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 29));
                             final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-                            (this as State).setState(() {
-                              _startDate = start;
-                              _endDate = end;
-                            });
+                            setDateRange(start, end);
                             Navigator.pop(context);
                           },
                         ),
@@ -124,10 +112,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final now = DateTime.now();
                             final start = DateTime(now.year, now.month, 1);
                             final end = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
-                            (this as State).setState(() {
-                              _startDate = start;
-                              _endDate = end;
-                            });
+                            setDateRange(start, end);
                             Navigator.pop(context);
                           },
                         ),
@@ -139,10 +124,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                             final now = DateTime.now();
                             final start = DateTime(now.year, now.month - 1, 1);
                             final end = DateTime(now.year, now.month, 0, 23, 59, 59);
-                            (this as State).setState(() {
-                              _startDate = start;
-                              _endDate = end;
-                            });
+                            setDateRange(start, end);
                             Navigator.pop(context);
                           },
                         ),
@@ -462,11 +444,7 @@ extension ReportsScreenParts on _ReportsScreenState {
                         }
                       }
 
-                      (this as State).setState(() {
-                        _startDate = finalStart;
-                        _endDate = finalEnd;
-                      });
-
+                      setDateRange(finalStart, finalEnd);
                       Navigator.pop(context);
                     },
                     child: const Text('تطبيق التصفية'),
@@ -548,9 +526,11 @@ extension ReportsScreenParts on _ReportsScreenState {
             const SizedBox(height: 20),
           ],
 
-          // شريط تصفية التقارير حسب الطبيب
-          if (ref.watch(currentUserProvider) != null)
+          // شريط تصفية التقارير حسب الطبيب والفرع
+          if (ref.watch(currentUserProvider) != null) ...[
             _buildDoctorReportFilterBar(context, ref.watch(currentUserProvider)!),
+            _buildBranchReportFilterBar(context, ref.watch(currentUserProvider)!),
+          ],
 
           // بطاقات الدخل المتجاورة الثلاثة (Stitch Design)
           LayoutBuilder(
@@ -956,7 +936,7 @@ extension ReportsScreenParts on _ReportsScreenState {
   Widget _buildSubTabButton(String label, int index) {
     final isSelected = _selectedSubTab == index;
     return GestureDetector(
-      onTap: () => (this as State).setState(() => _selectedSubTab = index),
+      onTap: () => setSelectedSubTab(index),
       child: Container(
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1518,6 +1498,72 @@ extension ReportsScreenParts on _ReportsScreenState {
                           label: 'د. ${doc.fullName}',
                           isSelected: selectedDoctorId == doc.id,
                           onTap: () => ref.read(selectedReportDoctorIdProvider.notifier).state = doc.id,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildBranchReportFilterBar(BuildContext context, UserModel user) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final branchesAsync = ref.watch(clinicBranchesProvider(user.clinicId));
+    final selectedBranchId = ref.watch(selectedReportBranchIdProvider);
+
+    return branchesAsync.when(
+      data: (branches) {
+        if (branches.length <= 1) return const SizedBox.shrink();
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.store_mall_directory_outlined, size: 18, color: Theme.of(context).hintColor),
+              const SizedBox(width: 8),
+              Text(
+                'تصفية حسب الفرع:',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                  fontFamily: 'Cairo',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildDoctorChip(
+                        label: 'جميع الفروع',
+                        isSelected: selectedBranchId == null || selectedBranchId.isEmpty,
+                        onTap: () => ref.read(selectedReportBranchIdProvider.notifier).state = null,
+                      ),
+                      ...branches.map(
+                        (br) => _buildDoctorChip(
+                          label: br.name,
+                          isSelected: selectedBranchId == br.id,
+                          onTap: () => ref.read(selectedReportBranchIdProvider.notifier).state = br.id,
                         ),
                       ),
                     ],
