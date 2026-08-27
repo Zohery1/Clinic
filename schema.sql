@@ -1094,23 +1094,69 @@ CREATE POLICY "Doctors can update their clinic settings" ON public.clinics
     FOR UPDATE TO authenticated
     USING (id = public.get_my_clinic_id() AND public.get_my_role() = 'doctor' AND public.is_my_user_active());
 
--- 1.1 Branches Policies
-CREATE POLICY "Users can view branches in their clinic" ON public.branches
-    FOR SELECT TO authenticated
-    USING (clinic_id = public.get_my_clinic_id() AND public.is_my_user_active());
+-- Security Definer Helpers to prevent RLS recursion
+CREATE OR REPLACE FUNCTION public.is_clinic_owner_for_auth(p_clinic_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.clinic_memberships
+    WHERE clinic_id = p_clinic_id
+      AND user_id = auth.uid()
+      AND is_owner = true
+  ) OR EXISTS (
+    SELECT 1 FROM public.clinics
+    WHERE id = p_clinic_id
+      AND owner_id = auth.uid()
+  );
+$$;
 
-CREATE POLICY "Owners can manage branches in their clinic" ON public.branches
+CREATE OR REPLACE FUNCTION public.can_view_clinic_membership(p_user_id uuid, p_clinic_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT (p_user_id = auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM public.clinic_memberships
+      WHERE clinic_id = p_clinic_id
+        AND user_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1 FROM public.clinics
+      WHERE id = p_clinic_id
+        AND owner_id = auth.uid()
+    );
+$$;
+
+-- 1.1 Branches Policies
+CREATE POLICY "Users can view branches for their clinics" ON public.branches
+    FOR SELECT TO authenticated
+    USING (
+      clinic_id = (SELECT clinic_id FROM public.users WHERE id = auth.uid())
+      OR EXISTS (
+        SELECT 1 FROM public.clinic_memberships
+        WHERE clinic_id = branches.clinic_id AND user_id = auth.uid()
+      )
+    );
+
+CREATE POLICY "Clinic owners can manage branches" ON public.branches
     FOR ALL TO authenticated
-    USING (clinic_id = public.get_my_clinic_id() AND public.is_my_clinic_owner() AND public.is_my_user_active());
+    USING (public.is_clinic_owner_for_auth(clinic_id))
+    WITH CHECK (public.is_clinic_owner_for_auth(clinic_id));
 
 -- 1.2 Clinic Memberships Policies
-CREATE POLICY "Users can view memberships in their clinic or their own" ON public.clinic_memberships
+CREATE POLICY "Users can view memberships for their clinics" ON public.clinic_memberships
     FOR SELECT TO authenticated
-    USING (user_id = auth.uid() OR (clinic_id = public.get_my_clinic_id() AND public.is_my_user_active()));
+    USING (public.can_view_clinic_membership(user_id, clinic_id));
 
-CREATE POLICY "Owners can manage memberships in their clinic" ON public.clinic_memberships
+CREATE POLICY "Clinic owners can manage memberships" ON public.clinic_memberships
     FOR ALL TO authenticated
-    USING (clinic_id = public.get_my_clinic_id() AND public.is_my_clinic_owner() AND public.is_my_user_active());
+    USING (public.is_clinic_owner_for_auth(clinic_id))
+    WITH CHECK (public.is_clinic_owner_for_auth(clinic_id));
 
 -- 2. Appointment Types Policies
 CREATE POLICY "Users can view appointment types in their clinic" ON public.appointment_types
