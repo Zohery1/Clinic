@@ -105,7 +105,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       );
     }
 
-    if (user.role == UserRole.secretary && !user.canViewReports) {
+    if (!user.isOwner) {
       return Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
@@ -129,13 +129,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'تم تقييد وصول السكرتيرة للتقارير',
+                    'التقارير المالية مخصصة لمالك العيادة فقط',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'قام الطبيب بإيقاف صلاحية رؤية الإيرادات والتقارير المالية عن حسابك. يرجى مراجعة إدارة العيادة عند الحاجة.',
+                    'صفحة التقارير المالية والإيرادات مخصصة لمالك العيادة فقط، ولا يمكن لبقية الموظفين أو الأطباء الوصول إليها.',
                     style: TextStyle(fontSize: 13, color: Theme.of(context).hintColor, height: 1.5),
                     textAlign: TextAlign.center,
                   ),

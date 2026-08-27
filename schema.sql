@@ -69,6 +69,7 @@ CREATE TABLE public.branches (
     address text,
     phone text,
     is_main boolean NOT NULL DEFAULT false,
+    invite_code text UNIQUE NOT NULL DEFAULT substring(md5(random()::text) from 1 for 6),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -89,6 +90,18 @@ CREATE TABLE public.clinic_memberships (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE(user_id, clinic_id)
+);
+
+-- 2.3 Branch Memberships Table (عضوية الموظفين والأطباء بالفروع المحددة)
+CREATE TABLE public.branch_memberships (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    branch_id uuid NOT NULL REFERENCES public.branches(id) ON DELETE CASCADE,
+    clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+    role public.user_role NOT NULL DEFAULT 'doctor',
+    is_active boolean NOT NULL DEFAULT true,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE(user_id, branch_id)
 );
 
 -- 3. Appointment Types Table (أنواع الكشوفات)
@@ -135,6 +148,7 @@ CREATE TABLE public.users (
 CREATE TABLE public.patients (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+    branch_id uuid REFERENCES public.branches(id) ON DELETE SET NULL, -- فرع العيادة التابع له المريض
     full_name text NOT NULL,
     phone text,
     gender text CHECK (gender IN ('male', 'female')),

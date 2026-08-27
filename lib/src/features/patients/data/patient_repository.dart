@@ -4,14 +4,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/patient_model.dart';
 import '../../../core/utils/arabic_utils.dart';
 
+import '../../auth/presentation/login_controller.dart';
+import '../../clinics/presentation/clinics_controller.dart';
+
 // مزود مستودع المرضى ليكون متاحاً عبر Riverpod
 final patientRepositoryProvider = Provider<PatientRepository>((ref) {
   return PatientRepository(Supabase.instance.client);
 });
 
-// مزود لجلب قائمة جميع المرضى في العيادة الحالية تلقائياً
+// مزود لجلب قائمة جميع المرضى في العيادة والفرع الحالي تلقائياً
 final patientsListProvider = FutureProvider.family<List<PatientModel>, String>((ref, clinicId) async {
-  return ref.watch(patientRepositoryProvider).getPatients(clinicId);
+  final user = ref.watch(currentUserProvider);
+  final selectedBranchId = ref.watch(selectedBranchFilterProvider);
+  // إذا حُدد فرع في الفلتر نستخدمه، وإلا إذا كان المستخدم ليس مالكاً نستخدم فرعه النشط تلقائياً
+  final branchId = selectedBranchId ?? (user?.isOwner == true ? null : user?.activeBranchId);
+  return ref.watch(patientRepositoryProvider).getPatients(clinicId, branchId: branchId);
 });
 
 class PatientRepository {
@@ -19,12 +26,15 @@ class PatientRepository {
 
   PatientRepository(this._supabase);
 
-  // جلب كافة المرضى للعيادة الحالية مرتبين بالأحدث تسجيلاً (تتخطي حد الـ 1000 مريض الخاص بـ PostgREST عبر JSON Aggregation)
-  Future<List<PatientModel>> getPatients(String clinicId) async {
+  // جلب كافة المرضى للعيادة أو الفرع الحالي
+  Future<List<PatientModel>> getPatients(String clinicId, {String? branchId}) async {
     try {
-      // 1) Primary: Call jsonb RPC to completely bypass PostgREST max-rows table limit (returns all 4000+ patients in 1 payload)
+      // 1) Primary: Call jsonb RPC to completely bypass PostgREST max-rows table limit
       final dynamic rpcResponse = await _supabase
-          .rpc('get_all_patients_json', params: {'p_clinic_id': clinicId});
+          .rpc('get_all_patients_json', params: {
+            'p_clinic_id': clinicId,
+            if (branchId != null) 'p_branch_id': branchId,
+          });
 
       if (rpcResponse is List && rpcResponse.isNotEmpty) {
         return rpcResponse
@@ -43,10 +53,16 @@ class PatientRepository {
       bool hasMore = true;
 
       while (hasMore) {
-        final List<dynamic> page = await _supabase
+        var query = _supabase
             .from('patients')
             .select('*')
-            .eq('clinic_id', clinicId)
+            .eq('clinic_id', clinicId);
+
+        if (branchId != null && branchId.isNotEmpty) {
+          query = query.eq('branch_id', branchId);
+        }
+
+        final List<dynamic> page = await query
             .order('created_at', ascending: false)
             .range(from, from + pageSize - 1);
 
@@ -75,6 +91,7 @@ class PatientRepository {
     DateTime? birthDate,
     String? address,
     String? medicalHistory,
+    String? branchId,
   }) async {
     try {
       final trimmedName = fullName.trim();
@@ -108,6 +125,7 @@ class PatientRepository {
             if (birthDate != null) 'birth_date': birthDate.toIso8601String().substring(0, 10),
             if (address != null && address.isNotEmpty) 'address': address,
             if (medicalHistory != null && medicalHistory.isNotEmpty) 'medical_history': medicalHistory,
+            if (branchId != null && branchId.isNotEmpty) 'branch_id': branchId,
           })
           .select()
           .single();

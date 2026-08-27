@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
@@ -594,12 +595,63 @@ class _ClinicBranchesPageState extends ConsumerState<ClinicBranchesPage> {
                                     ],
                                   ),
                                 ],
+                                if (branch.inviteCode != null && branch.inviteCode!.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  InkWell(
+                                    onTap: () {
+                                      Clipboard.setData(ClipboardData(text: branch.inviteCode!));
+                                      ClinicToast.showSuccess(context, 'تم نسخ كود دعوة الفرع: ${branch.inviteCode}');
+                                    },
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.vpn_key_rounded, size: 12, color: theme.colorScheme.primary),
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            'كود دعوة الفرع: ${branch.inviteCode}',
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: theme.colorScheme.primary,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Icon(Icons.copy_rounded, size: 11, color: theme.colorScheme.primary.withValues(alpha: 0.7)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              if (branch.inviteCode != null && branch.inviteCode!.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(Icons.share_outlined, size: 19),
+                                  tooltip: 'نسخ رابط دعوة الفرع',
+                                  onPressed: () {
+                                    String origin = 'https://myclinic-app.web.app';
+                                    try {
+                                      if (Uri.base.hasScheme && (Uri.base.scheme == 'http' || Uri.base.scheme == 'https')) {
+                                        origin = Uri.base.origin;
+                                      }
+                                    } catch (_) {}
+                                    final inviteLink = "$origin/#/register?invite=${branch.inviteCode}";
+                                    Clipboard.setData(ClipboardData(text: inviteLink));
+                                    ClinicToast.showSuccess(context, 'تم نسخ رابط الانضمام لـ ${branch.name} بنجاح');
+                                  },
+                                ),
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined, size: 19),
                                 tooltip: 'تعديل',

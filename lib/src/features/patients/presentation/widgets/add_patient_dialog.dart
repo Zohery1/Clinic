@@ -5,6 +5,8 @@ import '../../data/patient_repository.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
 import '../../../../core/widgets/clinic_toast.dart';
+import '../../../auth/presentation/login_controller.dart';
+import '../../../clinics/presentation/clinics_controller.dart';
 
 class AddPatientDialog extends ConsumerStatefulWidget {
   final String clinicId;
@@ -329,6 +331,10 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
       final address = _addressController.text.trim();
       final medicalHistory = _medicalHistoryController.text.trim();
 
+      final user = ref.read(currentUserProvider);
+      final selectedBranchId = ref.read(selectedBranchFilterProvider);
+      final branchId = selectedBranchId ?? user?.activeBranchId;
+
       await ref.read(patientRepositoryProvider).createPatient(
             clinicId: widget.clinicId,
             fullName: fullName,
@@ -337,6 +343,7 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
             address: address.isNotEmpty ? address : null,
             medicalHistory: medicalHistory.isNotEmpty ? medicalHistory : null,
             birthDate: birthDate,
+            branchId: branchId,
           );
 
       ref.invalidate(patientsListProvider(widget.clinicId));

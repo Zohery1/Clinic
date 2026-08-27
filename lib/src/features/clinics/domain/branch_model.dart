@@ -5,6 +5,7 @@ class BranchModel {
   final String? address;
   final String? phone;
   final bool isMain;
+  final String? inviteCode;
   final DateTime? createdAt;
 
   BranchModel({
@@ -14,6 +15,7 @@ class BranchModel {
     this.address,
     this.phone,
     this.isMain = false,
+    this.inviteCode,
     this.createdAt,
   });
 
@@ -26,6 +28,7 @@ class BranchModel {
       address: json['address']?.toString(),
       phone: json['phone']?.toString(),
       isMain: json['is_main'] == true,
+      inviteCode: json['invite_code']?.toString() ?? json['inviteCode']?.toString(),
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null,
     );
   }
@@ -38,6 +41,7 @@ class BranchModel {
       'address': address,
       'phone': phone,
       'is_main': isMain,
+      if (inviteCode != null) 'invite_code': inviteCode,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
     };
   }
@@ -49,6 +53,7 @@ class BranchModel {
     String? address,
     String? phone,
     bool? isMain,
+    String? inviteCode,
     DateTime? createdAt,
   }) {
     return BranchModel(
@@ -58,6 +63,7 @@ class BranchModel {
       address: address ?? this.address,
       phone: phone ?? this.phone,
       isMain: isMain ?? this.isMain,
+      inviteCode: inviteCode ?? this.inviteCode,
       createdAt: createdAt ?? this.createdAt,
     );
   }

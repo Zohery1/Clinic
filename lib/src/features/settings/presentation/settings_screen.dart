@@ -76,7 +76,9 @@ final inviteCodeProvider = FutureProvider<String>((ref) async {
 final staffListProvider = FutureProvider<List<UserModel>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
-  return ref.watch(authRepositoryProvider).getClinicStaff(user.clinicId);
+  final selectedBranchId = ref.watch(selectedBranchFilterProvider);
+  final branchId = selectedBranchId ?? (user.isOwner ? null : user.activeBranchId);
+  return ref.watch(authRepositoryProvider).getClinicStaff(user.clinicId, branchId: branchId);
 });
 
 class SettingsScreen extends ConsumerWidget {

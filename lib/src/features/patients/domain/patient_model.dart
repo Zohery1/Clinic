@@ -8,6 +8,7 @@ class PatientModel {
   final DateTime? birthDate;
   final String? address; // عنوان المريض
   final String? medicalHistory; // التاريخ المرضي — عمود منفصل بعد الـ migration
+  final String? branchId; // فرع العيادة التابع له المريض
   final DateTime createdAt;
 
   PatientModel({
@@ -19,6 +20,7 @@ class PatientModel {
     this.birthDate,
     this.address,
     this.medicalHistory,
+    this.branchId,
     required this.createdAt,
   });
 
@@ -43,6 +45,7 @@ class PatientModel {
       birthDate: json['birth_date'] != null ? DateTime.parse(json['birth_date'] as String) : null,
       address: address,
       medicalHistory: medicalHistory,
+      branchId: json['branch_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -57,6 +60,7 @@ class PatientModel {
       if (birthDate != null) 'birth_date': birthDate!.toIso8601String().substring(0, 10),
       if (address != null) 'address': address,
       if (medicalHistory != null) 'medical_history': medicalHistory,
+      if (branchId != null) 'branch_id': branchId,
     };
   }
 }

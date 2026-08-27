@@ -218,7 +218,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       children: [
                         _buildNavItem(0, Icons.calendar_today_rounded, 'الرئيسية'),
                         _buildNavItem(1, Icons.people_outline_rounded, 'المرضى'),
-                        if (user?.role == UserRole.doctor || (user?.canViewReports ?? false))
+                        if (user?.isOwner ?? false)
                           _buildNavItem(2, Icons.bar_chart_rounded, 'التقارير'),
                         _buildNavItem(3, Icons.settings_outlined, 'الإعدادات'),
                       ],
@@ -299,7 +299,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // Navigation Items
           _buildSidebarItem(0, Icons.grid_view_rounded, 'الرئيسية', true),
           _buildSidebarItem(1, Icons.people_alt_outlined, 'المرضى', false),
-          if (user?.role == UserRole.doctor || (user?.canViewReports ?? false))
+          if (user?.isOwner ?? false)
             _buildSidebarItem(2, Icons.trending_up_rounded, 'التقارير المالية', false),
           _buildSidebarItem(3, Icons.settings_suggest_outlined, 'الإعدادات العامة', false),
           
