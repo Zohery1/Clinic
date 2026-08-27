@@ -405,6 +405,47 @@ class _ClinicBranchesPageState extends ConsumerState<ClinicBranchesPage> {
         body: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
+            // ─── أزرار الإجراءات ───
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openAddEditBranchDialog(),
+                    icon: const Icon(Icons.add_rounded, size: 20),
+                    label: Text(
+                      'إضافة فرع جديد',
+                      style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => const CreateClinicDialog(),
+                    );
+                  },
+                  icon: const Icon(Icons.add_business_rounded, size: 20),
+                  label: Text(
+                    'إنشاء عيادة',
+                    style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
             // Info banner
             Container(
