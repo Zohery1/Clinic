@@ -7,6 +7,7 @@ import '../../../core/widgets/clinic_toast.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../clinics/domain/branch_model.dart';
 import '../../clinics/presentation/clinics_controller.dart';
+import '../../clinics/presentation/widgets/create_clinic_dialog.dart';
 
 class ClinicBranchesPage extends ConsumerStatefulWidget {
   const ClinicBranchesPage({super.key});
@@ -293,6 +294,64 @@ class _ClinicBranchesPageState extends ConsumerState<ClinicBranchesPage> {
       return const Scaffold(body: Center(child: Text('يرجى تسجيل الدخول')));
     }
 
+    if (!user.isOwner) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          appBar: AppBar(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Text(
+              'إدارة الفروع والعيادات',
+              style: GoogleFonts.cairo(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+          ),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.error.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.lock_rounded, size: 48, color: theme.colorScheme.error),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'هذه الصفحة مخصصة لمالك العيادة فقط',
+                    style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'لا يمكنك الوصول لإدارة الفروع أو إنشاء العيادات إلا إذا كنت مالك العيادة.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.cairo(fontSize: 13, color: theme.hintColor),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Text('رجوع', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final branchesAsync = ref.watch(clinicBranchesProvider(user.clinicId));
 
     return Directionality(
@@ -315,6 +374,16 @@ class _ClinicBranchesPageState extends ConsumerState<ClinicBranchesPage> {
             ),
           ),
           actions: [
+            IconButton(
+              tooltip: 'إنشاء عيادة جديدة',
+              icon: const Icon(Icons.add_business_rounded),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => const CreateClinicDialog(),
+                );
+              },
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: ElevatedButton.icon(
@@ -336,6 +405,72 @@ class _ClinicBranchesPageState extends ConsumerState<ClinicBranchesPage> {
         body: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
+            // ─── بطاقة إنشاء عيادة جديدة ───
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.dividerColor.withValues(alpha: 0.15)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.teal.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.add_business_rounded, color: Colors.teal, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'تأسيس عيادة جديدة',
+                          style: GoogleFonts.cairo(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: theme.textTheme.titleMedium?.color,
+                          ),
+                        ),
+                        Text(
+                          'إنشاء عيادة إضافية مستقلة بحساب وفروع واشتراك خاص',
+                          style: GoogleFonts.cairo(
+                            fontSize: 11.5,
+                            color: theme.hintColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => const CreateClinicDialog(),
+                      );
+                    },
+                    icon: const Icon(Icons.add_rounded, size: 16),
+                    label: Text(
+                      'إنشاء عيادة',
+                      style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
             // Info banner
             Container(
               padding: const EdgeInsets.all(16),
