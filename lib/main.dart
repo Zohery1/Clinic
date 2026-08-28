@@ -17,6 +17,7 @@ import 'src/features/auth/presentation/register_screen.dart';
 import 'src/core/utils/invite_utils.dart';
 import 'src/features/auth/domain/user_model.dart';
 import 'src/features/dashboard/presentation/dashboard_screen.dart';
+import 'src/features/appointments/presentation/patient_queue_tracking_screen.dart';
 
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -56,6 +57,37 @@ class MyApp extends ConsumerWidget {
       onGenerateRoute: (settings) {
         final name = settings.name ?? '/';
         final inviteCode = InviteUtils.extractInviteCode(routeName: name);
+
+        if (name.contains('/track') || name.contains('/queue')) {
+          String? apptId;
+          try {
+            final parsedUri = Uri.parse(name);
+            apptId = parsedUri.queryParameters['id'];
+          } catch (_) {}
+
+          if (apptId == null || apptId.isEmpty) {
+            try {
+              apptId = Uri.base.queryParameters['id'];
+            } catch (_) {}
+          }
+
+          if (apptId == null || apptId.isEmpty) {
+            try {
+              final frag = Uri.base.fragment;
+              if (frag.contains('id=')) {
+                final fragUri = Uri.parse(frag.startsWith('/') ? frag : '/$frag');
+                apptId = fragUri.queryParameters['id'];
+              }
+            } catch (_) {}
+          }
+
+          if (apptId != null && apptId.isNotEmpty) {
+            return MaterialPageRoute(
+              builder: (context) => PatientQueueTrackingScreen(appointmentId: apptId!),
+              settings: settings,
+            );
+          }
+        }
 
         if (name.contains('/reset')) {
           return MaterialPageRoute(

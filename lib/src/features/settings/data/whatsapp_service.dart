@@ -106,6 +106,11 @@ class WhatsAppService {
     required String clinicId,
     required String patientId,
     required DateTime appointmentDate,
+    String? appointmentId,
+    String? doctorId,
+    String? doctorName,
+    String? branchId,
+    String? branchName,
   }) async {
     try {
       final clinicRes = await _supabase
@@ -148,10 +153,46 @@ class WhatsAppService {
       final dateStr = DateFormat('yyyy-MM-dd').format(appointmentDate);
       final timeStr = DateFormat('hh:mm a').format(appointmentDate);
 
+      // جلب اسم الطبيب إن لم يكن ممرراً
+      String resolvedDoctorName = doctorName ?? '';
+      if (resolvedDoctorName.isEmpty && doctorId != null && doctorId.isNotEmpty) {
+        try {
+          final docRes = await _supabase.from('users').select('full_name').eq('id', doctorId).maybeSingle();
+          if (docRes != null && docRes['full_name'] != null) {
+            resolvedDoctorName = docRes['full_name'] as String;
+          }
+        } catch (_) {}
+      }
+
+      // جلب اسم الفرع إن لم يكن ممرراً
+      String resolvedBranchName = branchName ?? '';
+      if (resolvedBranchName.isEmpty && branchId != null && branchId.isNotEmpty) {
+        try {
+          final bRes = await _supabase.from('branches').select('name').eq('id', branchId).maybeSingle();
+          if (bRes != null && bRes['name'] != null) {
+            resolvedBranchName = bRes['name'] as String;
+          }
+        } catch (_) {}
+      }
+
+      // رابط صفحة متابعة الدور للمريض
+      String origin = 'https://myclinic-app.web.app';
+      try {
+        if (Uri.base.hasScheme && (Uri.base.scheme == 'http' || Uri.base.scheme == 'https')) {
+          origin = Uri.base.origin;
+        }
+      } catch (_) {}
+      final queueLink = (appointmentId != null && appointmentId.isNotEmpty)
+          ? "$origin/#/track?id=$appointmentId"
+          : "";
+
       String message = template
           .replaceAll('[patient_name]', patientName)
           .replaceAll('[date]', dateStr)
-          .replaceAll('[time]', timeStr);
+          .replaceAll('[time]', timeStr)
+          .replaceAll('[doctor_name]', resolvedDoctorName.isNotEmpty ? 'د. $resolvedDoctorName' : '')
+          .replaceAll('[branch_name]', resolvedBranchName)
+          .replaceAll('[queue_link]', queueLink);
 
       await _enqueueMessage(
         instanceName: instanceName,
@@ -168,6 +209,11 @@ class WhatsAppService {
     required String clinicId,
     required String patientId,
     required DateTime appointmentDate,
+    String? appointmentId,
+    String? doctorId,
+    String? doctorName,
+    String? branchId,
+    String? branchName,
   }) async {
     try {
       // عدم إرسال رسالة الاعتذار/الإلغاء إذا كان تاريخ ووقت الموعد قد مضى بالفعل
@@ -209,10 +255,45 @@ class WhatsAppService {
       final dateStr = DateFormat('yyyy-MM-dd').format(appointmentDate);
       final timeStr = DateFormat('hh:mm a').format(appointmentDate);
 
+      // جلب اسم الطبيب إن لم يكن ممرراً
+      String resolvedDoctorName = doctorName ?? '';
+      if (resolvedDoctorName.isEmpty && doctorId != null && doctorId.isNotEmpty) {
+        try {
+          final docRes = await _supabase.from('users').select('full_name').eq('id', doctorId).maybeSingle();
+          if (docRes != null && docRes['full_name'] != null) {
+            resolvedDoctorName = docRes['full_name'] as String;
+          }
+        } catch (_) {}
+      }
+
+      // جلب اسم الفرع إن لم يكن ممرراً
+      String resolvedBranchName = branchName ?? '';
+      if (resolvedBranchName.isEmpty && branchId != null && branchId.isNotEmpty) {
+        try {
+          final bRes = await _supabase.from('branches').select('name').eq('id', branchId).maybeSingle();
+          if (bRes != null && bRes['name'] != null) {
+            resolvedBranchName = bRes['name'] as String;
+          }
+        } catch (_) {}
+      }
+
+      String origin = 'https://myclinic-app.web.app';
+      try {
+        if (Uri.base.hasScheme && (Uri.base.scheme == 'http' || Uri.base.scheme == 'https')) {
+          origin = Uri.base.origin;
+        }
+      } catch (_) {}
+      final queueLink = (appointmentId != null && appointmentId.isNotEmpty)
+          ? "$origin/#/track?id=$appointmentId"
+          : "";
+
       String message = template
           .replaceAll('[patient_name]', patientName)
           .replaceAll('[date]', dateStr)
-          .replaceAll('[time]', timeStr);
+          .replaceAll('[time]', timeStr)
+          .replaceAll('[doctor_name]', resolvedDoctorName.isNotEmpty ? 'د. $resolvedDoctorName' : '')
+          .replaceAll('[branch_name]', resolvedBranchName)
+          .replaceAll('[queue_link]', queueLink);
 
       await _enqueueMessage(
         instanceName: instanceName,

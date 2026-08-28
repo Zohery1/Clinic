@@ -143,6 +143,9 @@ class AppointmentRepository {
         clinicId: clinicId,
         patientId: patientId,
         appointmentDate: appointmentDate,
+        appointmentId: appointmentId,
+        doctorId: doctorId,
+        branchId: branchId,
       ).catchError((e) {
         debugPrint('Error sending booking confirmation WhatsApp: $e');
       });
@@ -162,7 +165,7 @@ class AppointmentRepository {
       if (status == 'cancelled_by_clinic') {
         final appointmentData = await _supabase
             .from('appointments')
-            .select('clinic_id, patient_id, appointment_date')
+            .select('id, clinic_id, patient_id, appointment_date, doctor_id, branch_id')
             .eq('id', appointmentId)
             .maybeSingle();
 
@@ -171,6 +174,9 @@ class AppointmentRepository {
             clinicId: appointmentData['clinic_id'],
             patientId: appointmentData['patient_id'],
             appointmentDate: DateTime.parse(appointmentData['appointment_date']).toLocal(),
+            appointmentId: appointmentData['id'] as String?,
+            doctorId: appointmentData['doctor_id'] as String?,
+            branchId: appointmentData['branch_id'] as String?,
           ).catchError((e) {
             debugPrint('Error sending cancellation WhatsApp: $e');
           });

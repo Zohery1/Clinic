@@ -2075,10 +2075,20 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
         _sendBookingMessage = res['send_booking_message'] as bool? ?? true;
         _sendReminderMessage = res['send_reminder_message'] as bool? ?? true;
         _sendCancellationMessage = res['send_cancellation_message'] as bool? ?? true;
-        _bookingTemplateController.text = res['booking_message_template'] as String? ?? '';
-        _reminderTemplateController.text = res['reminder_message_template'] as String? ?? '';
-        _cancellationTemplateController.text = res['cancellation_message_template'] as String? ??
-            'عزيزي المريض [patient_name]، نعتذر عن إلغاء موعدك في العيادة بتاريخ [date] لظروف طارئة بالعيادة. نتمنى لكم دوام الصحة والعافية.';
+        final dbBookingTemplate = res['booking_message_template'] as String?;
+        _bookingTemplateController.text = (dbBookingTemplate != null && dbBookingTemplate.isNotEmpty)
+            ? dbBookingTemplate
+            : 'عزيزي المريض [patient_name]، تم تسجيل حجزك في العيادة لدى [doctor_name] ([branch_name]) بتاريخ [date] في تمام الساعة [time]. لمتابعة دورك في العيادة مباشرة: [queue_link]';
+
+        final dbReminderTemplate = res['reminder_message_template'] as String?;
+        _reminderTemplateController.text = (dbReminderTemplate != null && dbReminderTemplate.isNotEmpty)
+            ? dbReminderTemplate
+            : 'تذكير: عزيزي المريض [patient_name]، موعد كشفك القادم لدى [doctor_name] ([branch_name]) هو غداً [date] في تمام الساعة [time]. لمتابعة دورك في العيادة: [queue_link]';
+
+        final dbCancelTemplate = res['cancellation_message_template'] as String?;
+        _cancellationTemplateController.text = (dbCancelTemplate != null && dbCancelTemplate.isNotEmpty)
+            ? dbCancelTemplate
+            : 'عزيزي المريض [patient_name]، نعتذر عن إلغاء موعدك لدى [doctor_name] ([branch_name]) بتاريخ [date] لظروف طارئة بالعيادة. نتمنى لكم دوام الصحة والعافية.';
         _isLoading = false;
       });
     } catch (_) {
@@ -3007,6 +3017,9 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
         _buildTagBadge(controller, '[patient_name]', 'اسم المريض', enabled),
         _buildTagBadge(controller, '[date]', 'التاريخ', enabled),
         _buildTagBadge(controller, '[time]', 'وقت الموعد', enabled),
+        _buildTagBadge(controller, '[doctor_name]', 'الطبيب المعالج', enabled),
+        _buildTagBadge(controller, '[branch_name]', 'الفرع', enabled),
+        _buildTagBadge(controller, '[queue_link]', 'رابط متابعة الدور', enabled),
       ],
     );
   }

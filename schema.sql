@@ -54,9 +54,9 @@ CREATE TABLE public.clinics (
     send_booking_message boolean NOT NULL DEFAULT true,
     send_reminder_message boolean NOT NULL DEFAULT true,
     send_cancellation_message boolean NOT NULL DEFAULT true,
-    booking_message_template text NOT NULL DEFAULT 'عزيزي المريض [patient_name]، تم تسجيل حجزك في العيادة بتاريخ [date] في تمام الساعة [time]. نتمنى لكم دوام الصحة والعافية.',
-    reminder_message_template text NOT NULL DEFAULT 'تذكير: عزيزي المريض [patient_name]، موعد كشفك القادم في العيادة هو غداً [date] في تمام الساعة [time]. يرجى الحضور في الموعد المحدد.',
-    cancellation_message_template text NOT NULL DEFAULT 'عزيزي المريض [patient_name]، نعتذر عن إلغاء موعدك في العيادة بتاريخ [date] لظروف طارئة بالعيادة. نتمنى لكم دوام الصحة والعافية.',
+    booking_message_template text NOT NULL DEFAULT 'عزيزي المريض [patient_name]، تم تسجيل حجزك في العيادة لدى [doctor_name] ([branch_name]) بتاريخ [date] في تمام الساعة [time]. لمتابعة دورك في العيادة لحظياً: [queue_link]',
+    reminder_message_template text NOT NULL DEFAULT 'تذكير: عزيزي المريض [patient_name]، موعد كشفك القادم لدى [doctor_name] ([branch_name]) هو غداً [date] في تمام الساعة [time]. لمتابعة دورك في العيادة: [queue_link]',
+    cancellation_message_template text NOT NULL DEFAULT 'عزيزي المريض [patient_name]، نعتذر عن إلغاء موعدك لدى [doctor_name] ([branch_name]) بتاريخ [date] لظروف طارئة بالعيادة. نتمنى لكم دوام الصحة والعافية.',
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -1940,4 +1940,103 @@ CREATE INDEX IF NOT EXISTS idx_branches_clinic ON public.branches (clinic_id, is
 CREATE INDEX IF NOT EXISTS idx_clinic_memberships_user ON public.clinic_memberships (user_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_clinic_memberships_clinic ON public.clinic_memberships (clinic_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_appointments_branch ON public.appointments (clinic_id, branch_id);
+
+-- 8. Public Patient Queue Tracking Function (For WhatsApp Queue Links)
+CREATE OR REPLACE FUNCTION public.get_patient_queue_status(p_appointment_id uuid)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_appt record;
+  v_day_start timestamptz;
+  v_day_end timestamptz;
+  v_current_appt_id uuid;
+  v_current_patient_name text;
+  v_ahead_count int := 0;
+  v_queue_number int := 1;
+BEGIN
+  SELECT a.id, a.clinic_id, a.branch_id, a.doctor_id, a.patient_id, a.appointment_date, a.created_at, a.status,
+         p.full_name as patient_name,
+         u.full_name as doctor_name,
+         b.name as branch_name,
+         c.name as clinic_name
+  INTO v_appt
+  FROM public.appointments a
+  LEFT JOIN public.patients p ON p.id = a.patient_id
+  LEFT JOIN public.users u ON u.id = a.doctor_id
+  LEFT JOIN public.branches b ON b.id = a.branch_id
+  LEFT JOIN public.clinics c ON c.id = a.clinic_id
+  WHERE a.id = p_appointment_id;
+
+  IF v_appt.id IS NULL THEN
+    RETURN json_build_object('found', false, 'message', 'الحجز غير موجود');
+  END IF;
+
+  v_day_start := date_trunc('day', v_appt.appointment_date);
+  v_day_end := v_day_start + interval '1 day';
+
+  -- Check who is currently with the doctor (status = 'pending')
+  SELECT a.id, p.full_name
+  INTO v_current_appt_id, v_current_patient_name
+  FROM public.appointments a
+  LEFT JOIN public.patients p ON p.id = a.patient_id
+  WHERE a.clinic_id = v_appt.clinic_id
+    AND (v_appt.doctor_id IS NULL OR a.doctor_id = v_appt.doctor_id)
+    AND (v_appt.branch_id IS NULL OR a.branch_id = v_appt.branch_id)
+    AND a.appointment_date >= v_day_start AND a.appointment_date < v_day_end
+    AND a.status = 'pending'
+  ORDER BY a.appointment_date ASC
+  LIMIT 1;
+
+  -- Calculate queue number among active appointments for this doctor/branch today
+  SELECT count(*) INTO v_queue_number
+  FROM public.appointments
+  WHERE clinic_id = v_appt.clinic_id
+    AND (v_appt.doctor_id IS NULL OR doctor_id = v_appt.doctor_id)
+    AND (v_appt.branch_id IS NULL OR branch_id = v_appt.branch_id)
+    AND appointment_date >= v_day_start AND appointment_date < v_day_end
+    AND status NOT IN ('cancelled', 'cancelled_by_clinic', 'cancelled_by_patient')
+    AND (appointment_date < v_appt.appointment_date OR (appointment_date = v_appt.appointment_date AND created_at <= v_appt.created_at));
+
+  -- Calculate how many patients are ahead in line
+  IF v_appt.status = 'confirmed' THEN
+    SELECT count(*) INTO v_ahead_count
+    FROM public.appointments
+    WHERE clinic_id = v_appt.clinic_id
+      AND (v_appt.doctor_id IS NULL OR doctor_id = v_appt.doctor_id)
+      AND (v_appt.branch_id IS NULL OR branch_id = v_appt.branch_id)
+      AND appointment_date >= v_day_start AND appointment_date < v_day_end
+      AND status = 'confirmed'
+      AND (appointment_date < v_appt.appointment_date OR (appointment_date = v_appt.appointment_date AND created_at < v_appt.created_at));
+
+    IF v_current_appt_id IS NOT NULL AND v_current_appt_id != p_appointment_id THEN
+      v_ahead_count := v_ahead_count + 1;
+    END IF;
+  ELSIF v_appt.status = 'pending' THEN
+    v_ahead_count := 0;
+  ELSE
+    v_ahead_count := 0;
+  END IF;
+
+  RETURN json_build_object(
+    'found', true,
+    'appointment_id', v_appt.id,
+    'patient_name', v_appt.patient_name,
+    'doctor_name', coalesce(v_appt.doctor_name, 'طبيب العيادة'),
+    'branch_name', coalesce(v_appt.branch_name, 'الفرع الرئيسي'),
+    'clinic_name', coalesce(v_appt.clinic_name, 'العيادة'),
+    'appointment_date', v_appt.appointment_date,
+    'status', v_appt.status,
+    'is_current', (v_appt.status = 'pending'),
+    'is_completed', (v_appt.status = 'completed'),
+    'is_cancelled', (v_appt.status IN ('cancelled', 'cancelled_by_clinic', 'cancelled_by_patient')),
+    'queue_number', v_queue_number,
+    'patients_ahead', v_ahead_count
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_patient_queue_status(uuid) TO anon, authenticated;
 
