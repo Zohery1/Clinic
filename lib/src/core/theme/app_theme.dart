@@ -1,59 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../constants/app_spacing.dart';
 
-/// نظام الهوية البصرية — عيادتي
-/// Clean Medical SaaS — Light Theme
-class AppTheme {
-  AppTheme._();
+export '../constants/app_spacing.dart';
 
-  // ─── الألوان الأساسية ───
-  static const Color primary = Color(0xFF1A73E8);
-  static const Color primaryLight = Color(0xFFE8F0FE);
+/// Design Tokens — Calm Medical Clean Color Palette
+class AppColors {
+  AppColors._();
+
+  // Primary Brand (Calm Medical Clean)
+  static const Color primary = Color(0xFF1A73E8);        // Clean Medical Blue
+  static const Color primaryLight = Color(0xFFE8F0FE);   // Soft Tint (10-12%)
+  static const Color primaryDark = Color(0xFF1557B0);    // Deep Blue
   static const Color onPrimary = Colors.white;
 
-  // ─── الأسطح والخلفيات ───
-  static const Color background = Color(0xFFF8F9FB);
-  static const Color surface = Colors.white;
-  static const Color surfaceDim = Color(0xFFF1F5F9); // Softer grey/slate for surfaces
-  static const Color border = Color(0xFFF1F5F9); // Almost invisible border if needed
+  // Backgrounds & Surfaces (Light)
+  static const Color backgroundLight = Color(0xFFF8F9FB);
+  static const Color surfaceLight = Color(0xFFFFFFFF);
+  static const Color surfaceDimLight = Color(0xFFF1F5F9);
+  static const Color borderLight = Color(0xFFE2E8F0);
 
-  // ─── النصوص ───
-  static const Color textPrimary = Color(0xFF1E293B); // Softer black (Slate 800)
-  static const Color textSecondary = Color(0xFF64748B); // Slate 500
-  static const Color textHint = Color(0xFF9CA3AF);
+  // Backgrounds & Surfaces (Dark)
+  static const Color backgroundDark = Color(0xFF0F172A);
+  static const Color surfaceDark = Color(0xFF1E293B);
+  static const Color surfaceDimDark = Color(0xFF151E2E);
+  static const Color borderDark = Color(0xFF334155);
 
-  // ─── حالات الموعد ───
-  static const Color success = Color(0xFF059669);
-  static const Color warning = Color(0xFFD97706);
-  static const Color error = Color(0xFFDC2626);
-  static const Color completed = Color(0xFF7C3AED);
+  // Typography Tokens (Light)
+  static const Color textPrimaryLight = Color(0xFF1E293B);   // Slate 800
+  static const Color textSecondaryLight = Color(0xFF64748B); // Slate 500
+  static const Color textHintLight = Color(0xFF94A3B8);      // Slate 400
 
-  static const Color darkBorder = Color(0xFF334155);
+  // Typography Tokens (Dark)
+  static const Color textPrimaryDark = Color(0xFFF8FAFC);
+  static const Color textSecondaryDark = Color(0xFF94A3B8);
+  static const Color textHintDark = Color(0xFF64748B);
 
-  // ─── أدوات مساعدة ───
-  static BoxDecoration cardDecoration(BuildContext context) => BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 20,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      );
+  // Semantic Status Colors
+  static const Color success = Color(0xFF059669);   // Completed / Confirmed (Emerald)
+  static const Color successLight = Color(0xFFECFDF5);
+  static const Color warning = Color(0xFFD97706);   // Waiting / Pending (Amber)
+  static const Color warningLight = Color(0xFFFFFBEB);
+  static const Color info = Color(0xFF1A73E8);      // In Progress / With Doctor (Blue)
+  static const Color infoLight = Color(0xFFEFF6FF);
+  static const Color error = Color(0xFFDC2626);     // Cancelled / Expired (Rose)
+  static const Color errorLight = Color(0xFFFEF2F2);
+  static const Color completed = Color(0xFF7C3AED); // Purple status
+  static const Color completedLight = Color(0xFFF5F3FF);
 
-  static BoxDecoration cardDecorationFlat(BuildContext context) => BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-      );
-
-  static BoxDecoration statusDecoration(Color color) => BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      );
-
+  // Doctor Multi-Avatar Palette
   static const List<Color> doctorPalette = [
     Color(0xFF2563EB),
     Color(0xFF0D9488),
@@ -64,6 +59,80 @@ class AppTheme {
     Color(0xFF4F46E5),
     Color(0xFFEA580C),
   ];
+}
+
+/// نظام الهوية البصرية — عيادتي
+/// Clean Medical SaaS — Light & Dark Theme Configuration
+class AppTheme {
+  AppTheme._();
+
+  // ─── الألوان الأساسية (Backward Compatible Aliases) ───
+  static const Color primary = AppColors.primary;
+  static const Color primaryLight = AppColors.primaryLight;
+  static const Color primaryDark = AppColors.primaryDark;
+  static const Color onPrimary = AppColors.onPrimary;
+
+  // ─── الأسطح والخلفيات ───
+  static const Color background = AppColors.backgroundLight;
+  static const Color surface = AppColors.surfaceLight;
+  static const Color surfaceDim = AppColors.surfaceDimLight;
+  static const Color border = AppColors.borderLight;
+
+  // ─── النصوص ───
+  static const Color textPrimary = AppColors.textPrimaryLight;
+  static const Color textSecondary = AppColors.textSecondaryLight;
+  static const Color textHint = AppColors.textHintLight;
+
+  // ─── حالات الموعد ───
+  static const Color success = AppColors.success;
+  static const Color warning = AppColors.warning;
+  static const Color error = AppColors.error;
+  static const Color completed = AppColors.completed;
+  static const Color info = AppColors.info;
+
+  static const Color darkBorder = AppColors.borderDark;
+
+  // ─── أدوات مساعدة ───
+  static BoxDecoration cardDecoration(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BoxDecoration(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      border: Border.all(
+        color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        width: 1,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: isDark
+              ? Colors.black.withValues(alpha: 0.25)
+              : Colors.black.withValues(alpha: 0.03),
+          blurRadius: 16,
+          spreadRadius: 0,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    );
+  }
+
+  static BoxDecoration cardDecorationFlat(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BoxDecoration(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      border: Border.all(
+        color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        width: 1,
+      ),
+    );
+  }
+
+  static BoxDecoration statusDecoration(Color color) => BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+      );
+
+  static const List<Color> doctorPalette = AppColors.doctorPalette;
 
   static Color doctorColor(String? doctorId) {
     if (doctorId == null || doctorId.isEmpty) {
@@ -79,64 +148,67 @@ class AppTheme {
       headlineLarge: TextStyle(
         fontSize: 26,
         fontWeight: FontWeight.w800,
-        color: textPrimary,
+        color: AppColors.textPrimaryLight,
         height: 1.3,
       ),
       headlineMedium: TextStyle(
         fontSize: 22,
         fontWeight: FontWeight.w700,
-        color: textPrimary,
+        color: AppColors.textPrimaryLight,
         height: 1.3,
       ),
       titleLarge: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w700,
-        color: textPrimary,
+        color: AppColors.textPrimaryLight,
       ),
       titleMedium: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w600,
-        color: textPrimary,
+        color: AppColors.textPrimaryLight,
       ),
       bodyLarge: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w400,
-        color: textPrimary,
+        color: AppColors.textPrimaryLight,
         height: 1.6,
       ),
       bodyMedium: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w400,
-        color: textSecondary,
+        color: AppColors.textSecondaryLight,
         height: 1.5,
       ),
       bodySmall: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w500,
-        color: textSecondary,
+        color: AppColors.textSecondaryLight,
       ),
       labelLarge: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w700,
-        color: onPrimary,
+        color: AppColors.onPrimary,
       ),
     ));
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      primaryColor: primary,
-      scaffoldBackgroundColor: background,
+      primaryColor: AppColors.primary,
+      scaffoldBackgroundColor: AppColors.backgroundLight,
       colorScheme: const ColorScheme.light(
-        primary: primary,
-        onPrimary: onPrimary,
-        secondary: primary,
-        surface: surface,
-        error: error,
+        primary: AppColors.primary,
+        onPrimary: AppColors.onPrimary,
+        primaryContainer: AppColors.primaryLight,
+        secondary: AppColors.primary,
+        surface: AppColors.surfaceLight,
+        surfaceContainerHighest: AppColors.surfaceDimLight,
+        error: AppColors.error,
+        outline: AppColors.borderLight,
       ),
       textTheme: cairoText,
       appBarTheme: AppBarTheme(
-        backgroundColor: surface,
+        backgroundColor: AppColors.surfaceLight,
         elevation: 0,
         scrolledUnderElevation: 0.5,
         surfaceTintColor: Colors.transparent,
@@ -144,46 +216,46 @@ class AppTheme {
         titleTextStyle: GoogleFonts.cairo(
           fontSize: 20,
           fontWeight: FontWeight.w700,
-          color: textPrimary,
+          color: AppColors.textPrimaryLight,
         ),
-        iconTheme: const IconThemeData(color: textPrimary, size: 22),
+        iconTheme: const IconThemeData(color: AppColors.textPrimaryLight, size: 22),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceDim,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        labelStyle: const TextStyle(color: textSecondary, fontSize: 14),
-        hintStyle: const TextStyle(color: textHint, fontSize: 14),
-        floatingLabelStyle: const TextStyle(color: primary, fontWeight: FontWeight.w600),
+        fillColor: AppColors.surfaceDimLight,
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 14),
+        labelStyle: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 14),
+        hintStyle: const TextStyle(color: AppColors.textHintLight, fontSize: 14),
+        floatingLabelStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: primary, width: 1.5),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: error, width: 1),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          borderSide: const BorderSide(color: AppColors.error, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: error, width: 1.5),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: onPrimary,
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
           elevation: 0,
           minimumSize: const Size(double.infinity, 48),
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: AppSpacing.xl),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
           textStyle: GoogleFonts.cairo(
             fontSize: 15,
             fontWeight: FontWeight.w700,
@@ -192,146 +264,147 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: textSecondary,
+          foregroundColor: AppColors.textSecondaryLight,
           textStyle: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: textPrimary,
-          side: const BorderSide(color: border),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          foregroundColor: AppColors.textPrimaryLight,
+          side: const BorderSide(color: AppColors.borderLight),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: AppSpacing.lg),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
           textStyle: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w600),
         ),
       ),
       cardTheme: CardThemeData(
-        color: surface,
+        color: AppColors.surfaceLight,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          side: const BorderSide(color: AppColors.borderLight, width: 1),
         ),
       ),
-      dividerTheme: const DividerThemeData(color: border, thickness: 1, space: 0),
+      dividerTheme: const DividerThemeData(color: AppColors.borderLight, thickness: 1, space: 0),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: primary,
-        foregroundColor: onPrimary,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
         elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppColors.surfaceLight,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
         elevation: 8,
       ),
       tabBarTheme: TabBarThemeData(
-        indicatorColor: primary,
-        labelColor: primary,
-        unselectedLabelColor: textSecondary,
+        indicatorColor: AppColors.primary,
+        labelColor: AppColors.primary,
+        unselectedLabelColor: AppColors.textSecondaryLight,
         indicatorSize: TabBarIndicatorSize.label,
         labelStyle: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w700),
         unselectedLabelStyle: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w500),
-        dividerColor: border,
+        dividerColor: AppColors.borderLight,
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return primary;
+          if (states.contains(WidgetState.selected)) return AppColors.primary;
           return Colors.transparent;
         }),
-        checkColor: WidgetStateProperty.all(onPrimary),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        side: const BorderSide(color: border, width: 1.5),
+        checkColor: WidgetStateProperty.all(AppColors.onPrimary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusXs)),
+        side: const BorderSide(color: AppColors.borderLight, width: 1.5),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return primary;
-          return textHint;
+          if (states.contains(WidgetState.selected)) return AppColors.primary;
+          return AppColors.textHintLight;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return primaryLight;
-          return surfaceDim;
+          if (states.contains(WidgetState.selected)) return AppColors.primaryLight;
+          return AppColors.surfaceDimLight;
         }),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: surface,
+        color: AppColors.surfaceLight,
         elevation: 8,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
       ),
       datePickerTheme: DatePickerThemeData(
         backgroundColor: Colors.white,
-        headerBackgroundColor: primary,
+        headerBackgroundColor: AppColors.primary,
         headerForegroundColor: Colors.white,
-        rangeSelectionBackgroundColor: primaryLight,
+        rangeSelectionBackgroundColor: AppColors.primaryLight,
         dayForegroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return Colors.white;
-          return textPrimary;
+          return AppColors.textPrimaryLight;
         }),
         dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return primary;
+          if (states.contains(WidgetState.selected)) return AppColors.primary;
           return null;
         }),
-        todayForegroundColor: WidgetStateProperty.all(primary),
+        todayForegroundColor: WidgetStateProperty.all(AppColors.primary),
       ),
       timePickerTheme: const TimePickerThemeData(
         backgroundColor: Colors.white,
-        hourMinuteTextColor: textPrimary,
-        hourMinuteColor: surfaceDim,
-        dayPeriodTextColor: textPrimary,
-        dayPeriodColor: surfaceDim,
-        dialHandColor: primary,
-        dialTextColor: textPrimary,
-        dialBackgroundColor: surfaceDim,
-        entryModeIconColor: primary,
+        hourMinuteTextColor: AppColors.textPrimaryLight,
+        hourMinuteColor: AppColors.surfaceDimLight,
+        dayPeriodTextColor: AppColors.textPrimaryLight,
+        dayPeriodColor: AppColors.surfaceDimLight,
+        dialHandColor: AppColors.primary,
+        dialTextColor: AppColors.textPrimaryLight,
+        dialBackgroundColor: AppColors.surfaceDimLight,
+        entryModeIconColor: AppColors.primary,
       ),
     );
   }
 
-  // ─── الثيم الداكن المظلم ───
+  // ─── الثيم الداكن ───
   static ThemeData get darkTheme {
     final cairoText = GoogleFonts.cairoTextTheme(const TextTheme(
       headlineLarge: TextStyle(
         fontSize: 26,
         fontWeight: FontWeight.w800,
-        color: Colors.white,
+        color: AppColors.textPrimaryDark,
         height: 1.3,
       ),
       headlineMedium: TextStyle(
         fontSize: 22,
         fontWeight: FontWeight.w700,
-        color: Colors.white,
+        color: AppColors.textPrimaryDark,
         height: 1.3,
       ),
       titleLarge: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w700,
-        color: Colors.white,
+        color: AppColors.textPrimaryDark,
       ),
       titleMedium: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w600,
-        color: Colors.white,
+        color: AppColors.textPrimaryDark,
       ),
       bodyLarge: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w400,
-        color: Colors.white,
+        color: AppColors.textPrimaryDark,
         height: 1.6,
       ),
       bodyMedium: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w400,
-        color: Color(0xFF94A3B8),
+        color: AppColors.textSecondaryDark,
         height: 1.5,
       ),
       bodySmall: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w500,
-        color: Color(0xFF94A3B8),
+        color: AppColors.textSecondaryDark,
       ),
       labelLarge: TextStyle(
         fontSize: 14,
@@ -343,18 +416,21 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      primaryColor: const Color(0xFF3B82F6),
-      scaffoldBackgroundColor: const Color(0xFF0F172A),
+      primaryColor: AppColors.primary,
+      scaffoldBackgroundColor: AppColors.backgroundDark,
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF3B82F6),
+        primary: AppColors.primary,
         onPrimary: Colors.white,
-        secondary: Color(0xFF3B82F6),
-        surface: Color(0xFF1E293B),
+        primaryContainer: Color(0xFF1E3A8A),
+        secondary: AppColors.primary,
+        surface: AppColors.surfaceDark,
+        surfaceContainerHighest: AppColors.surfaceDimDark,
         error: Color(0xFFEF4444),
+        outline: AppColors.borderDark,
       ),
       textTheme: cairoText,
       appBarTheme: AppBarTheme(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: AppColors.surfaceDark,
         elevation: 0,
         scrolledUnderElevation: 0.5,
         surfaceTintColor: Colors.transparent,
@@ -362,79 +438,102 @@ class AppTheme {
         titleTextStyle: GoogleFonts.cairo(
           fontSize: 20,
           fontWeight: FontWeight.w700,
-          color: Colors.white,
+          color: AppColors.textPrimaryDark,
         ),
-        iconTheme: const IconThemeData(color: Colors.white, size: 22),
+        iconTheme: const IconThemeData(color: AppColors.textPrimaryDark, size: 22),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF1E293B),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        labelStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
-        hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
-        floatingLabelStyle: const TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w600),
+        fillColor: AppColors.surfaceDimDark,
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 14),
+        labelStyle: const TextStyle(color: AppColors.textSecondaryDark, fontSize: 14),
+        hintStyle: const TextStyle(color: AppColors.textHintDark, fontSize: 14),
+        floatingLabelStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF3B82F6),
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
           minimumSize: const Size(double.infinity, 48),
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: AppSpacing.xl),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
           textStyle: GoogleFonts.cairo(
             fontSize: 15,
             fontWeight: FontWeight.w700,
           ),
         ),
       ),
-      dividerColor: const Color(0xFF1E293B),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.textSecondaryDark,
+          textStyle: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textPrimaryDark,
+          side: const BorderSide(color: AppColors.borderDark),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: AppSpacing.lg),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusSm)),
+          textStyle: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+      ),
       cardTheme: CardThemeData(
-        color: const Color(0xFF1E293B),
+        color: AppColors.surfaceDark,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          side: const BorderSide(color: AppColors.borderDark, width: 1),
         ),
       ),
-      dividerTheme: const DividerThemeData(color: Color(0xFF334155), thickness: 1, space: 0),
+      dividerTheme: const DividerThemeData(color: AppColors.borderDark, thickness: 1, space: 0),
       datePickerTheme: DatePickerThemeData(
-        backgroundColor: const Color(0xFF1E293B),
-        headerBackgroundColor: const Color(0xFF3B82F6),
+        backgroundColor: AppColors.surfaceDark,
+        headerBackgroundColor: AppColors.primary,
         headerForegroundColor: Colors.white,
-        rangeSelectionBackgroundColor: const Color(0xFF3B82F6).withValues(alpha: 0.2),
+        rangeSelectionBackgroundColor: AppColors.primary.withValues(alpha: 0.2),
         dayForegroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return Colors.white;
           return Colors.white;
         }),
         dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return const Color(0xFF3B82F6);
+          if (states.contains(WidgetState.selected)) return AppColors.primary;
           return null;
         }),
-        todayForegroundColor: WidgetStateProperty.all(const Color(0xFF3B82F6)),
+        todayForegroundColor: WidgetStateProperty.all(AppColors.primary),
       ),
       timePickerTheme: const TimePickerThemeData(
-        backgroundColor: Color(0xFF1E293B),
+        backgroundColor: AppColors.surfaceDark,
         hourMinuteTextColor: Colors.white,
-        hourMinuteColor: Color(0xFF0F172A),
+        hourMinuteColor: AppColors.backgroundDark,
         dayPeriodTextColor: Colors.white,
-        dayPeriodColor: Color(0xFF0F172A),
-        dialHandColor: Color(0xFF3B82F6),
+        dayPeriodColor: AppColors.backgroundDark,
+        dialHandColor: AppColors.primary,
         dialTextColor: Colors.white,
-        dialBackgroundColor: Color(0xFF0F172A),
-        entryModeIconColor: Color(0xFF3B82F6),
+        dialBackgroundColor: AppColors.backgroundDark,
+        entryModeIconColor: AppColors.primary,
       ),
     );
   }

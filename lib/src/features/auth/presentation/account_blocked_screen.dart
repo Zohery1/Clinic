@@ -156,8 +156,8 @@ class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
                           ],
                         ),
                         const Divider(height: 20),
-                        Row(
-                          children: const [
+                        const Row(
+                          children: [
                             Icon(Icons.help_outline_rounded,
                                 size: 16, color: AppTheme.textSecondary),
                             SizedBox(width: 8),
