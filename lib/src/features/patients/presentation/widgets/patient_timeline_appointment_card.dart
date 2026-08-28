@@ -4,7 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/widgets/doctor_badge.dart';
 import '../../../../core/widgets/status_pill.dart';
-import '../../../../appointments/domain/appointment_model.dart';
+import '../../../appointments/domain/appointment_model.dart';
 import '../../domain/patient_model.dart';
 import 'appointment_services_section.dart';
 import 'patient_visit_note_section.dart';

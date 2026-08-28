@@ -8,7 +8,7 @@ import '../../../../core/widgets/state_views.dart';
 import '../../../appointments/presentation/book_appointment_dialog.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../domain/patient_model.dart';
-import '../../../data/patient_repository.dart';
+import '../../data/patient_repository.dart';
 import 'patient_avatar.dart';
 import 'hover_scale_button.dart';
 import 'patient_clinical_meta_item.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../appointments/data/visit_note_repository.dart';
-import '../../../../appointments/presentation/visit_notes_dialog.dart';
+import '../../../appointments/data/visit_note_repository.dart';
+import '../../../appointments/presentation/visit_notes_dialog.dart';
 
 /// ويدجت داخلي لعرض تقرير الزيارة الطبية وملاحظاتها
 class PatientVisitNoteSection extends ConsumerWidget {

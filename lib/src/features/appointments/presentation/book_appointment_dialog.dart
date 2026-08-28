@@ -145,7 +145,7 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
   Widget build(BuildContext context) {
     final appointmentsForDayAsync = ref.watch(
       appointmentsForDateProvider(
-        intl.DateFormat('yyyy-MM-dd').format(_selectedDate),
+        _selectedDate,
       ),
     );
 

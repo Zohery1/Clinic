@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'queue_lane_type.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 import '../../../../core/theme/app_theme.dart';
@@ -176,7 +177,7 @@ class QueueTimelineRow extends ConsumerWidget {
                     builder: (_) => ExaminationScreen(
                       clinicId: clinicId,
                       appointmentId: appt.id,
-                      patientId: appt.patient.id,
+                      patientId: appt.patientId,
                       patientName: appt.patient.fullName,
                     ),
                   ),
@@ -221,7 +222,7 @@ class QueueTimelineRow extends ConsumerWidget {
                     builder: (_) => ExaminationScreen(
                       clinicId: clinicId,
                       appointmentId: appt.id,
-                      patientId: appt.patient.id,
+                      patientId: appt.patientId,
                       patientName: appt.patient.fullName,
                     ),
                   ),

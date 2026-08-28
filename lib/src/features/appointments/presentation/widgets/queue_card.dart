@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'queue_lane_type.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:google_fonts/google_fonts.dart';
 import '../../domain/appointment_model.dart';

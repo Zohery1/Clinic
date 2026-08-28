@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../appointments/data/appointment_repository.dart';
-import '../../../../appointments/domain/appointment_model.dart';
-import '../../../../appointments/domain/appointment_service_model.dart';
+import '../../../appointments/data/appointment_repository.dart';
+import '../../../appointments/domain/appointment_model.dart';
+import '../../../appointments/domain/appointment_service_model.dart';
 
 /// مزود لجلب تاريخ مواعيد المريض بالكامل (منتهية فقط)
 final patientAppointmentsProvider = FutureProvider.family<List<AppointmentModel>, String>((ref, patientId) async {

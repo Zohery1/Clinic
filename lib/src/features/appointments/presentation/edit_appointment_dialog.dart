@@ -101,6 +101,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
 
       await ref.read(appointmentRepositoryProvider).updateAppointment(
             appointmentId: widget.appointment.id,
+            patientId: widget.appointment.patientId,
             clinicId: widget.clinicId,
             branchId: _selectedBranchId,
             doctorId: _selectedDoctorId,
@@ -159,7 +160,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
   Widget build(BuildContext context) {
     final appointmentsForDayAsync = ref.watch(
       appointmentsForDateProvider(
-        intl.DateFormat('yyyy-MM-dd').format(_selectedDate),
+        _selectedDate,
       ),
     );
 

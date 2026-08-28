@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../reports/presentation/reports_controller.dart';
 import '../appointments_controller.dart';
 import '../../domain/appointment_type_model.dart';
 

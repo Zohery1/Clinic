@@ -350,7 +350,7 @@ class AppointmentCardItem extends ConsumerWidget {
                                 builder: (_) => ExaminationScreen(
                                   clinicId: clinicId,
                                   appointmentId: appointment.id,
-                                  patientId: appointment.patient.id,
+                                  patientId: appointment.patientId,
                                   patientName: appointment.patient.fullName,
                                 ),
                               ),
@@ -387,7 +387,7 @@ class AppointmentCardItem extends ConsumerWidget {
                               builder: (_) => ExaminationScreen(
                                 clinicId: clinicId,
                                 appointmentId: appointment.id,
-                                patientId: appointment.patient.id,
+                                patientId: appointment.patientId,
                                 patientName: appointment.patient.fullName,
                               ),
                             ),

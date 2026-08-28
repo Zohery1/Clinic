@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../domain/appointment_model.dart';
-import '../../reports/presentation/reports_controller.dart';
+import '../../../reports/presentation/reports_controller.dart';
 import '../appointments_controller.dart';
 import '../book_appointment_dialog.dart';
 import 'appointments_calendar_strip.dart';
