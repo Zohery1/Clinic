@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'queue_lane_type.dart';
-import 'package:intl/intl.dart' as intl;
 import 'package:google_fonts/google_fonts.dart';
-import '../../domain/appointment_model.dart';
-import '../../presentation/appointments_controller.dart';
-import '../../data/appointment_repository.dart';
-import '../../../auth/presentation/login_controller.dart';
-import '../../../auth/domain/user_model.dart';
-import '../../presentation/examination_screen.dart';
-import 'queue_board.dart';
-import 'admission_confirmation_sheet.dart';
-import '../edit_appointment_dialog.dart';
+import 'package:intl/intl.dart' as intl;
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/clinic_toast.dart';
+import '../../../../core/widgets/double_bezel_card.dart';
+import '../../../auth/domain/user_model.dart';
+import '../../../auth/presentation/login_controller.dart';
 import '../../../dashboard/presentation/notifications_controller.dart';
 import '../../../patients/presentation/patient_details_dialog.dart';
+import '../../data/appointment_repository.dart';
+import '../../domain/appointment_model.dart';
+import '../appointments_controller.dart';
+import '../edit_appointment_dialog.dart';
+import '../examination_screen.dart';
+import 'admission_confirmation_sheet.dart';
+import 'queue_lane_type.dart';
 
-/// بطاقة مريض مبسطة ومخصصة حسب حالته في الطابور
+/// بطاقة مريض في طابور العيادة بتصميم Soft Structuralism و Double-Bezel
 class QueueCard extends ConsumerWidget {
   final AppointmentModel appointment;
   final QueueLaneType laneType;
@@ -38,45 +39,30 @@ class QueueCard extends ConsumerWidget {
     final currentUser = ref.watch(currentUserProvider);
     final isDoctor = currentUser?.role == UserRole.doctor;
     final formattedTime = intl.DateFormat('hh:mm a').format(appointment.appointmentDate.toLocal());
+    final isWithDoctor = laneType == QueueLaneType.withDoctor;
+    final isCancelled = laneType == QueueLaneType.cancelled;
+    final isCompleted = laneType == QueueLaneType.completed;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        elevation: 0,
-        child: Container(
-          decoration: BoxDecoration(
-            color: laneType == QueueLaneType.withDoctor 
-                ? const Color(0xFF3B82F6).withValues(alpha: 0.04) 
-                : Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: laneType == QueueLaneType.withDoctor 
-                    ? const Color(0xFF3B82F6).withValues(alpha: 0.12) 
-                    : Colors.black.withValues(alpha: 0.02),
-                blurRadius: 20,
-                spreadRadius: 0,
-                offset: const Offset(0, 4),
-              ),
+      padding: const EdgeInsets.only(bottom: 14), // Macro-whitespace
+      child: DoubleBezelCard(
+        outerRadius: 20.0,
+        innerRadius: 17.5,
+        outerPadding: const EdgeInsets.all(2.5),
+        innerPadding: const EdgeInsets.all(14),
+        isActiveGlow: isWithDoctor,
+        glowColor: const Color(0xFF3B82F6),
+        child: Opacity(
+          opacity: (isCompleted || isCancelled) ? 0.68 : 1.0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTopRow(context, formattedTime),
+              if (!isCompleted && !isCancelled) ...[
+                const SizedBox(height: 12),
+                _buildActionButtons(context, ref, isDoctor),
+              ],
             ],
-          ),
-          child: Opacity(
-            opacity: (laneType == QueueLaneType.completed || laneType == QueueLaneType.cancelled) ? 0.65 : 1.0,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTopRow(context, formattedTime),
-                  if (laneType != QueueLaneType.completed && laneType != QueueLaneType.cancelled) ...[
-                    const SizedBox(height: 10),
-                    _buildActionButtons(context, ref, isDoctor),
-                  ],
-                ],
-              ),
-            ),
           ),
         ),
       ),
@@ -84,6 +70,9 @@ class QueueCard extends ConsumerWidget {
   }
 
   Widget _buildTopRow(BuildContext context, String formattedTime) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -93,6 +82,7 @@ class QueueCard extends ConsumerWidget {
         else
           _buildStatusIcon(context),
         const SizedBox(width: 10),
+
         // ─── بيانات المريض ───
         Expanded(
           child: Column(
@@ -108,7 +98,7 @@ class QueueCard extends ConsumerWidget {
                     ),
                   );
                 },
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(6),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -118,7 +108,9 @@ class QueueCard extends ConsumerWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: laneType == QueueLaneType.withDoctor
+                              ? const Color(0xFF3B82F6)
+                              : theme.textTheme.titleMedium?.color,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -126,70 +118,81 @@ class QueueCard extends ConsumerWidget {
                     const SizedBox(width: 4),
                     Icon(
                       Icons.open_in_new_rounded,
-                      size: 13,
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                      size: 12,
+                      color: theme.hintColor.withValues(alpha: 0.6),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 3),
-              Row(
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Icon(Icons.schedule_rounded, size: 11, color: Theme.of(context).hintColor),
-                  const SizedBox(width: 3),
-                  Text(
-                    formattedTime,
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 11,
-                      color: Theme.of(context).hintColor,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.schedule_rounded, size: 12, color: theme.hintColor),
+                      const SizedBox(width: 3),
+                      Text(
+                        formattedTime,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: theme.hintColor,
+                        ),
+                      ),
+                    ],
                   ),
-                  if (appointment.appointmentTypeName != null) ...[
-                    const SizedBox(width: 8),
+                  if (appointment.appointmentTypeName != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        borderRadius: BorderRadius.circular(4),
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         appointment.appointmentTypeName!,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: Theme.of(context).hintColor,
+                          color: theme.hintColor,
                         ),
                       ),
                     ),
-                  ],
-                  if (appointment.doctorName != null && appointment.doctorName!.isNotEmpty) ...[
-                    const SizedBox(width: 6),
+                  if (appointment.doctorName != null && appointment.doctorName!.isNotEmpty)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(4),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.person_pin_outlined, size: 9, color: Theme.of(context).colorScheme.primary),
+                          Icon(
+                            Icons.person_pin_outlined,
+                            size: 10,
+                            color: theme.colorScheme.primary,
+                          ),
                           const SizedBox(width: 2),
                           Text(
                             'د. ${appointment.doctorName}',
                             style: TextStyle(
-                              fontSize: 9,
+                              fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: theme.colorScheme.primary,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
                 ],
               ),
-              // الخدمات المقدمة — فقط في المكتمل والملغي
+              // الخدمات والمدفوعات — فقط في المكتمل والملغي
               if ((laneType == QueueLaneType.completed || laneType == QueueLaneType.cancelled) &&
                   appointment.totalPaid > 0) ...[
                 const SizedBox(height: 4),
@@ -197,7 +200,7 @@ class QueueCard extends ConsumerWidget {
                   '${appointment.totalPaid.toStringAsFixed(0)} ج.م',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: const Color(0xFF10B981),
                   ),
                 ),
@@ -219,7 +222,7 @@ class QueueCard extends ConsumerWidget {
         return PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert_rounded, size: 20, color: Colors.grey),
           tooltip: 'خيارات أخرى',
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           onSelected: (value) {
             if (value == 'edit') {
               showDialog(
@@ -279,18 +282,24 @@ class QueueCard extends ConsumerWidget {
   }
 
   Widget _buildQueuePositionBadge(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      width: 36,
-      height: 36,
+      width: 38,
+      height: 38,
       decoration: BoxDecoration(
-        color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.18 : 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.35 : 0.25),
+        ),
       ),
       child: Center(
         child: Text(
           '$queuePosition',
           style: GoogleFonts.jetBrainsMono(
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: FontWeight.w800,
             color: const Color(0xFFF59E0B),
           ),
@@ -300,8 +309,11 @@ class QueueCard extends ConsumerWidget {
   }
 
   Widget _buildStatusIcon(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     IconData icon;
     Color color;
+
     switch (laneType) {
       case QueueLaneType.withDoctor:
         icon = Icons.person_rounded;
@@ -316,12 +328,16 @@ class QueueCard extends ConsumerWidget {
         icon = Icons.hourglass_top_rounded;
         color = const Color(0xFFF59E0B);
     }
+
     return Container(
-      width: 36,
-      height: 36,
+      width: 38,
+      height: 38,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withValues(alpha: isDark ? 0.18 : 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.35 : 0.2),
+        ),
       ),
       child: Icon(icon, size: 18, color: color),
     );
@@ -341,7 +357,7 @@ class QueueCard extends ConsumerWidget {
               onTap: () => _showAdmissionSheet(context, ref, 'pending'),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           _DangerIconButton(
             onTap: () => _showCancelOptionsSheet(context, ref),
           ),
@@ -360,16 +376,17 @@ class QueueCard extends ConsumerWidget {
               onTap: () => _openExamination(context),
             ),
           if (isDoctor || canViewMedicalHistory)
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
                 child: _SecondaryButton(
                   label: 'إنهاء الكشف',
+                  icon: Icons.check_rounded,
                   onTap: () => _showAdmissionSheet(context, ref, 'completed'),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               _DangerIconButton(
                 onTap: () => _showCancelOptionsSheet(context, ref),
               ),
@@ -383,6 +400,8 @@ class QueueCard extends ConsumerWidget {
   }
 
   void _showCancelOptionsSheet(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -390,8 +409,8 @@ class QueueCard extends ConsumerWidget {
         textDirection: TextDirection.rtl,
         child: Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            color: theme.colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
           child: Column(
@@ -400,10 +419,10 @@ class QueueCard extends ConsumerWidget {
             children: [
               Center(
                 child: Container(
-                  width: 40,
+                  width: 44,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).dividerColor,
+                    color: theme.dividerColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -414,7 +433,7 @@ class QueueCard extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Theme.of(context).textTheme.titleMedium?.color,
+                  color: theme.textTheme.titleMedium?.color,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -422,12 +441,12 @@ class QueueCard extends ConsumerWidget {
               ElevatedButton.icon(
                 onPressed: () {
                   final currentUser = ref.read(currentUserProvider);
-                  if (currentUser != null && currentUser.role == UserRole.secretary && !currentUser.canCancelAppointments) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('ليس لديك صلاحية لإلغاء الموعد أو الاعتذار للمرضى. يرجى مراجعة الطبيب.'),
-                        backgroundColor: Colors.red,
-                      ),
+                  if (currentUser != null &&
+                      currentUser.role == UserRole.secretary &&
+                      !currentUser.canCancelAppointments) {
+                    ClinicToast.showError(
+                      context,
+                      'ليس لديك صلاحية لإلغاء الموعد أو الاعتذار للمرضى. يرجى مراجعة الطبيب.',
                     );
                     return;
                   }
@@ -437,23 +456,23 @@ class QueueCard extends ConsumerWidget {
                 icon: const Icon(Icons.person_off_outlined),
                 label: const Text('المريض لم يحضر / اعتذر'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
-                  foregroundColor: Theme.of(context).colorScheme.error,
+                  backgroundColor: theme.colorScheme.error.withValues(alpha: 0.1),
+                  foregroundColor: theme.colorScheme.error,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () {
                   final currentUser = ref.read(currentUserProvider);
-                  if (currentUser != null && currentUser.role == UserRole.secretary && !currentUser.canCancelAppointments) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('ليس لديك صلاحية لإلغاء الموعد أو الاعتذار للمرضى. يرجى مراجعة الطبيب.'),
-                        backgroundColor: Colors.red,
-                      ),
+                  if (currentUser != null &&
+                      currentUser.role == UserRole.secretary &&
+                      !currentUser.canCancelAppointments) {
+                    ClinicToast.showError(
+                      context,
+                      'ليس لديك صلاحية لإلغاء الموعد أو الاعتذار للمرضى. يرجى مراجعة الطبيب.',
                     );
                     return;
                   }
@@ -463,11 +482,11 @@ class QueueCard extends ConsumerWidget {
                 icon: const Icon(Icons.cancel_outlined),
                 label: const Text('إلغاء من قبل العيادة / الطبيب'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
+                  backgroundColor: theme.colorScheme.error,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ],
@@ -543,11 +562,13 @@ class QueueCard extends ConsumerWidget {
             ? 'تم نقل المريض للطبيب'
             : status == 'completed'
                 ? 'تم إنهاء الكشف'
-                : 'تم إلغاء الموعد';
+                : status == 'confirmed'
+                    ? 'تمت إعادة المريض للانتظار'
+                    : 'تم إلغاء الموعد';
 
         final IconData iconData;
         final Color bgColor;
-        
+
         if (status == 'pending') {
           iconData = Icons.person_search_rounded;
           bgColor = const Color(0xFF1A73E8);
@@ -572,43 +593,62 @@ class QueueCard extends ConsumerWidget {
   }
 }
 
-// ─── أزرار مساعدة ───
+// ─── أزرار مساعدة لمسية بتصميم Soft Structuralism ───
 
 class _PrimaryButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
 
-  const _PrimaryButton({required this.label, required this.icon, required this.onTap});
+  const _PrimaryButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.primary,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 13, color: Colors.white),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.25 : 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 14, color: Colors.white),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -618,32 +658,54 @@ class _PrimaryButton extends StatelessWidget {
 
 class _SecondaryButton extends StatelessWidget {
   final String label;
+  final IconData? icon;
   final VoidCallback onTap;
 
-  const _SecondaryButton({required this.label, required this.onTap});
+  const _SecondaryButton({
+    required this.label,
+    this.icon,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8.5),
           decoration: BoxDecoration(
-            // removed border
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).textTheme.bodyMedium?.color,
-              ),
+            color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.15 : 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.35 : 0.2),
             ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 14, color: const Color(0xFF10B981)),
+                const SizedBox(width: 5),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF10B981),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -658,21 +720,27 @@ class _DangerIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.all(7),
+          padding: const EdgeInsets.all(8.5),
           decoration: BoxDecoration(
-            // removed border
-            borderRadius: BorderRadius.circular(8),
+            color: theme.colorScheme.error.withValues(alpha: isDark ? 0.15 : 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.colorScheme.error.withValues(alpha: isDark ? 0.3 : 0.15),
+            ),
           ),
           child: Icon(
             Icons.close_rounded,
-            size: 14,
-            color: Theme.of(context).colorScheme.error,
+            size: 15,
+            color: theme.colorScheme.error,
           ),
         ),
       ),

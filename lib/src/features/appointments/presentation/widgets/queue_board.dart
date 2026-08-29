@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/double_bezel_card.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../auth/presentation/login_controller.dart';
 import '../../domain/appointment_model.dart';
@@ -10,6 +11,7 @@ import 'queue_board_header.dart';
 import 'queue_timeline_row.dart';
 
 /// لوحة إدارة المرضى والمواعيد — تصميم زمني كرونولوجي احترافي (Timeline Clinic Queue)
+/// مبني بأسلوب Soft Structuralism مع بطاقات Double-Bezel وفواصل مريحة وحركات دخول متدرجة
 class QueueBoard extends ConsumerWidget {
   final List<AppointmentModel> appointments;
   final String clinicId;
@@ -21,39 +23,52 @@ class QueueBoard extends ConsumerWidget {
   });
 
   Widget _buildEmptyState(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
+        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                color: isDark
+                    ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                    : theme.colorScheme.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                  width: 1.5,
+                ),
               ),
               child: Icon(
                 Icons.event_available_rounded,
-                size: 40,
-                color: Theme.of(context).colorScheme.primary,
+                size: 42,
+                color: theme.colorScheme.primary,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Text(
               'لا توجد مواعيد في هذه الحالة لليوم',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: Theme.of(context).textTheme.titleMedium?.color,
+                color: theme.textTheme.titleMedium?.color,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               'يمكنك إضافة موعد جديد أو تغيير تصفية الحالات في الأعلى',
-              style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: theme.hintColor,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
                 showDialog(
@@ -62,11 +77,16 @@ class QueueBoard extends ConsumerWidget {
                 );
               },
               icon: const Icon(Icons.add_rounded, size: 16),
-              label: const Text('حجز موعد جديد', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              label: const Text(
+                'حجز موعد جديد',
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
+                backgroundColor: theme.colorScheme.primary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
               ),
             ),
           ],
@@ -97,8 +117,11 @@ class QueueBoard extends ConsumerWidget {
     // 2. الترتيب الزمني
     filtered.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
 
-    return Container(
-      decoration: AppTheme.cardDecoration(context),
+    return DoubleBezelCard(
+      outerRadius: 24.0,
+      innerRadius: 21.5,
+      outerPadding: const EdgeInsets.all(2.5),
+      innerPadding: EdgeInsets.zero,
       child: Column(
         children: [
           // رأس الجدول مع أزرار الفلترة والتنقل
@@ -108,22 +131,24 @@ class QueueBoard extends ConsumerWidget {
             selectedFilter: selectedFilter,
             selectedDate: selectedDate,
           ),
-          const SizedBox(height: 8),
 
-          // قائمة المرضى الزمنية
+          // قائمة المرضى الزمنية بمسافات Macro-Whitespace (12px) وحركات دخول متدرجة
           Expanded(
             child: filtered.isEmpty
                 ? _buildEmptyState(context)
                 : ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 4),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final appt = filtered[index];
-                      return QueueTimelineRow(
-                        appt: appt,
-                        clinicId: clinicId,
-                        isDoctor: isDoctor,
+                      return StaggeredCardEntry(
+                        index: index,
+                        child: QueueTimelineRow(
+                          appt: appt,
+                          clinicId: clinicId,
+                          isDoctor: isDoctor,
+                        ),
                       );
                     },
                   ),
@@ -133,3 +158,4 @@ class QueueBoard extends ConsumerWidget {
     );
   }
 }
+

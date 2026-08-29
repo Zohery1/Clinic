@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_motion.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/appointment_model.dart';
 
-/// ويدجت اختيار وقت الموعد (الشرائح الزمنية أو وقت مخصص)
+/// ويدجت اختيار وقت الموعد بنظام Soft Structuralism Soft Time Slot Pills
+/// مع دعم اختيار وقت مخصص وتحديد الشرائح المحجوزة والمتاحة بوضوح.
 class AppointmentTimePicker extends StatelessWidget {
   final TimeOfDay selectedTime;
   final ValueChanged<TimeOfDay> onTimeChanged;
   final List<AppointmentModel> existingAppointments;
+  final bool enabled;
 
   const AppointmentTimePicker({
     super.key,
     required this.selectedTime,
     required this.onTimeChanged,
     this.existingAppointments = const [],
+    this.enabled = true,
   });
 
   static List<String> get allTimeSlots {
@@ -55,6 +61,18 @@ class AppointmentTimePicker extends StatelessWidget {
     return '${hour.toString().padLeft(2, '0')}:$minute $period';
   }
 
+  static String formatArabicTime(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final period = time.period == DayPeriod.am ? 'ص' : 'م';
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '${hour.toString().padLeft(2, '0')}:$minute $period';
+  }
+
+  static String formatSlotToArabic(String slot) {
+    final t = parseSlotTime(slot);
+    return formatArabicTime(t);
+  }
+
   bool _isSlotBooked(String slot) {
     final slotTime = parseSlotTime(slot);
     return existingAppointments.any((app) {
@@ -66,55 +84,133 @@ class AppointmentTimePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formattedSelected = formatTimeOfDay(selectedTime);
+    final arabicFormattedSelected = formatArabicTime(selectedTime);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header with title, current selection pill, and custom time action
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'وقت الموعد *',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: theme.textTheme.bodySmall?.color,
-              ),
+            Row(
+              children: [
+                Icon(
+                  Icons.access_time_filled_rounded,
+                  size: 15,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'وقت الموعد *',
+                  style: GoogleFonts.cairo(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: theme.textTheme.bodyMedium?.color,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Current Selected Time Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.25 : 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        arabicFormattedSelected,
+                        style: GoogleFonts.cairo(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            TextButton.icon(
-              onPressed: () async {
-                final picked = await showTimePicker(
-                  context: context,
-                  initialTime: selectedTime,
-                );
-                if (picked != null) {
-                  onTimeChanged(picked);
-                }
-              },
-              icon: const Icon(Icons.access_time_rounded, size: 14),
-              label: const Text('وقت مخصص', style: TextStyle(fontSize: 11)),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            // Custom time button
+            InkWell(
+              onTap: enabled
+                  ? () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: selectedTime,
+                        builder: (ctx, child) {
+                          return Directionality(
+                            textDirection: TextDirection.rtl,
+                            child: child ?? const SizedBox.shrink(),
+                          );
+                        },
+                      );
+                      if (picked != null) {
+                        onTimeChanged(picked);
+                      }
+                    }
+                  : null,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.surfaceDimDark : AppColors.surfaceDimLight,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.tune_rounded,
+                      size: 13,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'وقت مخصص',
+                      style: GoogleFonts.cairo(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
+
+        // Scrollable slots container
         Container(
-          height: 120,
+          height: 135,
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
+            color: isDark ? AppColors.surfaceDimDark : AppColors.surfaceDimLight,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+              width: 1,
+            ),
           ),
           child: GridView.builder(
+            physics: const BouncingScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 4,
-              childAspectRatio: 2.2,
+              childAspectRatio: 2.1,
               crossAxisSpacing: 6,
               mainAxisSpacing: 6,
             ),
@@ -123,40 +219,77 @@ class AppointmentTimePicker extends StatelessWidget {
               final slot = allTimeSlots[index];
               final isSelected = slot == formattedSelected;
               final isBooked = _isSlotBooked(slot);
+              final arabicSlot = formatSlotToArabic(slot);
+
+              Color bgColor;
+              Color borderColor;
+              Color textColor;
+
+              if (isSelected) {
+                bgColor = theme.colorScheme.primary;
+                borderColor = theme.colorScheme.primary;
+                textColor = Colors.white;
+              } else if (isBooked) {
+                bgColor = isDark
+                    ? AppColors.error.withValues(alpha: 0.15)
+                    : AppColors.errorLight;
+                borderColor = isDark
+                    ? AppColors.error.withValues(alpha: 0.35)
+                    : AppColors.error.withValues(alpha: 0.25);
+                textColor = AppColors.error;
+              } else {
+                bgColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+                borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+                textColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+              }
 
               return InkWell(
-                onTap: () {
-                  onTimeChanged(parseSlotTime(slot));
-                },
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
+                onTap: (enabled && !isBooked)
+                    ? () => onTimeChanged(parseSlotTime(slot))
+                    : null,
+                borderRadius: BorderRadius.circular(8),
+                child: AnimatedContainer(
+                  duration: AppMotion.fast,
+                  curve: AppMotion.curve,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? theme.colorScheme.primary
-                        : isBooked
-                            ? theme.colorScheme.error.withValues(alpha: 0.1)
-                            : theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(6),
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : isBooked
-                              ? theme.colorScheme.error.withValues(alpha: 0.3)
-                              : theme.dividerColor.withValues(alpha: 0.5),
+                      color: borderColor,
+                      width: isSelected ? 1.5 : 1.0,
                     ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.40 : 0.30),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
                   ),
-                  child: Text(
-                    slot,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isSelected
-                          ? Colors.white
-                          : isBooked
-                              ? theme.colorScheme.error
-                              : theme.textTheme.bodyMedium?.color,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        arabicSlot,
+                        style: GoogleFonts.cairo(
+                          fontSize: 10.5,
+                          fontWeight: isSelected ? FontWeight.w800 : (isBooked ? FontWeight.w500 : FontWeight.w600),
+                          color: textColor,
+                          decoration: isBooked ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                      if (isBooked && !isSelected) ...[
+                        const SizedBox(width: 3),
+                        Icon(
+                          Icons.block_rounded,
+                          size: 9,
+                          color: AppColors.error,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               );
