@@ -37,28 +37,28 @@ class _StepClinicDetailsState extends ConsumerState<StepClinicDetails> {
 
   String? _validateClinicName(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø§Ø³Ù… Ø§Ù„Ø¹ÙŠØ§Ø¯Ø© Ø£Ùˆ Ø§Ù„Ù…Ø±ÙƒØ² Ø§Ù„Ø·Ø¨ÙŠ';
+      return 'يرجى إدخال اسم العيادة أو المركز الطبي';
     }
     return null;
   }
 
   String? _validateMainBranch(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø§Ø³Ù… Ø§Ù„ÙØ±Ø¹ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ';
+      return 'يرجى إدخال اسم الفرع الرئيسي';
     }
     return null;
   }
 
   String? _validateInviteCode(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ ÙƒÙˆØ¯ Ø§Ù„Ø¯Ø¹ÙˆØ© Ù„Ù„Ø§Ù†Ø¶Ù…Ø§Ù… Ù„Ù„Ø¹ÙŠØ§Ø¯Ø©';
+      return 'يرجى إدخال كود الدعوة للانضمام للعيادة';
     }
     return null;
   }
 
   String? _validateExtraBranchName(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø§Ø³Ù… Ø§Ù„ÙØ±Ø¹';
+      return 'يرجى إدخال اسم الفرع';
     }
     return null;
   }
@@ -103,15 +103,15 @@ class _StepClinicDetailsState extends ConsumerState<StepClinicDetails> {
           const SizedBox(height: AppSpace.xxl),
           AppButton(
             label: isCreating
-                ? 'Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØªØ£Ø³ÙŠØ³ Ø§Ù„Ø¹ÙŠØ§Ø¯Ø© ðŸš€'
-                : 'Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØ§Ù„Ø§Ù†Ø¶Ù…Ø§Ù… Ù„Ù„Ø¹ÙŠØ§Ø¯Ø© ðŸš€',
+                ? 'إنشاء الحساب وتأسيس العيادة 🚀'
+                : 'إنشاء الحساب والانضمام للعيادة 🚀',
             icon: Icons.check_circle_rounded,
             loading: widget.isSubmitting,
             onPressed: _submit,
           ),
           const SizedBox(height: AppSpace.sm),
           AppButton(
-            label: 'Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„ØªØ¹Ø¯ÙŠÙ„ Ù…Ø³Ø§Ø± Ø§Ù„Ø¹ÙŠØ§Ø¯Ø©',
+            label: 'الرجوع لتعديل مسار العيادة',
             icon: Icons.arrow_forward_rounded,
             variant: AppButtonVariant.ghost,
             onPressed: widget.isSubmitting ? null : widget.onBack,
@@ -150,13 +150,13 @@ class _CreateSection extends StatelessWidget {
       children: [
         const _SectionTitle(
           icon: Icons.apartment_rounded,
-          title: 'Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø±ÙƒØ² Ø§Ù„Ø·Ø¨ÙŠ ÙˆØ§Ù„ÙØ±ÙˆØ¹',
+          title: 'بيانات المركز الطبي والفروع',
         ),
         const SizedBox(height: AppSpace.lg),
         AppTextField(
           controller: clinicNameController,
-          label: 'Ø§Ø³Ù… Ø§Ù„Ø¹ÙŠØ§Ø¯Ø© / Ø§Ù„Ù…Ø±ÙƒØ² Ø§Ù„Ø·Ø¨ÙŠ',
-          hint: 'Ù…Ø«Ø§Ù„: Ù…Ø±ÙƒØ² Ø§Ù„Ù†Ø®Ø¨Ø© Ø§Ù„ØªØ®ØµØµÙŠ',
+          label: 'اسم العيادة / المركز الطبي',
+          hint: 'مثال: مركز النخبة التخصصي',
           prefixIcon: const Icon(Icons.business_rounded, size: 20),
           validator: validateClinicName,
           onEditingComplete: () => FocusScope.of(context).nextFocus(),
@@ -164,9 +164,9 @@ class _CreateSection extends StatelessWidget {
         const SizedBox(height: AppSpace.lg),
         AppTextField(
           controller: mainBranchNameController,
-          label: 'Ø§Ø³Ù… Ø§Ù„ÙØ±Ø¹ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ',
-          hint: 'Ù…Ø«Ø§Ù„: Ø§Ù„ÙØ±Ø¹ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ - Ù…Ø¯ÙŠÙ†Ø© Ù†ØµØ±',
-          helper: 'Ø§Ù„ÙØ±Ø¹ Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ Ø§Ù„Ø°ÙŠ Ø³ØªØ¨Ø¯Ø£ Ø¨Ù‡ Ø§Ù„Ø¹ÙŠØ§Ø¯Ø© (ÙŠÙ…ÙƒÙ† ØªØ¹Ø¯ÙŠÙ„Ù‡ Ù„Ø§Ø­Ù‚Ø§Ù‹)',
+          label: 'اسم الفرع الرئيسي',
+          hint: 'مثال: الفرع الرئيسي - مدينة نصر',
+          helper: 'الفرع الافتراضي الذي ستبدأ به العيادة (يمكن تعديله لاحقاً)',
           prefixIcon: const Icon(Icons.store_mall_directory_rounded, size: 20),
           validator: validateMainBranch,
         ),
@@ -180,7 +180,7 @@ class _CreateSection extends StatelessWidget {
                     size: 18, color: AppColors.primary),
                 const SizedBox(width: AppSpace.sm),
                 Text(
-                  'ÙØ±ÙˆØ¹ Ø¥Ø¶Ø§ÙÙŠØ© Ù„Ù„Ø¹ÙŠØ§Ø¯Ø© (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)',
+                  'فروع إضافية للعيادة (اختياري)',
                   style: GoogleFonts.cairo(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
@@ -190,7 +190,7 @@ class _CreateSection extends StatelessWidget {
               ],
             ),
             AppButton(
-              label: 'Ø¥Ø¶Ø§ÙØ© ÙØ±Ø¹',
+              label: 'إضافة فرع',
               icon: Icons.add_rounded,
               variant: AppButtonVariant.ghost,
               size: AppButtonSize.sm,
@@ -240,7 +240,7 @@ class _EmptyBranchesHint extends StatelessWidget {
           const SizedBox(width: AppSpace.sm),
           Expanded(
             child: Text(
-              'ÙŠÙ…ÙƒÙ†Ùƒ Ø§Ù„Ø¨Ø¯Ø¡ Ø¨Ø§Ù„ÙØ±Ø¹ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ ÙÙ‚Ø· Ø§Ù„Ø¢Ù†ØŒ ÙˆØ¥Ø¶Ø§ÙØ© ÙØ±ÙˆØ¹ Ø£Ø®Ø±Ù‰ ÙÙŠ Ø£ÙŠ ÙˆÙ‚Øª Ù…Ù† Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª.',
+              'يمكنك البدء بالفرع الرئيسي فقط الآن، وإضافة فروع أخرى في أي وقت من الإعدادات.',
               style: GoogleFonts.cairo(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -285,12 +285,12 @@ class _ExtraBranchCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               AppChip(
-                label: 'Ø§Ù„ÙØ±Ø¹ Ø§Ù„Ø¥Ø¶Ø§ÙÙŠ Ø±Ù‚Ù… (${index + 1})',
+                label: 'الفرع الإضافي رقم ${index + 1}',
                 color: AppColors.primary,
               ),
               AppIconButton(
                 icon: Icons.delete_outline_rounded,
-                tooltip: 'Ø­Ø°Ù Ø§Ù„ÙØ±Ø¹',
+                tooltip: 'حذف الفرع',
                 variant: AppIconButtonVariant.ghost,
                 onPressed: onRemove,
               ),
@@ -299,14 +299,14 @@ class _ExtraBranchCard extends StatelessWidget {
           const SizedBox(height: AppSpace.sm),
           AppTextField(
             controller: branch.nameController,
-            label: 'Ø§Ø³Ù… Ø§Ù„ÙØ±Ø¹',
-            hint: 'Ù…Ø«Ø§Ù„: ÙØ±Ø¹ Ø§Ù„Ù…Ù‡Ù†Ø¯Ø³ÙŠÙ†',
+            label: 'اسم الفرع',
+            hint: 'مثال: فرع المهندسين',
             validator: validateName,
           ),
           const SizedBox(height: AppSpace.sm),
           AppTextField(
             controller: branch.addressController,
-            label: 'Ø§Ù„Ø¹Ù†ÙˆØ§Ù† (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)',
+            label: 'العنوان (اختياري)',
           ),
         ],
       ),
@@ -336,11 +336,11 @@ class _JoinSection extends StatelessWidget {
       children: [
         const _SectionTitle(
           icon: Icons.badge_rounded,
-          title: 'Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù… Ù„Ù„Ø¹ÙŠØ§Ø¯Ø©',
+          title: 'بيانات المركز الطبي والفروع',
         ),
         const SizedBox(height: AppSpace.lg),
         Text(
-          'Ù…Ø§ Ù‡Ùˆ Ø¯ÙˆØ±Ùƒ ÙÙŠ Ø§Ù„Ø¹ÙŠØ§Ø¯Ø©ØŸ',
+          'ما هو دورك في العيادة؟',
           style: GoogleFonts.cairo(
             fontSize: 13,
             fontWeight: FontWeight.w800,
@@ -353,7 +353,7 @@ class _JoinSection extends StatelessWidget {
             Expanded(
               child: _RoleCard(
                 role: 'doctor',
-                label: 'Ø£Ù†Ø§ Ø·Ø¨ÙŠØ¨ Ù…Ø¹Ø§Ù„Ø¬',
+                label: 'أنا طبيب معالج',
                 icon: Icons.medical_services_outlined,
                 selected: selectedRole == 'doctor',
                 onTap: () => onSelectRole('doctor'),
@@ -363,7 +363,7 @@ class _JoinSection extends StatelessWidget {
             Expanded(
               child: _RoleCard(
                 role: 'secretary',
-                label: 'Ø£Ù†Ø§ Ù…Ø³Ø§Ø¹Ø¯ / Ø³ÙƒØ±ØªÙŠØ±',
+                label: 'أنا مساعد / سكرتير',
                 icon: Icons.badge_outlined,
                 selected: selectedRole == 'secretary',
                 onTap: () => onSelectRole('secretary'),
@@ -377,9 +377,9 @@ class _JoinSection extends StatelessWidget {
         else
           AppTextField(
             controller: inviteCodeController,
-            label: 'ÙƒÙˆØ¯ Ø§Ù„Ø¯Ø¹ÙˆØ© Ù…Ù† Ù…Ø¯ÙŠØ± Ø§Ù„Ø¹ÙŠØ§Ø¯Ø©',
-            hint: 'Ù…Ø«Ø§Ù„: ABC123XYZ',
-            helper: 'Ø§Ø·Ù„Ø¨ ÙƒÙˆØ¯ Ø§Ù„Ø¯Ø¹ÙˆØ© Ù…Ù† ØµØ§Ø­Ø¨ Ø£Ùˆ Ù…Ø¯ÙŠØ± Ø§Ù„Ø¹ÙŠØ§Ø¯Ø© Ù„Ù„Ø§Ù†Ø¶Ù…Ø§Ù… Ø¥Ù„Ù‰ ÙØ±ÙŠÙ‚Ù‡',
+            label: 'كود الدعوة من مدير العيادة',
+            hint: 'مثال: ABC123XYZ',
+            helper: 'اطلب كود الدعوة من صاحب أو مدير العيادة للانضمام إلى فريقها',
             prefixIcon: const Icon(Icons.vpn_key_outlined, size: 20),
             validator: validateInviteCode,
           ),
@@ -471,7 +471,7 @@ class _LockedCodeBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ÙƒÙˆØ¯ Ø§Ù„Ø¯Ø¹ÙˆØ© Ù…Ø¤ÙƒØ¯ ÙˆÙ…ÙØ¹Ù„',
+                  'كود الدعوة مؤكد ومفعل',
                   style: GoogleFonts.cairo(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
@@ -480,7 +480,7 @@ class _LockedCodeBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'ÙƒÙˆØ¯: $code',
+                  'كود: $code',
                   style: GoogleFonts.cairo(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
