@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 /// DEPRECATED: removed in Phase 4. Kept as an empty stub so old imports
 /// continue to compile. Use `AppCard` from `lib/src/core/widgets/app_card.dart`
@@ -36,7 +36,7 @@ class DoubleBezelCard extends StatelessWidget {
   final List<BoxShadow>? innerShadows;
   final Border? innerBorder;
   final VoidCallback? onTap;
-  final Clip clipBehavior;
+  final Clip? clipBehavior;
   final bool isActiveGlow;
   final Color? glowColor;
 
@@ -58,10 +58,10 @@ class StaggeredCardEntry extends StatelessWidget {
   });
   final int index;
   final Widget child;
-  final Duration baseDuration;
-  final Duration itemDelay;
-  final double slideOffset;
-  final Axis direction;
+  final Duration? baseDuration;
+  final Duration? itemDelay;
+  final double? slideOffset;
+  final Axis? direction;
 
   @override
   Widget build(BuildContext context) => child;

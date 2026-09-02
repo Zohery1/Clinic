@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
@@ -6,9 +6,11 @@ import 'package:intl/intl.dart' as intl;
 import '../../../../core/ui/primitives/app_button.dart';
 import '../../../../core/ui/primitives/app_chip.dart';
 import '../../../../core/ui/tokens/colors.dart';
+import '../../../../core/ui/tokens/radii.dart';
 import '../../../../core/ui/tokens/spacing.dart';
-import '../../../../appointments/data/appointment_repository.dart';
-import '../../../../clinics/presentation/clinics_controller.dart';
+import '../../../appointments/data/appointment_repository.dart';
+import '../../../auth/presentation/login_controller.dart';
+import '../../../clinics/presentation/clinics_controller.dart';
 import '../reports_controller.dart';
 
 class DailyLogsFilters extends ConsumerWidget {
@@ -65,20 +67,20 @@ class DailyLogsFilters extends ConsumerWidget {
                     return _ChipRow(
                       children: [
                         AppChip(
-                          label: '?????? ???????',
+                          label: 'جميع الأطباء',
                           variant: AppChipVariant.filter,
                           selected: selectedDoctorId == null,
                           onSelected: (_) => ref
-                              .read(selectedReportDoctorIdProvider.id)
+                              .read(selectedReportDoctorIdProvider.notifier)
                               .state = null,
                         ),
                         for (final d in doctors)
                           AppChip(
-                            label: '?. ${d.fullName}',
+                            label: 'د. ${d.fullName}',
                             variant: AppChipVariant.filter,
                             selected: selectedDoctorId == d.id,
                             onSelected: (_) => ref
-                                .read(selectedReportDoctorIdProvider.id)
+                                .read(selectedReportDoctorIdProvider.notifier)
                                 .state = d.id,
                           ),
                       ],
@@ -93,11 +95,11 @@ class DailyLogsFilters extends ConsumerWidget {
               return _ChipRow(
                 children: [
                   AppChip(
-                    label: '???? ??????',
+                    label: 'جميع الفروع',
                     variant: AppChipVariant.filter,
                     selected: selectedBranchId == null,
                     onSelected: (_) => ref
-                        .read(selectedReportBranchIdProvider.id)
+                        .read(selectedReportBranchIdProvider.notifier)
                         .state = null,
                   ),
                   for (final b in branches)
@@ -106,7 +108,7 @@ class DailyLogsFilters extends ConsumerWidget {
                       variant: AppChipVariant.filter,
                       selected: selectedBranchId == b.id,
                       onSelected: (_) => ref
-                          .read(selectedReportBranchIdProvider.id)
+                          .read(selectedReportBranchIdProvider.notifier)
                           .state = b.id,
                     ),
                 ],
@@ -116,7 +118,7 @@ class DailyLogsFilters extends ConsumerWidget {
             error: (_, __) => const SizedBox.shrink(),
           );
           final exportBtn = AppButton(
-            label: '????? CSV',
+            label: 'تصدير CSV',
             icon: Icons.file_download_outlined,
             expand: false,
             size: AppButtonSize.sm,
@@ -182,7 +184,7 @@ class _DateRangeButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final fmt = intl.DateFormat('d MMM yyyy', 'ar');
     return AppButton(
-      label: '${fmt.format(start)} � ${fmt.format(end)}',
+      label: '${fmt.format(start)} - ${fmt.format(end)}',
       icon: Icons.calendar_month_rounded,
       expand: false,
       size: AppButtonSize.sm,
@@ -197,8 +199,8 @@ class _DateRangeButton extends StatelessWidget {
           initialDateRange: initial,
           firstDate: first,
           lastDate: last,
-          saveText: '?????',
-          cancelText: '?????',
+          saveText: 'تطبيق',
+          cancelText: 'إلغاء',
         );
         if (picked != null) onPicked(picked);
       },
@@ -248,7 +250,7 @@ class _DoctorLockedBanner extends StatelessWidget {
           const SizedBox(width: AppSpace.sm),
           Expanded(
             child: Text(
-              '??? ????????? ?????????? ?????? ?? ??? (?. $userName)',
+              'يتم استعراض الإحصائيات الخاصة بك فقط (د. $userName)',
               style: GoogleFonts.cairo(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,

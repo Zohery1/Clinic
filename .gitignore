@@ -46,4 +46,3 @@ app.*.map.json
 
 # Environment secrets
 .env
-.kilo/

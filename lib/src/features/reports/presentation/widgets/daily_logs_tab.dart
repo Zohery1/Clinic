@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 
@@ -52,36 +52,36 @@ class DailyLogsTab extends ConsumerWidget {
           columns: const [
             AppDataTableColumn(
               key: 'date',
-              label: '???????',
+              label: 'التاريخ',
               sortable: false,
             ),
             AppDataTableColumn(
               key: 'visits',
-              label: '??? ????????',
+              label: 'عدد الزيارات',
               format: 'number',
               align: AppDataTableAlign.center,
             ),
             AppDataTableColumn(
               key: 'revenue',
-              label: '?????????',
+              label: 'الإيرادات',
               format: 'currency',
               align: AppDataTableAlign.end,
             ),
             AppDataTableColumn(
               key: 'completed',
-              label: '????????',
+              label: 'المكتملة',
               format: 'number',
               align: AppDataTableAlign.center,
             ),
             AppDataTableColumn(
               key: 'cancelled',
-              label: '???????',
+              label: 'الملغاة',
               format: 'number',
               align: AppDataTableAlign.center,
             ),
             AppDataTableColumn(
               key: 'view',
-              label: '?????',
+              label: 'عرض',
               sortable: false,
               align: AppDataTableAlign.center,
               width: 60,
@@ -89,7 +89,7 @@ class DailyLogsTab extends ConsumerWidget {
           ],
           rows: rows,
           isLoading: async.isLoading,
-          emptyMessage: '?? ???? ????? ????? ?? ??? ??????',
+          emptyMessage: 'لا توجد سجلات يومية في هذه الفترة',
           emptyIcon: Icons.bar_chart_rounded,
           onRowTap: (row) {
             final dt = row['_date'] as DateTime?;
@@ -116,7 +116,7 @@ class DailyLogsTab extends ConsumerWidget {
     if (dt != null) {
       final dayName = intl.DateFormat('EEEE', 'ar').format(dt);
       final dayNum = intl.DateFormat('d MMMM yyyy', 'ar').format(dt);
-      dateLabel = '$dayName � $dayNum';
+      dateLabel = '$dayName - $dayNum';
     }
     final revenue = (log['revenue'] as num?)?.toDouble() ?? 0.0;
     final visits = (log['visits'] as num?)?.toInt() ?? 0;
@@ -133,13 +133,13 @@ class DailyLogsTab extends ConsumerWidget {
       'revenue': revenue,
       'completed': completed,
       'cancelled': cancelled,
-      'view': '???',
+      'view': 'عرض',
     };
   }
 
   void _exportCsv(BuildContext context, List<Map<String, dynamic>> rows) {
     final buffer = StringBuffer()
-      ..writeln('???????,??? ????????,?????????,????????,???????');
+      ..writeln('التاريخ,عدد الزيارات,الإيرادات,المكتملة,الملغاة');
     for (final r in rows) {
       buffer.writeln(
         '"${r['date']}",${r['visits']},${r['revenue']},${r['completed']},${r['cancelled']}',
@@ -147,7 +147,7 @@ class DailyLogsTab extends ConsumerWidget {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('?? ????? ${rows.length} ??? � ???? ?????'),
+        content: Text('تم تجهيز ${rows.length} سجل - جاهز للتحميل'),
       ),
     );
     debugPrint(buffer.toString());
