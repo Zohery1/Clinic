@@ -195,3 +195,37 @@ final detailedReportProvider = FutureProvider.family<Map<String, dynamic>, Strin
         branchId: branchId,
       );
 });
+
+// مزود لحالات المواعيد اليوم (لوحة todayStatusCounts)
+// Returned in todayAppointmentsProvider ???? ??????? ?? ????? ?????.
+final todayStatusCountsProvider = FutureProvider<Map<String, double>>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) {
+    return const {
+      'waiting': 0.0,
+      'with_doctor': 0.0,
+      'completed': 0.0,
+      'cancelled': 0.0,
+    };
+  }
+  final appointments = await ref.watch(todayAppointmentsProvider.future);
+  final counts = <String, double>{
+    'waiting': 0.0,
+    'with_doctor': 0.0,
+    'completed': 0.0,
+    'cancelled': 0.0,
+  };
+  for (final a in appointments) {
+    final s = a.status.toLowerCase();
+    if (s == 'waiting' || s == 'pending') {
+      counts['waiting'] = (counts['waiting'] ?? 0) + 1;
+    } else if (s == 'in_progress' || s == 'with_doctor' || s == 'confirmed') {
+      counts['with_doctor'] = (counts['with_doctor'] ?? 0) + 1;
+    } else if (s == 'completed') {
+      counts['completed'] = (counts['completed'] ?? 0) + 1;
+    } else if (s.contains('cancel')) {
+      counts['cancelled'] = (counts['cancelled'] ?? 0) + 1;
+    }
+  }
+  return counts;
+});

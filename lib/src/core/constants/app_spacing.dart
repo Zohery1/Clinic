@@ -1,45 +1,52 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
-/// Standard spacing, elevation, and radius tokens for Calm Medical Clean design system.
+import '../ui/tokens/spacing.dart';
+
+export '../ui/tokens/spacing.dart';
+
+/// Backward-compatible alias. Legacy code that did
+/// `import 'app_spacing.dart'; AppSpacing.lg` keeps working.
+///
+/// The new canonical token class is [AppSpace] (and [AppRadii]).
+@Deprecated('Use AppSpace / AppRadii from core/ui/tokens/spacing.dart instead.')
 class AppSpacing {
   AppSpacing._();
 
-  // Spacing Tokens
-  static const double xs = 4.0;
-  static const double sm = 8.0;
-  static const double md = 12.0;
-  static const double lg = 16.0;
-  static const double xl = 24.0;
-  static const double xxl = 32.0;
-  static const double xxxl = 48.0;
+  // Spacing
+  static const double xs = AppSpace.xs;
+  static const double sm = AppSpace.sm;
+  static const double md = AppSpace.md;
+  static const double lg = AppSpace.lg;
+  static const double xl = AppSpace.xl;
+  static const double xxl = AppSpace.xxl;
+  static const double xxxl = AppSpace.xxxl;
 
-  // Corner Radius Tokens
-  static const double radiusXs = 4.0;
-  static const double radiusSm = 8.0;
-  static const double radiusMd = 12.0;
-  static const double radiusLg = 16.0;
-  static const double radiusXl = 20.0;
-  static const double radiusXxl = 24.0;
-  static const double radiusFull = 999.0;
+  // Radii
+  static const double radiusXs = AppRadii.radiusXs;
+  static const double radiusSm = AppRadii.radiusSm;
+  static const double radiusMd = AppRadii.radiusMd;
+  static const double radiusLg = AppRadii.radiusLg;
+  static const double radiusXl = AppRadii.radiusXl;
+  static const double radiusXxl = AppRadii.radiusX2l;
+  static const double radiusFull = AppRadii.radiusFull;
 
-  // EdgeInsets Helpers
-  static const EdgeInsets edgeInsetsXs = EdgeInsets.all(xs);
-  static const EdgeInsets edgeInsetsSm = EdgeInsets.all(sm);
-  static const EdgeInsets edgeInsetsMd = EdgeInsets.all(md);
-  static const EdgeInsets edgeInsetsLg = EdgeInsets.all(lg);
-  static const EdgeInsets edgeInsetsXl = EdgeInsets.all(xl);
-  static const EdgeInsets edgeInsetsXxl = EdgeInsets.all(xxl);
+  // EdgeInsets
+  static const EdgeInsets edgeInsetsXs = AppSpace.allXs;
+  static const EdgeInsets edgeInsetsSm = AppSpace.allSm;
+  static const EdgeInsets edgeInsetsMd = AppSpace.allMd;
+  static const EdgeInsets edgeInsetsLg = AppSpace.allLg;
+  static const EdgeInsets edgeInsetsXl = AppSpace.allXl;
+  static const EdgeInsets edgeInsetsXxl = AppSpace.allXxl;
 
-  // Horizontal / Vertical EdgeInsets
-  static const EdgeInsets paddingScreen = EdgeInsets.symmetric(horizontal: lg, vertical: md);
-  static const EdgeInsets paddingCard = EdgeInsets.all(lg);
-  static const EdgeInsets paddingDialog = EdgeInsets.all(xl);
-  static const EdgeInsets paddingListItem = EdgeInsets.symmetric(horizontal: md, vertical: sm);
+  static const EdgeInsets paddingScreen = AppSpace.paddingScreen;
+  static const EdgeInsets paddingCard = AppSpace.paddingCard;
+  static const EdgeInsets paddingDialog = AppSpace.paddingDialog;
+  static const EdgeInsets paddingListItem = AppSpace.paddingListItem;
 
-  // BorderRadius Helpers
-  static final BorderRadius borderRadiusSm = BorderRadius.circular(radiusSm);
-  static final BorderRadius borderRadiusMd = BorderRadius.circular(radiusMd);
-  static final BorderRadius borderRadiusLg = BorderRadius.circular(radiusLg);
-  static final BorderRadius borderRadiusXl = BorderRadius.circular(radiusXl);
-  static final BorderRadius borderRadiusFull = BorderRadius.circular(radiusFull);
+  // BorderRadius
+  static final BorderRadius borderRadiusSm = AppRadii.brSm;
+  static final BorderRadius borderRadiusMd = AppRadii.brMd;
+  static final BorderRadius borderRadiusLg = AppRadii.brLg;
+  static final BorderRadius borderRadiusXl = AppRadii.brXl;
+  static final BorderRadius borderRadiusFull = AppRadii.brFull;
 }

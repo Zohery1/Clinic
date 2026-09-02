@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../ui/tokens/spacing.dart';
 
 /// Standardized calm medical card container for the clinic design system.
 /// Supports hover animations on desktop/web, selection states, custom headers/footers,
@@ -20,12 +21,12 @@ class AppCard extends StatefulWidget {
   const AppCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(AppSpacing.lg),
+    this.padding = const EdgeInsets.all(AppSpace.lg),
     this.margin,
     this.onTap,
     this.backgroundColor,
     this.borderColor,
-    this.radius = AppSpacing.radiusMd,
+    this.radius = AppRadii.radiusMd,
     this.elevated = false,
     this.isSelected = false,
     this.header,
@@ -91,7 +92,7 @@ class _AppCardState extends State<AppCard> {
         children: [
           if (widget.header != null) ...[
             Padding(
-              padding: widget.padding ?? const EdgeInsets.all(AppSpacing.lg),
+              padding: widget.padding ?? const EdgeInsets.all(AppSpace.lg),
               child: widget.header!,
             ),
             Divider(
@@ -101,7 +102,7 @@ class _AppCardState extends State<AppCard> {
             ),
           ],
           Padding(
-            padding: widget.padding ?? const EdgeInsets.all(AppSpacing.lg),
+            padding: widget.padding ?? const EdgeInsets.all(AppSpace.lg),
             child: widget.child,
           ),
           if (widget.footer != null) ...[
@@ -111,7 +112,7 @@ class _AppCardState extends State<AppCard> {
               color: isDark ? AppColors.borderDark : AppColors.borderLight,
             ),
             Padding(
-              padding: widget.padding ?? const EdgeInsets.all(AppSpacing.lg),
+              padding: widget.padding ?? const EdgeInsets.all(AppSpace.lg),
               child: widget.footer!,
             ),
           ],
@@ -165,3 +166,5 @@ class _AppCardState extends State<AppCard> {
     return body;
   }
 }
+
+

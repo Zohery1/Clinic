@@ -1,16 +1,18 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart' as intl;
-import '../../../core/theme/app_theme.dart';
-import '../../auth/presentation/login_controller.dart';
-import '../../auth/domain/user_model.dart';
-import '../../appointments/data/appointment_repository.dart';
-import 'reports_controller.dart';
-import 'report_detail_screen.dart';
-import '../../../core/widgets/clinic_dialog.dart';
-import '../../clinics/presentation/clinics_controller.dart';
 
-part 'reports_screen_parts.dart';
+import '../../../core/ui/feedback/app_status_page.dart';
+import '../../../core/ui/layout/app_shell.dart';
+import '../../../core/ui/layout/app_top_bar.dart';
+import '../../../core/ui/tokens/colors.dart';
+import '../../auth/presentation/login_controller.dart';
+import '../../clinics/presentation/clinics_controller.dart';
+import '../../dashboard/presentation/notifications_controller.dart';
+import 'reports_controller.dart';
+import 'widgets/daily_logs_tab.dart';
+import 'widgets/monthly_logs_tab.dart';
+import 'widgets/overview_tab.dart';
+
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -20,302 +22,149 @@ class ReportsScreen extends ConsumerStatefulWidget {
 }
 
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
-  int _selectedSubTab = 0; // 0 for daily logs, 1 for monthly logs
+  int _selectedTab = 0;
 
-  // Default date range: last 90 days
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 89));
   DateTime _endDate = DateTime.now();
 
-  void setDateRange(DateTime start, DateTime end) {
+  void _onDateRangeChanged(DateTimeRange range) {
     setState(() {
-      _startDate = start;
-      _endDate = end;
+      _startDate = range.start;
+      _endDate = range.end;
     });
   }
-
-  void setSelectedSubTab(int index) {
-    setState(() => _selectedSubTab = index);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  String _calculateTrend(double current, double previous) {
-    if (previous == 0) return 'مستقر (لا توجد بيانات سابقة)';
-    final percent = ((current - previous) / previous) * 100;
-    final prefix = percent >= 0 ? '+' : '';
-    return '$prefix${percent.toStringAsFixed(1)}% مقارنة بالفترة السابقة';
-  }
-
-  String get _rangeParamString {
-    final startStr = "${_startDate.year}-${_startDate.month.toString().padLeft(2, '0')}-${_startDate.day.toString().padLeft(2, '0')}";
-    final endStr = "${_endDate.year}-${_endDate.month.toString().padLeft(2, '0')}-${_endDate.day.toString().padLeft(2, '0')}";
-    return "${startStr}_$endStr";
-  }
-
-  bool get _isFiltered {
-    final now = DateTime.now();
-    final defaultStart = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 89));
-    final currentStart = DateTime(_startDate.year, _startDate.month, _startDate.day);
-    return (currentStart.difference(defaultStart).inDays).abs() > 1;
-  }
-
-  void _resetToDefault() {
-    setState(() {
-      _startDate = DateTime.now().subtract(const Duration(days: 89));
-      _endDate = DateTime.now();
-    });
-  }
-
-
 
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
-    final todayRevenueAsync = ref.watch(todayRevenueProvider);
-    final monthRevenueAsync = ref.watch(monthRevenueProvider);
-    final weeklyRevenueAsync = ref.watch(weeklyRevenueProvider);
-    final sixWeeksRevenueAsync = ref.watch(sixWeeksRevenueProvider);
-
-    final dailyStatsAsync = user != null
-        ? ref.watch(dailyStatsProvider(_rangeParamString))
-        : const AsyncValue<List<Map<String, dynamic>>>.loading();
-    final monthlyStatsAsync = user != null
-        ? ref.watch(monthlyStatsProvider)
-        : const AsyncValue<List<Map<String, dynamic>>>.loading();
-
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
-
     if (user == null) {
-      return const Directionality(
-        textDirection: TextDirection.rtl,
-        child: Scaffold(
-          body: Center(
-            child: Text('يرجى تسجيل الدخول أولاً',
-                style: TextStyle(color: AppTheme.textSecondary)),
-          ),
-        ),
+      return const AppStatusPage(
+        icon: Icons.lock_outline_rounded,
+        iconColor: AppColors.warning,
+        title: '???? ????? ?????? ?????',
+        message: '??? ????? ?????? ?????? ??? ????????.',
+        compact: true,
       );
     }
-
     if (!user.isOwner) {
-      return Directionality(
-        textDirection: TextDirection.rtl,
-        child: Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: Center(
-            child: Container(
-              margin: const EdgeInsets.all(24),
-              padding: const EdgeInsets.all(32),
-              constraints: const BoxConstraints(maxWidth: 420),
-              decoration: AppTheme.cardDecorationFlat(context),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppTheme.error.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.lock_outline_rounded, size: 56, color: AppTheme.error),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'التقارير المالية مخصصة لمالك العيادة فقط',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'صفحة التقارير المالية والإيرادات مخصصة لمالك العيادة فقط، ولا يمكن لبقية الموظفين أو الأطباء الوصول إليها.',
-                    style: TextStyle(fontSize: 13, color: Theme.of(context).hintColor, height: 1.5),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+      return AppStatusPage(
+        icon: Icons.lock_outline_rounded,
+        iconColor: AppColors.danger,
+        title: '???????? ??????? ????? ????? ??????? ???',
+        message:
+            '???? ???????? ??????? ?????????? ????? ????? ??????? ???? ??? ???? ????? ???????? ?? ??????? ?????? ?????.',
+        compact: true,
       );
     }
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: isDesktop
-          ? Scaffold(
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              body: _buildFinancialAnalyticsTab(
-                todayRevenueAsync,
-                monthRevenueAsync,
-                weeklyRevenueAsync,
-                sixWeeksRevenueAsync,
-                dailyStatsAsync,
-                monthlyStatsAsync,
-              ),
-            )
-          : Scaffold(
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              appBar: null,
-              body: _buildFinancialAnalyticsTab(
-                todayRevenueAsync,
-                monthRevenueAsync,
-                weeklyRevenueAsync,
-                sixWeeksRevenueAsync,
-                dailyStatsAsync,
-                monthlyStatsAsync,
-              ),
-            ),
+    final unread = ref
+        .watch(notificationsProvider)
+        .notifications
+        .where((n) => !n.isRead)
+        .length;
+    final clinicName = ref.watch(activeClinicSummaryProvider)?.clinicName;
+
+    final child = switch (_selectedTab) {
+      0 => OverviewTab(startDate: _startDate, endDate: _endDate),
+      1 => DailyLogsTab(
+          startDate: _startDate,
+          endDate: _endDate,
+          onDateRangeChanged: _onDateRangeChanged,
+        ),
+      _ => const MonthlyLogsTab(),
+    };
+
+    return AppShell(
+      title: '???????? ???????',
+      subtitle: '?????? ?????? ??????????',
+      breadcrumbs: const [
+        AppBreadcrumbItem(label: '????????'),
+        AppBreadcrumbItem(label: '????????'),
+      ],
+      currentRoute: '/reports',
+      onNavigate: (_) {},
+      user: user,
+      clinicName: clinicName,
+      unreadCount: unread,
+      actions: [_refreshAction(context)],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SubTabsInline(
+            selected: _selectedTab,
+            onSelect: (i) => setState(() => _selectedTab = i),
+          ),
+          const SizedBox(height: 12),
+          Expanded(child: child),
+        ],
+      ),
     );
   }
-
-  // تبويب التحليلات المالية
-
-  List<double> _getDailyPoints(List<Map<String, dynamic>> dailyData, double todayRevenue) {
-    final now = DateTime.now();
-    final Map<String, double> revenueMap = {};
-    for (int i = 0; i < 7; i++) {
-      final date = now.subtract(Duration(days: i));
-      final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-      revenueMap[dateStr] = 0.0;
-    }
-    for (final d in dailyData) {
-      final dateStr = d['date'] as String;
-      if (revenueMap.containsKey(dateStr)) {
-        revenueMap[dateStr] = (d['revenue'] as num).toDouble();
-      }
-    }
-    final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-    revenueMap[todayStr] = todayRevenue;
-
-    final sortedKeys = revenueMap.keys.toList()..sort((a, b) => b.compareTo(a));
-    return sortedKeys.map((k) => revenueMap[k]!).toList();
-  }
-
-
-  List<double> _getMonthlyPoints(List<Map<String, dynamic>> monthlyData, double thisMonthRevenue) {
-    final now = DateTime.now();
-    final Map<String, double> revenueMap = {};
-    for (int i = 0; i < 6; i++) {
-      final date = DateTime(now.year, now.month - i, 1);
-      final monthStr = "${date.year}-${date.month.toString().padLeft(2, '0')}";
-      revenueMap[monthStr] = 0.0;
-    }
-    for (final m in monthlyData) {
-      final monthStr = m['month'] as String;
-      if (revenueMap.containsKey(monthStr)) {
-        revenueMap[monthStr] = (m['revenue'] as num).toDouble();
-      }
-    }
-    final thisMonthStr = "${now.year}-${now.month.toString().padLeft(2, '0')}";
-    revenueMap[thisMonthStr] = thisMonthRevenue;
-
-    final sortedKeys = revenueMap.keys.toList()..sort((a, b) => b.compareTo(a));
-    return sortedKeys.map((k) => revenueMap[k]!).toList();
-  }
-
-  // بطاقة الدخل البصرية الممتازة (Stitch Design)
-
-
-  // جدول سجلات الأيام التفصيلي
-
-  // جدول سجلات الشهور التراكمي
-
 }
 
-// رسم خط الاتجاه البياني البسيط مع تعبئة تدرجية (Sparkline Painter)
-class _SparklinePainter extends CustomPainter {
-  final List<double> points;
-  final Color color;
-  _SparklinePainter(this.points, this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (points.isEmpty) return;
-
-    final maxVal = points.reduce((a, b) => a > b ? a : b);
-    final minVal = points.reduce((a, b) => a < b ? a : b);
-    // When all values equal, show a gentle mid-line at 60% height
-    final range = maxVal - minVal > 0 ? maxVal - minVal : null;
-
-    // Points come in newest-first order (index 0 = most recent).
-    // Painter maps: i=0 (newest) → x=0 (LEFT), i=n-1 (oldest) → x=size.width (RIGHT).
-    // This gives RTL reading: past on the right, present on the left.
-    final List<Offset> offsets = [];
-    final stepX = points.length > 1 ? size.width / (points.length - 1) : size.width;
-    for (int i = 0; i < points.length; i++) {
-      final x = i * stepX; // LTR index → newest at LEFT (x=0), oldest at RIGHT (x=width)
-      final double y;
-      if (range == null) {
-        y = size.height * 0.4;
-      } else {
-        y = size.height - ((points[i] - minVal) / range) * size.height * 0.85 - size.height * 0.07;
-      }
-      offsets.add(Offset(x, y));
-    }
-
-    // Draw gradient fill beneath the line
-    if (offsets.length > 1) {
-      final fillPath = Path();
-      fillPath.moveTo(offsets.first.dx, size.height);
-      fillPath.lineTo(offsets.first.dx, offsets.first.dy);
-      for (int i = 1; i < offsets.length; i++) {
-        final prev = offsets[i - 1];
-        final curr = offsets[i];
-        final cpX = (prev.dx + curr.dx) / 2;
-        fillPath.cubicTo(cpX, prev.dy, cpX, curr.dy, curr.dx, curr.dy);
-      }
-      fillPath.lineTo(offsets.last.dx, size.height);
-      fillPath.close();
-      canvas.drawPath(
-        fillPath,
-        Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [color.withValues(alpha: 0.18), color.withValues(alpha: 0.01)],
-          ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
-      );
-    }
-
-    // Draw the line
-    final linePaint = Paint()
-      ..color = color
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final linePath = Path();
-    for (int i = 0; i < offsets.length; i++) {
-      if (i == 0) {
-        linePath.moveTo(offsets[i].dx, offsets[i].dy);
-      } else {
-        // Smooth cubic bezier
-        final prev = offsets[i - 1];
-        final curr = offsets[i];
-        final cpX = (prev.dx + curr.dx) / 2;
-        linePath.cubicTo(cpX, prev.dy, cpX, curr.dy, curr.dx, curr.dy);
-      }
-    }
-    canvas.drawPath(linePath, linePaint);
-
-    // Dot at the newest point (leftmost = offsets.first, since index 0 = newest = x=0)
-    final dotO = offsets.first;
-    canvas.drawCircle(dotO, 3.0, Paint()..color = color);
-    canvas.drawCircle(dotO, 3.0, Paint()..color = Colors.white..strokeWidth = 1.5..style = PaintingStyle.stroke);
-  }
-
-  @override
-  bool shouldRepaint(covariant _SparklinePainter oldDelegate) => oldDelegate.points != points;
+Widget _refreshAction(BuildContext context) {
+  return IconButton(
+    icon: const Icon(Icons.refresh_rounded),
+    tooltip: '?????',
+    onPressed: () {
+      final container = ProviderScope.containerOf(context, listen: false);
+      container.invalidate(todayRevenueProvider);
+      container.invalidate(monthRevenueProvider);
+      container.invalidate(weeklyRevenueProvider);
+      container.invalidate(sixWeeksRevenueProvider);
+      container.invalidate(monthlyStatsProvider);
+      container.invalidate(dailyStatsProvider);
+      container.invalidate(todayStatusCountsProvider);
+    },
+  );
 }
 
-
-
+class _SubTabsInline extends StatelessWidget {
+  final int selected;
+  final ValueChanged<int> onSelect;
+  const _SubTabsInline({required this.selected, required this.onSelect});
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['???? ????', '????? ??????', '????? ??????'];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var i = 0; i < labels.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: InkWell(
+                onTap: () => onSelect(i),
+                borderRadius: BorderRadius.circular(8),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected == i
+                        ? AppColors.primary.withValues(alpha: 0.10)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: selected == i
+                          ? AppColors.primary.withValues(alpha: 0.5)
+                          : AppColors.borderSubtle(context),
+                    ),
+                  ),
+                  child: Text(
+                    labels[i],
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: selected == i
+                          ? AppColors.primary
+                          : AppColors.textSecondary(context),
+                    ),
+                  ),
+                ),
+              ),
+ ),
+        ],
+      ),
+    );
+  }
+}

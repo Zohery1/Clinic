@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart' as intl;
 import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/tokens/colors.dart';
 import 'reports_controller.dart';
 
 /// صفحة التقرير التفصيلي — يوم أو فترة زمنية محددة
@@ -202,7 +203,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                               isDark: isDark,
                               title: 'تفاصيل الخدمات المقدمة',
                               icon: Icons.build_outlined,
-                              accentColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                              accentColor: AppColors.success,
                               items: servicesByType,
                               totalRevenue: totalSvcRev,
                             ),
@@ -232,7 +233,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                           isDark: isDark,
                           title: 'تفاصيل الخدمات المقدمة',
                           icon: Icons.build_outlined,
-                          accentColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                          accentColor: AppColors.success,
                           items: servicesByType,
                           totalRevenue: totalSvcRev,
                         ),
@@ -288,50 +289,50 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         label: 'إيرادات الكشوفات',
         value: '${totalAppRev.toStringAsFixed(0)} ج.م',
         icon: Icons.medical_services_outlined,
-        accentColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1A73E8),
+        accentColor: AppColors.info,
         bgColor: isDark
-            ? const Color(0xFF60A5FA).withValues(alpha: 0.10)
-            : const Color(0xFFE8F0FE),
+            ? AppColors.infoSubtle
+            : AppColors.infoSubtle,
         mono: true,
       ),
       _SummaryCardData(
         label: 'إيرادات الخدمات',
         value: '${totalSvcRev.toStringAsFixed(0)} ج.م',
         icon: Icons.build_outlined,
-        accentColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+        accentColor: AppColors.success,
         bgColor: isDark
-            ? const Color(0xFF34D399).withValues(alpha: 0.10)
-            : const Color(0xFFECFDF5),
+            ? AppColors.successSubtle
+            : AppColors.successSubtle,
         mono: true,
       ),
       _SummaryCardData(
         label: 'إجمالي الزيارات',
         value: '$totalVisits زيارة',
         icon: Icons.people_alt_outlined,
-        accentColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED),
+        accentColor: AppColors.completed,
         bgColor: isDark
-            ? const Color(0xFFC084FC).withValues(alpha: 0.10)
-            : const Color(0xFFF5F3FF),
+            ? AppColors.completedSubtle
+            : AppColors.completedSubtle,
         mono: false,
       ),
       _SummaryCardData(
         label: 'إلغاء (من العيادة)',
         value: '$cancelledCount',
         icon: Icons.event_busy_outlined,
-        accentColor: isDark ? const Color(0xFFF87171) : const Color(0xFFEF4444),
+        accentColor: AppColors.danger,
         bgColor: isDark
-            ? const Color(0xFFF87171).withValues(alpha: 0.10)
-            : const Color(0xFFFEF2F2),
+            ? AppColors.dangerSubtle
+            : AppColors.dangerSubtle,
         mono: false,
       ),
       _SummaryCardData(
         label: 'عدم حضور (مريض)',
         value: '$cancelledByPatientCount',
         icon: Icons.person_off_outlined,
-        accentColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B),
+        accentColor: AppColors.warning,
         bgColor: isDark
-            ? const Color(0xFFFBBF24).withValues(alpha: 0.10)
-            : const Color(0xFFFFFBEB),
+            ? AppColors.warningSubtle
+            : AppColors.warningSubtle,
         mono: false,
       ),
     ];
@@ -430,7 +431,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: (data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444)).withValues(alpha: 0.12),
+                  color: (data.trendIsPositive! ? AppColors.success : AppColors.danger).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -438,7 +439,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                   children: [
                     Icon(
                       data.trendIsPositive! ? Icons.arrow_upward : Icons.arrow_downward,
-                      color: data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                      color: data.trendIsPositive! ? AppColors.success : AppColors.danger,
                       size: 11,
                     ),
                     const SizedBox(width: 2),
@@ -447,7 +448,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                        color: data.trendIsPositive! ? AppColors.success : AppColors.danger,
                       ),
                     ),
                   ],
@@ -474,7 +475,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     final svcPct = total > 0 ? (totalSvcRev / total * 100) : 0.0;
 
     final appColor = Theme.of(context).colorScheme.primary;
-    final svcColor = isDark ? const Color(0xFF34D399) : const Color(0xFF059669);
+    final svcColor = AppColors.success;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -674,8 +675,8 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
   Widget _buildPatientsCard(
       BuildContext context, bool isDark, int newPts, int oldPts) {
     final total = newPts + oldPts;
-    final newColor = isDark ? const Color(0xFF34D399) : const Color(0xFF059669);
-    final oldColor = isDark ? const Color(0xFF60A5FA) : const Color(0xFF1A73E8);
+    final newColor = AppColors.success;
+    final oldColor = AppColors.info;
 
     return Container(
       padding: const EdgeInsets.all(16),

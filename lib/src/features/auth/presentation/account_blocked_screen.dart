@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/theme/app_theme.dart';
-import 'login_controller.dart';
-import 'login_screen.dart';
+import '../../../core/ui/feedback/app_status_page.dart';
+import '../../../core/ui/primitives/app_button.dart';
+import '../../../core/ui/tokens/colors.dart';
+import '../../../core/ui/tokens/typography.dart';
+import '../../../core/ui/tokens/spacing.dart';
 import 'join_clinic_screen.dart';
 
 class AccountBlockedScreen extends ConsumerStatefulWidget {
@@ -26,252 +26,75 @@ class AccountBlockedScreen extends ConsumerStatefulWidget {
 class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
   bool _isChecking = false;
 
-  void _handleLogout() async {
-    await Supabase.instance.client.auth.signOut();
-    ref.read(currentUserProvider.notifier).state = null;
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
-    }
-  }
-
-  void _checkAgain() async {
+  Future<void> _checkAgain() async {
     setState(() => _isChecking = true);
     await Future.delayed(const Duration(milliseconds: 600));
     widget.onRefresh();
-    if (mounted) {
-      setState(() => _isChecking = false);
-    }
+    if (mounted) setState(() => _isChecking = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final helloLine = widget.userName.isNotEmpty
+        ? 'أهلًا بك يا ${widget.userName}'
+        : 'عزيزي المساعد / السكرتير';
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 480),
-              padding: const EdgeInsets.all(32.0),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
+    final msg = 'يرجى التواصل مع مدير العيادة (${widget.clinicName}) لإعادة التفعيل.';
+
+    return AppStatusPage(
+      icon: Icons.block_rounded,
+      iconColor: AppColors.danger,
+      title: 'تم تعطيل حسابك من قبل إدارة العيادة',
+      message: msg,
+      hero: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(helloLine, textAlign: TextAlign.center, style: AppTypography.headingSm(AppColors.primary)),
+          const SizedBox(height: AppSpace.md),
+          Container(
+            padding: const EdgeInsets.all(AppSpace.lg),
+            decoration: BoxDecoration(
+              color: AppColors.dangerSubtle,
+              borderRadius: AppRadii.brMd,
+              border: Border.all(color: AppColors.danger.withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline_rounded, size: 18, color: AppColors.danger),
+                const SizedBox(width: AppSpace.sm),
+                Expanded(
+                  child: Text(
+                    'قام الطبيب المسؤول في عيادة «${widget.clinicName}» بإيقاف صلاحيات دخول هذا الحساب مؤقتًا. يرجى مراجعة الطبيب لإعادة تفعيل حسابك.',
+                    style: AppTypography.bodyMd(AppColors.textPrimary(context)),
                   ),
-                ],
-                border: Border.all(
-                  color: isDark ? Colors.white10 : Colors.black12,
                 ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // الأيقونة الرئيسية المضيئة
-                  Container(
-                    width: 84,
-                    height: 84,
-                    decoration: BoxDecoration(
-                      color: AppTheme.error.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppTheme.error.withValues(alpha: 0.3),
-                        width: 2,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.person_off_rounded,
-                      size: 42,
-                      color: AppTheme.error,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // العنوان الرئيسي
-                  Text(
-                    'تم إيقاف حسابك من قبل الطبيب',
-                    style: GoogleFonts.cairo(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: theme.textTheme.titleLarge?.color,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-
-                  // اسم السكرتيرة والعيادة
-                  Text(
-                    widget.userName.isNotEmpty
-                        ? 'أهلاً بك يا ${widget.userName}'
-                        : 'عزيزي المساعد / السكرتير',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.primary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // رسالة التوضيح
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.04)
-                          : Colors.black.withValues(alpha: 0.03),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark ? Colors.white10 : Colors.black12,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.info_outline_rounded,
-                                size: 18, color: AppTheme.error),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'قام الطبيب المسؤول في عيادة «${widget.clinicName}» بإيقاف صلاحيات دخول هذا الحساب مؤقتاً.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  height: 1.5,
-                                  color: theme.textTheme.bodyMedium?.color,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 20),
-                        const Row(
-                          children: [
-                            Icon(Icons.help_outline_rounded,
-                                size: 16, color: AppTheme.textSecondary),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'يرجى مراجعة الطبيب لإعادة تفعيل حسابك من شاشة إدارة فريق العمل داخل الإعدادات.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.textSecondary,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 🔑 زر الانتقال لصفحة الانضمام المخصصة لعيادة جديدة
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => JoinClinicScreen(
-                            userName: widget.userName,
-                            onRefresh: widget.onRefresh,
-                          ),
-                        ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: theme.colorScheme.primary,
-                      side: BorderSide(color: theme.colorScheme.primary),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    icon: const Icon(Icons.add_business_rounded, size: 20),
-                    label: Text(
-                      'الخروج من العيادة والربط بعيادة جديدة',
-                      style: GoogleFonts.cairo(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // أزرار التفاعل
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: _isChecking ? null : _checkAgain,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        icon: _isChecking
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.refresh_rounded, size: 20),
-                        label: Text(
-                          _isChecking
-                              ? 'جاري التحقق...'
-                              : 'إعادة المحاولة والتحقق من التفعيل',
-                          style: GoogleFonts.cairo(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _handleLogout,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.error,
-                          side: const BorderSide(color: AppTheme.error),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        icon: const Icon(Icons.logout_rounded, size: 20),
-                        label: Text(
-                          'تسجيل الخروج والتغيير',
-                          style: GoogleFonts.cairo(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
-        ),
+        ],
+      ),
+      primaryAction: StatusAction(
+        label: 'إعادة المحاولة والتحقُّق',
+        onPressed: _isChecking ? null : _checkAgain,
+        loading: _isChecking,
+        icon: Icons.refresh_rounded,
+      ),
+      secondaryAction: StatusAction(
+        label: 'الخروج والربط بعيادة جديدة',
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => JoinClinicScreen(
+                userName: widget.userName,
+                onRefresh: widget.onRefresh,
+              ),
+            ),
+          );
+        },
+        variant: AppButtonVariant.secondary,
+        icon: Icons.add_business_rounded,
       ),
     );
   }

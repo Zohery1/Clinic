@@ -1,12 +1,16 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../domain/appointment_model.dart';
-import 'appointments_calendar_strip.dart';
-import 'queue_board.dart';
+import 'desktop/calendar_pane.dart';
+import 'desktop/details_pane.dart';
+import 'desktop/list_pane.dart';
 
-/// العرض المكتبي الكامل لشاشة المواعيد
-class AppointmentsDesktopView extends StatelessWidget {
+/// Desktop appointments view — 3-pane layout:
+///   left (240px): calendar
+///   center (flex 3): appointment list for selected day
+///   right (flex 4): selected appointment details
+class AppointmentsDesktopView extends ConsumerStatefulWidget {
   final UserModel user;
   final AsyncValue<List<AppointmentModel>> appointmentsAsync;
   final DateTime selectedDate;
@@ -19,27 +23,50 @@ class AppointmentsDesktopView extends StatelessWidget {
   });
 
   @override
+  ConsumerState<AppointmentsDesktopView> createState() =>
+      _AppointmentsDesktopViewState();
+}
+
+class _AppointmentsDesktopViewState
+    extends ConsumerState<AppointmentsDesktopView> {
+  AppointmentModel? _selected;
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        AppointmentsCalendarStrip(selectedDate: selectedDate, user: user),
-        const SizedBox(height: 16),
-        Expanded(
-          child: appointmentsAsync.when(
-            data: (appointments) => QueueBoard(
-              appointments: appointments,
-              clinicId: user.clinicId,
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 240,
+            child: Card(
+              child: const DesktopCalendarPane(),
             ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) => Center(
-              child: Text(
-                'حدث خطأ في تحميل البيانات: $err',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 3,
+            child: Card(
+              child: DesktopListPane(
+                user: widget.user,
+                selected: _selected,
+                onSelect: (AppointmentModel a) => setState(() => _selected = a),
               ),
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 4,
+            child: Card(
+              child: DesktopDetailsPane(
+                user: widget.user,
+                selected: _selected,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

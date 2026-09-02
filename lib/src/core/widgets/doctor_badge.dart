@@ -1,14 +1,18 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../ui/primitives/app_avatar.dart';
+import '../ui/tokens/colors.dart';
+import '../ui/tokens/spacing.dart';
 
-import '../theme/app_theme.dart';
+export '../ui/primitives/app_avatar.dart';
 
-/// شارة هوية الطبيب الموحدة — تظهر على كل الكروت (طابور، مواعيد، تقارير)
-/// لون ثابت لكل طبيب مشتق من معرفه + حرف أول الاسم.
+/// Backward-compatible doctor identity badge. Uses [AppAvatar] from the
+/// new design system plus a tinted label. Renders nothing when no name
+/// is supplied (matches legacy behavior).
 class DoctorBadge extends StatelessWidget {
   final String? doctorId;
   final String? doctorName;
-  final bool compact; // نسخة مصغرة للكروت المزدحمة
+  final bool compact;
 
   const DoctorBadge({
     super.key,
@@ -19,38 +23,34 @@ class DoctorBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = (doctorName == null || doctorName!.trim().isEmpty) ? null : doctorName!;
+    final name = (doctorName == null || doctorName!.trim().isEmpty)
+        ? null
+        : doctorName!.trim();
     if (name == null) return const SizedBox.shrink();
 
-    final color = AppTheme.doctorColor(doctorId);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = AppColors.doctorColor(doctorId);
+    final isDark = AppColors.isDark(context);
     final bg = color.withValues(alpha: isDark ? 0.22 : 0.12);
-    final fg = isDark ? color.withValues(alpha: 1.0) : color;
+    final fg = color;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 9, vertical: compact ? 2 : 3),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? AppSpace.sm : AppSpace.md,
+        vertical: compact ? 2 : 3,
+      ),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadii.radiusFull),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: compact ? 14 : 16,
-            height: compact ? 14 : 16,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            child: Text(
-              name.trim().isNotEmpty ? name.trim().substring(0, 1) : 'د',
-              style: GoogleFonts.cairo(
-                fontSize: compact ? 8 : 9,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
+          AppAvatar(
+            name: name,
+            color: color,
+            size: compact ? AppAvatarSize.xs : AppAvatarSize.sm,
           ),
-          const SizedBox(width: 5),
+          SizedBox(width: compact ? 4 : 6),
           Flexible(
             child: Text(
               'د. $name',
@@ -60,6 +60,7 @@ class DoctorBadge extends StatelessWidget {
                 fontSize: compact ? 10 : 11,
                 fontWeight: FontWeight.w700,
                 color: fg,
+                height: 1.3,
               ),
             ),
           ),

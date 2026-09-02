@@ -1,8 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../theme/app_theme.dart';
+﻿import 'package:flutter/material.dart';
+import '../ui/primitives/app_badge.dart';
+import '../ui/tokens/colors.dart';
 
-/// Standardized status badge / pill widget for appointments, payments, and clinic items.
+export '../ui/primitives/app_badge.dart';
+
+/// Backward-compatible wrapper. Legacy code that built an `AppStatusBadge`
+/// with a raw `Color` keeps working — the color is mapped to the closest
+/// badge variant from the new design system.
 class AppStatusBadge extends StatelessWidget {
   final String label;
   final Color color;
@@ -17,7 +21,8 @@ class AppStatusBadge extends StatelessWidget {
     this.icon,
   });
 
-  /// Factory constructor to map standard appointment status strings into styled status badges.
+  /// Factory used by the old API. Maps known appointment status strings
+  /// to a label + icon + variant.
   factory AppStatusBadge.fromAppointmentStatus(
     String status, {
     bool compact = false,
@@ -62,7 +67,7 @@ class AppStatusBadge extends StatelessWidget {
         normalized == 'تم الإلغاء') {
       return AppStatusBadge(
         label: 'ملغي',
-        color: AppColors.error,
+        color: AppColors.danger,
         icon: Icons.cancel_outlined,
         compact: compact,
       );
@@ -77,67 +82,36 @@ class AppStatusBadge extends StatelessWidget {
       );
     }
 
-    // Default fallback
     return AppStatusBadge(
       label: status,
-      color: AppColors.textSecondaryLight,
+      color: AppColors.lightTextMuted,
       compact: compact,
     );
   }
 
+  AppBadgeVariant _resolveVariant() {
+    final c = color.toARGB32();
+    final s = AppColors.success.toARGB32();
+    final w = AppColors.warning.toARGB32();
+    final d = AppColors.danger.toARGB32();
+    final i = AppColors.info.toARGB32();
+    final p = AppColors.primary.toARGB32();
+    if (c == s) return AppBadgeVariant.success;
+    if (c == w) return AppBadgeVariant.warning;
+    if (c == d) return AppBadgeVariant.danger;
+    if (c == i || c == p) return AppBadgeVariant.info;
+    return AppBadgeVariant.neutral;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final horizontalPadding = compact ? AppSpacing.sm : AppSpacing.md;
-    final verticalPadding = compact ? 2.0 : AppSpacing.xs;
-    final fontSize = compact ? 11.0 : 12.5;
-    final iconSize = compact ? 12.0 : 14.0;
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: horizontalPadding,
-        vertical: verticalPadding,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-        border: Border.all(
-          color: color.withValues(alpha: 0.25),
-          width: 0.8,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (icon != null) ...[
-            Icon(
-              icon,
-              size: iconSize,
-              color: color,
-            ),
-            SizedBox(width: compact ? 3.0 : AppSpacing.xs),
-          ] else ...[
-            Container(
-              width: compact ? 5 : 6,
-              height: compact ? 5 : 6,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-            ),
-            SizedBox(width: compact ? 4.0 : 6.0),
-          ],
-          Text(
-            label,
-            style: GoogleFonts.cairo(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w700,
-              color: color,
-              height: 1.3,
-            ),
-          ),
-        ],
-      ),
+    return AppBadge(
+      label: label,
+      icon: icon,
+      dot: icon == null,
+      size: compact ? AppBadgeSize.sm : AppBadgeSize.md,
+      variant: _resolveVariant(),
     );
   }
 }
+

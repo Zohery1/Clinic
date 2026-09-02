@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/theme/app_motion.dart';
+import '../../../../core/ui/tokens/colors.dart';
+import '../../../../core/ui/tokens/motion.dart';
 import '../../domain/patient_model.dart';
 import 'patient_avatar.dart';
 import 'hover_scale_button.dart';
@@ -71,7 +71,10 @@ class _PatientListCardState extends State<PatientListCard> {
                   )
                 ],
               )
-            : AppTheme.cardDecoration(context).copyWith(
+            : BoxDecoration(
+                color: AppColors.surface(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.borderSubtle(context)),
                 boxShadow: showHoverEffect
                     ? [
                         BoxShadow(
@@ -81,7 +84,7 @@ class _PatientListCardState extends State<PatientListCard> {
                           offset: const Offset(0, 4),
                         )
                       ]
-                    : AppTheme.cardDecoration(context).boxShadow,
+                    : null,
               ),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -136,16 +139,16 @@ class _PatientListCardState extends State<PatientListCard> {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryLight,
+                          color: AppColors.primarySubtle,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.add_task_rounded, color: AppTheme.primary, size: 18),
+                        child: const Icon(Icons.add_task_rounded, color: AppColors.primary, size: 18),
                       ),
                     ),
                     const SizedBox(width: 8),
                     PopupMenuButton<String>(
                       tooltip: 'خيارات أخرى',
-                      icon: const Icon(Icons.more_vert_rounded, color: AppTheme.textHint, size: 18),
+                      icon: Icon(Icons.more_vert_rounded, color: AppColors.textMuted(context), size: 18),
                       onSelected: (action) {
                         if (action == 'edit') {
                           widget.onEdit();
@@ -158,7 +161,7 @@ class _PatientListCardState extends State<PatientListCard> {
                           value: 'edit',
                           child: Row(
                             children: [
-                              Icon(Icons.edit_outlined, color: AppTheme.primary, size: 16),
+                              Icon(Icons.edit_outlined, color: AppColors.primary, size: 16),
                               SizedBox(width: 8),
                               Text('تعديل البيانات', style: TextStyle(fontSize: 13)),
                             ],
@@ -169,9 +172,9 @@ class _PatientListCardState extends State<PatientListCard> {
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 16),
+                                Icon(Icons.delete_outline_rounded, color: AppColors.danger, size: 16),
                                 SizedBox(width: 8),
-                                Text('حذف المريض', style: TextStyle(color: AppTheme.error, fontSize: 13)),
+                                Text('حذف المريض', style: TextStyle(color: AppColors.danger, fontSize: 13)),
                               ],
                             ),
                           ),

@@ -1,21 +1,26 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../appointments/presentation/appointments_screen.dart';
+import '../../../core/ui/feedback/app_status_page.dart';
+import '../../../core/ui/layout/app_shell.dart';
 import '../../appointments/presentation/appointments_controller.dart';
-import '../../patients/presentation/patients_screen.dart';
-import '../../reports/presentation/reports_screen.dart';
-import '../../settings/presentation/settings_screen.dart';
+import '../../appointments/presentation/appointments_screen.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/presentation/top_up_subscription_screen.dart';
-import 'widgets/dashboard_overview_tab.dart';
+import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
+import '../../patients/presentation/pages/patients_page.dart';
+import '../../reports/presentation/reports_screen.dart';
+import '../../settings/presentation/settings_screen.dart';
+import 'notifications_controller.dart';
+import 'widgets/dashboard_greeting_hero.dart';
+import 'widgets/dashboard_notifications_dialog.dart';
+import 'widgets/dashboard_quick_actions.dart';
+import 'widgets/dashboard_recent_transactions.dart';
+import 'widgets/dashboard_stats_row.dart';
+import 'widgets/dashboard_today_appointments.dart';
+import 'widgets/dashboard_weekly_chart.dart';
 
-/// الشاشة الرئيسية لتطبيق العيادة
-/// تعتمد شريط تنقل سفلي ثابت (Persistent BottomNavigationBar) يعمل عبر كافة المنصات (Mobile, Tablet, Web)
-/// باستخدام IndexedStack للحفاظ على حالة التبويبات بدون إعادة بناء.
 class DashboardScreen extends ConsumerStatefulWidget {
   final DateTime? subscriptionEndDate;
   final String? inviteCode;
@@ -36,75 +41,109 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _currentIndex = 0;
-  Timer? _expirationTimer;
 
-  @override
-  void initState() {
-    super.initState();
-    // مؤقت للتحقق من صلاحية الاشتراك لحظياً
-    _expirationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
+  static const _routes = <String>[
+    '/home',
+    '/appointments',
+    '/patients',
+    '/reports',
+    '/settings',
+  ];
+
+  int get _effectiveIndex {
+    final user = ref.read(currentUserProvider);
+    final isOwner = user?.isOwner ?? false;
+    final maxIndex = isOwner ? 4 : 3;
+    return _currentIndex.clamp(0, maxIndex);
   }
 
-  @override
-  void dispose() {
-    _expirationTimer?.cancel();
-    super.dispose();
+  void _onNavigate(String route) {
+    final idx = _routes.indexOf(route);
+    if (idx >= 0) {
+      setState(() => _currentIndex = idx);
+    }
   }
 
   void _navigateToTab(int index) {
-    final isOwner = ref.read(currentUserProvider)?.isOwner ?? false;
-    if (!isOwner && index == 3) {
-      // إذا كان غير مالك، التبويب 3 يمثل الإعدادات في واجهته
-      setState(() => _currentIndex = 3);
-      return;
-    }
-    if (!isOwner && index > 3) {
-      setState(() => _currentIndex = (index - 1).clamp(0, 3));
-      return;
-    }
-    setState(() => _currentIndex = index.clamp(0, isOwner ? 4 : 3));
+    final user = ref.read(currentUserProvider);
+    final isOwner = user?.isOwner ?? false;
+    final max = isOwner ? 4 : 3;
+    setState(() => _currentIndex = index.clamp(0, max));
   }
 
   @override
   Widget build(BuildContext context) {
-    // تفعيل الاستماع الفوري لتغييرات المواعيد عبر الأجهزة المختلفة
     ref.watch(realtimeAppointmentsSyncProvider);
 
-    // التحقق من انتهاء تاريخ الاشتراك
-    final isExpired = widget.subscriptionEndDate != null &&
-        widget.subscriptionEndDate!.isBefore(DateTime.now());
-
-    if (isExpired) {
-      return Directionality(
+    final user = ref.watch(currentUserProvider);
+    if (user == null) {
+      return const Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: TopUpSubscriptionScreen(
-            clinicName: widget.clinicName ?? 'العيادة',
-            inviteCode: widget.inviteCode ?? '',
-            clinicId: widget.clinicId ?? '',
-            onRefresh: () => setState(() {}),
-          ),
+          body: Center(child: CircularProgressIndicator()),
         ),
       );
     }
 
-    final user = ref.watch(currentUserProvider);
-    final isOwner = user?.isOwner ?? false;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isExpired = widget.subscriptionEndDate != null &&
+        widget.subscriptionEndDate!.isBefore(DateTime.now());
+    if (isExpired) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: AppStatusPage(
+          icon: Icons.event_busy_rounded,
+          iconColor: AppColors.danger,
+          title: 'Ø§Ù†ØªÙ‡Ù‰ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ',
+          message:
+              'ÙŠØ±Ø¬Ù‰ ØªØ¬Ø¯ÙŠØ¯ Ø§Ø´ØªØ±Ø§Ùƒ Ø§Ù„Ø¹ÙŠØ§Ø¯Ø© Ù„Ù„Ø§Ø³ØªÙ…Ø±Ø§Ø± ÙÙŠ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù†Ø¸Ø§Ù… ÙˆØ§Ù„ÙˆØµÙˆÙ„ Ø¥Ù„Ù‰ Ø¨ÙŠØ§Ù†Ø§ØªÙƒ.',
+          primaryAction: StatusAction(
+            label: 'ØªØ¬Ø¯ÙŠØ¯ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ',
+            icon: Icons.refresh_rounded,
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => Dialog(
+                  insetPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 24),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppRadii.brXl,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: AppRadii.brXl,
+                    child: Container(
+                      constraints: const BoxConstraints(
+                          maxWidth: 700, maxHeight: 750),
+                      child: TopUpSubscriptionScreen(
+                        clinicName: widget.clinicName ?? 'Ø§Ù„Ø¹ÙŠØ§Ø¯Ø©',
+                        inviteCode: widget.inviteCode ?? '',
+                        clinicId: widget.clinicId ?? '',
+                        onRefresh: () {
+                          Navigator.of(ctx).pop();
+                          setState(() {});
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          compact: true,
+        ),
+      );
+    }
 
-    // بناء قائمة الشاشات حسب صلاحية المالك
+    final isOwner = user.isOwner;
+    final unreadCount = ref
+        .watch(notificationsProvider)
+        .notifications
+        .where((n) => !n.isRead)
+        .length;
+
     final tabs = <Widget>[
-      DashboardOverviewTab(
-        subscriptionEndDate: widget.subscriptionEndDate,
-        inviteCode: widget.inviteCode,
-        clinicName: widget.clinicName,
+      _HomeTab(
         clinicId: widget.clinicId,
+        clinicName: widget.clinicName,
         onNavigateToTab: _navigateToTab,
       ),
       AppointmentsScreen(
@@ -113,97 +152,138 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         clinicName: widget.clinicName,
         clinicId: widget.clinicId,
       ),
-      const PatientsScreen(),
+      const PatientsPage(),
       if (isOwner) const ReportsScreen(),
       const SettingsScreen(),
     ];
 
-    // عناصر شريط التنقل السفلي
-    final navItems = <BottomNavigationBarItem>[
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.dashboard_outlined),
-        activeIcon: Icon(Icons.dashboard_rounded),
-        label: 'الرئيسية',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.calendar_today_outlined),
-        activeIcon: Icon(Icons.calendar_today_rounded),
-        label: 'المواعيد',
-      ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.people_outline_rounded),
-        activeIcon: Icon(Icons.people_rounded),
-        label: 'المرضى',
-      ),
-      if (isOwner)
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.bar_chart_rounded),
-          activeIcon: Icon(Icons.bar_chart_rounded),
-          label: 'التقارير',
-        ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.settings_outlined),
-        activeIcon: Icon(Icons.settings_rounded),
-        label: 'الإعدادات',
-      ),
-    ];
-
-    final safeIndex = _currentIndex.clamp(0, tabs.length - 1);
-
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: IndexedStack(
-          index: safeIndex,
+      child: AppShell(
+        currentRoute: _routes[_effectiveIndex],
+        onNavigate: _onNavigate,
+        user: user,
+        title: _resolveTitle(_effectiveIndex, widget.clinicName),
+        subtitle: _resolveSubtitle(_effectiveIndex),
+        unreadCount: unreadCount,
+        onNotificationsTap: () =>
+            DashboardNotificationsDialog.show(context),
+        actions: <Widget>[
+          ClinicSwitcherButton(isCompact: true),
+        ],
+        child: IndexedStack(
+          index: _effectiveIndex,
           children: tabs,
         ),
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            border: Border(
-              top: BorderSide(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                width: 1,
-              ),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withValues(alpha: 0.25)
-                    : Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
+      ),
+    );
+  }
+
+  String _resolveTitle(int idx, String? clinicName) {
+    switch (idx) {
+      case 0:
+        return clinicName ?? 'Ù„ÙˆØ­Ø© Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©';
+      case 1:
+        return 'Ø§Ù„Ù…ÙˆØ§Ø¹ÙŠØ¯';
+      case 2:
+        return 'Ø§Ù„Ù…Ø±Ø¶Ù‰';
+      case 3:
+        return 'Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±';
+      case 4:
+        return 'Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª';
+      default:
+        return '';
+    }
+  }
+
+  String? _resolveSubtitle(int idx) {
+    switch (idx) {
+      case 0:
+        return 'Ù†Ø¸Ø±Ø© Ø¹Ø§Ù…Ø© Ø¹Ù„Ù‰ Ø¹ÙŠØ§Ø¯ØªÙƒ Ø§Ù„ÙŠÙˆÙ…';
+      case 1:
+        return 'ÙƒÙ„ Ø­Ø¬ÙˆØ²Ø§ØªÙƒ ÙÙŠ Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯';
+      case 2:
+        return 'Ø³Ø¬Ù„ Ø§Ù„Ù…Ø±Ø¶Ù‰ ÙˆØ§Ù„Ù…ØªØ§Ø¨Ø¹Ø©';
+      case 3:
+        return 'Ø£Ø¯Ø§Ø¡ Ø§Ù„Ø¹ÙŠØ§Ø¯Ø© ÙˆØ§Ù„Ù…Ø¤Ø´Ø±Ø§Øª Ø§Ù„Ù…Ø§Ù„ÙŠØ©';
+      case 4:
+        return 'Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØ§Ù„Ø¹ÙŠØ§Ø¯Ø©';
+      default:
+        return null;
+    }
+  }
+}
+
+class _HomeTab extends ConsumerWidget {
+  final String? clinicId;
+  final String? clinicName;
+  final void Function(int tabIndex) onNavigateToTab;
+
+  const _HomeTab({
+    required this.clinicId,
+    required this.clinicName,
+    required this.onNavigateToTab,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final width = MediaQuery.of(context).size.width;
+    final stacked = width < 1100;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpace.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DashboardGreetingHero(onNavigateToTab: onNavigateToTab),
+          const SizedBox(height: AppSpace.xl),
+          DashboardStatsRow(onNavigateToTab: onNavigateToTab),
+          const SizedBox(height: AppSpace.xl),
+          DashboardQuickActions(onNavigateToTab: onNavigateToTab),
+          const SizedBox(height: AppSpace.xxl),
+          if (stacked)
+            _stackedContent()
+          else
+            _twoColumnContent(),
+        ],
+      ),
+    );
+  }
+
+  Widget _stackedContent() {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DashboardWeeklyChart(),
+        SizedBox(height: AppSpace.xl),
+        DashboardTodayList(),
+        SizedBox(height: AppSpace.xl),
+        DashboardRecentTransactions(),
+      ],
+    );
+  }
+
+  Widget _twoColumnContent() {
+    return const Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 3,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DashboardWeeklyChart(),
+              SizedBox(height: AppSpace.xl),
+              DashboardTodayList(),
             ],
           ),
-          child: SafeArea(
-            top: false,
-            child: BottomNavigationBar(
-              currentIndex: safeIndex,
-              onTap: (index) => setState(() => _currentIndex = index),
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: theme.colorScheme.surface,
-              selectedItemColor: AppColors.primary,
-              unselectedItemColor: isDark
-                  ? AppColors.textSecondaryDark
-                  : AppColors.textSecondaryLight,
-              selectedFontSize: 12,
-              unselectedFontSize: 11,
-              selectedLabelStyle: GoogleFonts.cairo(
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-              unselectedLabelStyle: GoogleFonts.cairo(
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
-              ),
-              elevation: 0,
-              items: navItems,
-            ),
-          ),
         ),
-      ),
+        SizedBox(width: AppSpace.xl),
+        Expanded(
+          flex: 2,
+          child: DashboardRecentTransactions(),
+        ),
+      ],
     );
   }
 }

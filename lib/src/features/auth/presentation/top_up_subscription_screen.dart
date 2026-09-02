@@ -211,7 +211,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: AppColors.canvas(context),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: SelectionArea(
