@@ -1,4 +1,4 @@
-import 'package:fl_chart/fl_chart.dart';
+﻿import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
@@ -20,7 +20,7 @@ class RevenueLineChart extends StatelessWidget {
     if (data.isEmpty || data.length != labels.length) {
       return Center(
         child: Text(
-          '?? ???? ??????',
+          'لا توجد بيانات',
           style: GoogleFonts.cairo(
             fontSize: 13,
             color: AppColors.textMuted(context),
@@ -178,11 +178,11 @@ class RevenueLineChart extends StatelessWidget {
     );
   }
 
-  String _formatCurrency(double v) => '${v.toStringAsFixed(0)} ?.?';
+  String _formatCurrency(double v) => '${v.toStringAsFixed(0)} ج.م';
 
   String _shortMoney(double v) {
-    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}?';
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}?';
+    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}م';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}ك';
     return v.toStringAsFixed(0);
   }
 }

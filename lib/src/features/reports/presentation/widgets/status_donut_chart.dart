@@ -1,4 +1,4 @@
-import 'package:fl_chart/fl_chart.dart';
+﻿import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -18,7 +18,7 @@ class StatusDonutChart extends StatelessWidget {
     if (total == 0) {
       return Center(
         child: Text(
-          '?? ???? ??????',
+          'لا توجد بيانات',
           style: GoogleFonts.cairo(
             fontSize: 13,
             color: AppColors.textMuted(context),
@@ -27,54 +27,61 @@ class StatusDonutChart extends StatelessWidget {
       );
     }
 
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        PieChart(
-          PieChartData(
-            sectionsSpace: 2,
-            centerSpaceRadius: 56,
-            startDegreeOffset: -90,
-            sections: [
-              for (final e in entries)
-                PieChartSectionData(
-                  value: e.value,
-                  color: _colorFor(e.key, isDark),
-                  radius: 28,
-                  showTitle: false,
-                ),
-            ],
-          ),
-        ),
-        Column(
-          mainAxisSize: MainAxisSize.min,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.biggest.shortestSide;
+        final radius = (size / 2) * 0.45;
+        final centerSpace = (size / 2) * 0.48;
+
+        return Stack(
+          alignment: Alignment.center,
           children: [
-            Text(
-              total.toStringAsFixed(0),
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary(context),
-                height: 1.1,
+            PieChart(
+              PieChartData(
+                sectionsSpace: 3,
+                centerSpaceRadius: centerSpace,
+                startDegreeOffset: -90,
+                sections: [
+                  for (final e in entries)
+                    PieChartSectionData(
+                      value: e.value,
+                      color: _colorFor(e.key),
+                      radius: radius,
+                      showTitle: false,
+                    ),
+                ],
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              '????',
-              style: GoogleFonts.cairo(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textMuted(context),
-                height: 1.2,
-              ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  total.toStringAsFixed(0),
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary(context),
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'إجمالي المواعيد',
+                  style: GoogleFonts.cairo(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted(context),
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Color _colorFor(String key, bool isDark) {
+  Color _colorFor(String key) {
     switch (key) {
       case 'waiting':
         return AppColors.warning;
@@ -85,7 +92,7 @@ class StatusDonutChart extends StatelessWidget {
       case 'cancelled':
         return AppColors.danger;
       default:
-        return AppColors.primary;
+        return const Color(0xFF94A3B8);
     }
   }
 }
