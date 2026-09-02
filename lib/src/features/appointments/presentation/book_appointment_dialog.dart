@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,6 +9,7 @@ import '../../../core/ui/primitives/app_button.dart';
 import '../../../core/ui/tokens/colors.dart';
 import '../../../core/ui/tokens/motion.dart';
 import '../../../core/ui/tokens/spacing.dart';
+import '../../clinics/presentation/clinics_controller.dart';
 import '../../dashboard/presentation/notifications_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../data/appointment_repository.dart';
@@ -160,6 +161,10 @@ class _BookAppointmentDialogState
       _showError('يرجى اختيار مريض من القائمة');
       return;
     }
+    if (_selectedAppointmentTypeId == null) {
+      _showError('يرجى اختيار نوع الكشف');
+      return;
+    }
     setState(() => _isSaving = true);
     try {
       final dt = DateTime(
@@ -289,12 +294,28 @@ class _BookAppointmentDialogState
           },
         );
       case 5:
+        final doctorsAsync = ref.watch(clinicDoctorsProvider(widget.clinicId));
+        final branchesAsync = ref.watch(clinicBranchesProvider(widget.clinicId));
+        final doctorName = doctorsAsync.maybeWhen(
+          data: (list) {
+            final doctor = list.where((d) => d.id == _selectedDoctorId).firstOrNull;
+            return doctor?.fullName;
+          },
+          orElse: () => null,
+        );
+        final branchName = branchesAsync.maybeWhen(
+          data: (list) {
+            final branch = list.where((b) => b.id == _selectedBranchId).firstOrNull;
+            return branch?.name;
+          },
+          orElse: () => null,
+        );
         return StepSummary(
           clinicId: widget.clinicId,
           patientId: _selectedPatientId,
           patientName: _autocompleteController?.text,
-          doctorName: null,
-          branchName: null,
+          doctorName: doctorName,
+          branchName: branchName,
           selectedDate: _selectedDate,
           selectedTime: _selectedTime,
           selectedType: selectedType,
@@ -326,138 +347,141 @@ class _BookAppointmentDialogState
               maxWidth: 880,
               maxHeight: size.height * 0.92,
             ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface(context),
-                borderRadius: BorderRadius.circular(AppRadii.radiusXl),
-                border: Border.all(color: AppColors.borderSubtle(context)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (isMobile) ...[
-                    const SizedBox(height: 8),
-                    Center(
-                      child: Container(
-                        width: 44,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.border(context),
-                          borderRadius: BorderRadius.circular(2),
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface(context),
+                  borderRadius: BorderRadius.circular(AppRadii.radiusXl),
+                  border: Border.all(color: AppColors.borderSubtle(context)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (isMobile) ...[
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.border(context),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
+                      ),
+                    ],
+                    _Header(
+                      title: 'حجز موعد جديد',
+                      subtitle: 'أدخل بيانات الموعد وحدد التاريخ والوقت المناسب',
+                      onClose: () => Navigator.pop(context),
+                    ),
+                    const Divider(height: 1),
+                    Flexible(
+                      child: isMobile
+                          ? Column(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(AppSpace.lg),
+                                  child: AppStepper(
+                                    steps: _steps,
+                                    currentIndex: _step,
+                                    onStepTap: (i) {
+                                      if (i <= _step) {
+                                        setState(() => _step = i);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const Divider(height: 1),
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.all(AppSpace.lg),
+                                    child: _buildStepContent(),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Container(
+                                  width: 220,
+                                  padding: const EdgeInsets.all(AppSpace.lg),
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      left: BorderSide(
+                                        color: AppColors.borderSubtle(context),
+                                      ),
+                                    ),
+                                  ),
+                                  child: AppStepper(
+                                    steps: _steps,
+                                    currentIndex: _step,
+                                    onStepTap: (i) {
+                                      if (i <= _step) {
+                                        setState(() => _step = i);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.all(AppSpace.xl),
+                                    child: _buildStepContent(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpace.lg),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (_step > 0)
+                            AppButton(
+                              label: 'السابق',
+                              icon: Icons.chevron_right_rounded,
+                              variant: AppButtonVariant.ghost,
+                              expand: false,
+                              onPressed:
+                                  _isSaving ? null : () => setState(() => _step -= 1),
+                            )
+                          else
+                            AppButton(
+                              label: 'إلغاء',
+                              variant: AppButtonVariant.ghost,
+                              expand: false,
+                              onPressed: _isSaving
+                                  ? null
+                                  : () => Navigator.pop(context),
+                            ),
+                          AppButton(
+                            label: isLast ? 'تأكيد الحجز' : 'التالي',
+                            icon: isLast
+                                ? Icons.check_rounded
+                                : Icons.chevron_left_rounded,
+                            variant: AppButtonVariant.primary,
+                            expand: false,
+                            loading: _isSaving,
+                            onPressed: (_isSaving || !canAdvance)
+                                ? null
+                                : () {
+                                    if (isLast) {
+                                      _submit();
+                                    } else {
+                                      setState(() => _step += 1);
+                                    }
+                                  },
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                  _Header(
-                    title: 'حجز موعد جديد',
-                    subtitle: 'أدخل بيانات الموعد وحدد التاريخ والوقت المناسب',
-                    onClose: () => Navigator.pop(context),
-                  ),
-                  const Divider(height: 1),
-                  Flexible(
-                    child: isMobile
-                        ? Column(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(AppSpace.lg),
-                                child: AppStepper(
-                                  steps: _steps,
-                                  currentIndex: _step,
-                                  onStepTap: (i) {
-                                    if (i <= _step) {
-                                      setState(() => _step = i);
-                                    }
-                                  },
-                                ),
-                              ),
-                              const Divider(height: 1),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  padding: const EdgeInsets.all(AppSpace.lg),
-                                  child: _buildStepContent(),
-                                ),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Container(
-                                width: 220,
-                                padding: const EdgeInsets.all(AppSpace.lg),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    left: BorderSide(
-                                      color: AppColors.borderSubtle(context),
-                                    ),
-                                  ),
-                                ),
-                                child: AppStepper(
-                                  steps: _steps,
-                                  currentIndex: _step,
-                                  onStepTap: (i) {
-                                    if (i <= _step) {
-                                      setState(() => _step = i);
-                                    }
-                                  },
-                                ),
-                              ),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  padding: const EdgeInsets.all(AppSpace.xl),
-                                  child: _buildStepContent(),
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpace.lg),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (_step > 0)
-                          AppButton(
-                            label: 'السابق',
-                            icon: Icons.chevron_right_rounded,
-                            variant: AppButtonVariant.ghost,
-                            expand: false,
-                            onPressed:
-                                _isSaving ? null : () => setState(() => _step -= 1),
-                          )
-                        else
-                          AppButton(
-                            label: 'إلغاء',
-                            variant: AppButtonVariant.ghost,
-                            expand: false,
-                            onPressed: _isSaving
-                                ? null
-                                : () => Navigator.pop(context),
-                          ),
-                        AppButton(
-                          label: isLast ? 'تأكيد الحجز' : 'التالي',
-                          icon: isLast
-                              ? Icons.check_rounded
-                              : Icons.chevron_left_rounded,
-                          variant: AppButtonVariant.primary,
-                          expand: false,
-                          loading: _isSaving,
-                          onPressed: (_isSaving || !canAdvance)
-                              ? null
-                              : () {
-                                  if (isLast) {
-                                    _submit();
-                                  } else {
-                                    setState(() => _step += 1);
-                                  }
-                                },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

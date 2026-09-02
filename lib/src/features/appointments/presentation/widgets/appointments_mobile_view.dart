@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/ui/data/app_stat_card.dart';
@@ -6,6 +8,7 @@ import '../../../../core/ui/feedback/app_empty_state.dart';
 import '../../../../core/ui/feedback/app_error_state.dart';
 import '../../../../core/ui/feedback/app_skeleton.dart';
 import '../../../../core/ui/primitives/app_chip.dart';
+import '../../../../core/ui/primitives/app_input.dart';
 import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/ui/tokens/spacing.dart';
 import '../../../auth/domain/user_model.dart';
@@ -77,6 +80,9 @@ class _FilterSpec {
 class _AppointmentsMobileViewState
     extends ConsumerState<AppointmentsMobileView> {
   _AppointmentFilter _filter = _AppointmentFilter.all;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
 
   static const _filterSpecs = <_FilterSpec>[
     _FilterSpec(_AppointmentFilter.all, AppColors.primary),
@@ -85,6 +91,28 @@ class _AppointmentsMobileViewState
     _FilterSpec(_AppointmentFilter.completed, AppColors.success),
     _FilterSpec(_AppointmentFilter.cancelled, AppColors.danger),
   ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() => _searchQuery = value.trim());
+      }
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _debounceTimer?.cancel();
+    setState(() => _searchQuery = '');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,6 +144,13 @@ class _AppointmentsMobileViewState
             const SizedBox(height: AppSpace.md),
             _RevenueSummary(appointmentsAsync: widget.appointmentsAsync),
             const SizedBox(height: AppSpace.md),
+            _SearchBar(
+              controller: _searchController,
+              query: _searchQuery,
+              onChanged: _onSearchChanged,
+              onClear: _clearSearch,
+            ),
+            const SizedBox(height: AppSpace.md),
             _FilterRow(
               appointmentsAsync: widget.appointmentsAsync,
               selected: _filter,
@@ -126,6 +161,7 @@ class _AppointmentsMobileViewState
             _List(
               appointmentsAsync: widget.appointmentsAsync,
               filter: _filter,
+              searchQuery: _searchQuery,
               clinicId: widget.user.clinicId,
             ),
             const SizedBox(height: AppSpace.huge),
@@ -179,6 +215,39 @@ class _RevenueSummary extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final String query;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  const _SearchBar({
+    required this.controller,
+    required this.query,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppTextField(
+      controller: controller,
+      hint: 'بحث بالاسم أو الهاتف...',
+      prefixIcon: const Icon(Icons.search_rounded, size: 20),
+      suffixIcon: query.isNotEmpty
+          ? IconButton(
+              icon: const Icon(Icons.clear_rounded, size: 20),
+              onPressed: onClear,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+              tooltip: 'مسح البحث',
+            )
+          : null,
+      onChanged: onChanged,
     );
   }
 }
@@ -250,25 +319,42 @@ class _CountedFilterChip extends StatelessWidget {
 class _List extends ConsumerWidget {
   final AsyncValue<List<AppointmentModel>> appointmentsAsync;
   final _AppointmentFilter filter;
+  final String searchQuery;
   final String clinicId;
 
   const _List({
     required this.appointmentsAsync,
     required this.filter,
+    required this.searchQuery,
     required this.clinicId,
   });
+
+  bool _matchesSearch(AppointmentModel a, String query) {
+    if (query.isEmpty) return true;
+    final q = query.toLowerCase();
+    final patientName = a.patient.fullName.toLowerCase();
+    final phone = (a.patient.phone ?? '').toLowerCase();
+    final typeName = (a.appointmentTypeName ?? '').toLowerCase();
+    return patientName.contains(q) || phone.contains(q) || typeName.contains(q);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return appointmentsAsync.when(
       data: (list) {
-        final filtered = list.where(filter.matches).toList()
+        final filtered = list
+            .where((a) => filter.matches(a) && _matchesSearch(a, searchQuery))
+            .toList()
           ..sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
         if (filtered.isEmpty) {
           return AppEmptyState(
             icon: Icons.event_busy_rounded,
-            title: 'لا توجد مواعيد في هذا القسم',
-            message: 'يمكنك إضافة موعد جديد بالضغط على زر حجز جديد',
+            title: searchQuery.isNotEmpty
+                ? 'لا توجد نتائج للبحث'
+                : 'لا توجد مواعيد في هذا القسم',
+            message: searchQuery.isNotEmpty
+                ? 'جرب تغيير كلمات البحث أو المسح'
+                : 'يمكنك إضافة موعد جديد بالضغط على زر حجز جديد',
           );
         }
         return Column(

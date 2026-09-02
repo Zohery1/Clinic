@@ -1,9 +1,12 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 import '../../../../../core/ui/feedback/app_empty_state.dart';
 import '../../../../../core/ui/feedback/app_error_state.dart';
 import '../../../../../core/ui/feedback/app_skeleton.dart';
+import '../../../../../core/ui/primitives/app_input.dart';
 import '../../../../../core/ui/tokens/colors.dart';
 import '../../../../../core/ui/tokens/spacing.dart';
 import '../../../../../core/ui/tokens/typography.dart';
@@ -13,7 +16,7 @@ import '../../../domain/appointment_model.dart';
 import '../appointment_card.dart';
 
 /// Center pane: list of appointments for the selected day.
-class DesktopListPane extends ConsumerWidget {
+class DesktopListPane extends ConsumerStatefulWidget {
   final UserModel user;
   final AppointmentModel? selected;
   final ValueChanged<AppointmentModel> onSelect;
@@ -26,11 +29,62 @@ class DesktopListPane extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DesktopListPane> createState() => _DesktopListPaneState();
+}
+
+class _DesktopListPaneState extends ConsumerState<DesktopListPane> {
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _searchQuery = value.trim().toLowerCase();
+        });
+      }
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _debounceTimer?.cancel();
+    setState(() {
+      _searchQuery = '';
+    });
+  }
+
+  bool _matchesSearch(AppointmentModel appointment) {
+    if (_searchQuery.isEmpty) return true;
+
+    final query = _searchQuery;
+    final patientName = appointment.patient.fullName.toLowerCase();
+    final patientPhone = appointment.patient.phone?.toLowerCase() ?? '';
+    final doctorName = appointment.doctorName?.toLowerCase() ?? '';
+    final appointmentTypeName = appointment.appointmentTypeName?.toLowerCase() ?? '';
+
+    return patientName.contains(query) ||
+        patientPhone.contains(query) ||
+        doctorName.contains(query) ||
+        appointmentTypeName.contains(query);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedDateProvider);
     final async = ref.watch(todayAppointmentsProvider);
     final dateLabel =
         intl.DateFormat('EEEE، d MMMM yyyy', 'ar').format(selectedDate);
+
     return Padding(
       padding: const EdgeInsets.all(AppSpace.lg),
       child: Column(
@@ -46,31 +100,53 @@ class DesktopListPane extends ConsumerWidget {
             style: AppTypography.bodySm(AppColors.textSecondary(context)),
           ),
           const SizedBox(height: AppSpace.lg),
+          AppTextField(
+            controller: _searchController,
+            hint: 'البحث بالاسم، الهاتف، الطبيب، نوع الكشف...',
+            prefixIcon: const Icon(Icons.search_rounded, size: 20),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear_rounded, size: 20),
+                    onPressed: _clearSearch,
+                    tooltip: 'مسح البحث',
+                  )
+                : null,
+            onChanged: _onSearchChanged,
+          ),
+          const SizedBox(height: AppSpace.md),
           Expanded(
             child: async.when(
               data: (list) {
                 final sorted = [...list]
                   ..sort((a, b) =>
                       a.appointmentDate.compareTo(b.appointmentDate));
-                if (sorted.isEmpty) {
-                  return const AppEmptyState(
-                    icon: Icons.event_busy_rounded,
-                    title: 'لا توجد مواعيد',
-                    message: 'لم يتم تسجيل أي مواعيد لهذا اليوم بعد',
+                final filtered = sorted.where(_matchesSearch).toList();
+
+                if (filtered.isEmpty) {
+                  return AppEmptyState(
+                    icon: _searchQuery.isNotEmpty
+                        ? Icons.search_off_rounded
+                        : Icons.event_busy_rounded,
+                    title: _searchQuery.isNotEmpty
+                        ? 'لا توجد نتائج'
+                        : 'لا توجد مواعيد',
+                    message: _searchQuery.isNotEmpty
+                        ? 'لم يتم العثور على مواعيد مطابقة لـ "$_searchQuery"'
+                        : 'لم يتم تسجيل أي مواعيد لهذا اليوم بعد',
                   );
                 }
                 return ListView.separated(
                   padding: EdgeInsets.zero,
-                  itemCount: sorted.length,
+                  itemCount: filtered.length,
                   separatorBuilder: (_, __) =>
                       const SizedBox(height: AppSpace.md),
                   itemBuilder: (_, i) {
-                    final a = sorted[i];
+                    final a = filtered[i];
                     return AppointmentCard(
                       appointment: a,
-                      clinicId: user.clinicId,
-                      isSelected: selected?.id == a.id,
-                      onTap: () => onSelect(a),
+                      clinicId: widget.user.clinicId,
+                      isSelected: widget.selected?.id == a.id,
+                      onTap: () => widget.onSelect(a),
                     );
                   },
                 );

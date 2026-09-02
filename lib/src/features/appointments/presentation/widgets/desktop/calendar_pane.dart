@@ -6,7 +6,9 @@ import '../../appointments_controller.dart';
 
 /// Left pane: compact date strip + doctor/branch filter summary.
 class DesktopCalendarPane extends ConsumerWidget {
-  const DesktopCalendarPane({super.key});
+  final ValueChanged<DateTime>? onMonthChanged;
+
+  const DesktopCalendarPane({super.key, this.onMonthChanged});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -15,12 +17,22 @@ class DesktopCalendarPane extends ConsumerWidget {
     final year = selectedDate.year;
     final today = DateTime.now();
     final isCurrentMonth = today.month == month && today.year == year;
+
+    void handleMonthChanged(DateTime newMonth) {
+      ref.read(selectedDateProvider.notifier).state = newMonth;
+      onMonthChanged?.call(newMonth);
+    }
+
     return Padding(
       padding: const EdgeInsets.all(AppSpace.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _MonthHeader(month: month, year: year),
+          _MonthHeader(
+            month: month,
+            year: year,
+            onMonthChanged: handleMonthChanged,
+          ),
           const SizedBox(height: AppSpace.md),
           _CalendarGrid(currentMonth: selectedDate, today: today),
           if (isCurrentMonth) ...[
@@ -36,7 +48,13 @@ class DesktopCalendarPane extends ConsumerWidget {
 class _MonthHeader extends StatelessWidget {
   final int month;
   final int year;
-  const _MonthHeader({required this.month, required this.year});
+  final ValueChanged<DateTime>? onMonthChanged;
+
+  const _MonthHeader({
+    required this.month,
+    required this.year,
+    this.onMonthChanged,
+  });
 
   static const _arMonths = [
     'يناير',
@@ -53,10 +71,51 @@ class _MonthHeader extends StatelessWidget {
     'ديسمبر',
   ];
 
+  void _goToPreviousMonth() {
+    if (onMonthChanged == null) return;
+    int newMonth = month - 1;
+    int newYear = year;
+    if (newMonth < 1) {
+      newMonth = 12;
+      newYear = year - 1;
+    }
+    onMonthChanged!(DateTime(newYear, newMonth, 1));
+  }
+
+  void _goToNextMonth() {
+    if (onMonthChanged == null) return;
+    final today = DateTime.now();
+    int newMonth = month + 1;
+    int newYear = year;
+    if (newMonth > 12) {
+      newMonth = 1;
+      newYear = year + 1;
+    }
+    if (newYear > today.year || (newYear == today.year && newMonth > today.month)) {
+      return;
+    }
+    onMonthChanged!(DateTime(newYear, newMonth, 1));
+  }
+
+  bool _canGoNext() {
+    final today = DateTime.now();
+    int nextMonth = month + 1;
+    int nextYear = year;
+    if (nextMonth > 12) {
+      nextMonth = 1;
+      nextYear = year + 1;
+    }
+    return !(nextYear > today.year || (nextYear == today.year && nextMonth > today.month));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+        _NavButton(
+          icon: Icons.chevron_left_rounded,
+          onPressed: _goToPreviousMonth,
+        ),
         Expanded(
           child: Text(
             '${_arMonths[month - 1]} $year',
@@ -65,14 +124,13 @@ class _MonthHeader extends StatelessWidget {
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary(context),
             ),
+            textAlign: TextAlign.center,
           ),
         ),
         _NavButton(
           icon: Icons.chevron_right_rounded,
-          onPressed: () {
-            // Decrement month handled by parent via setter, no-op here.
-          },
-          disabled: true,
+          onPressed: _goToNextMonth,
+          disabled: !_canGoNext(),
         ),
       ],
     );
@@ -106,7 +164,7 @@ class _CalendarGrid extends ConsumerWidget {
     final firstOfMonth = DateTime(currentMonth.year, currentMonth.month, 1);
     final daysInMonth =
         DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
-    final firstWeekday = firstOfMonth.weekday % 7; // 0 = Sunday
+    final firstWeekday = firstOfMonth.weekday % 7;
     final cells = <Widget>[];
     for (int i = 0; i < firstWeekday; i++) {
       cells.add(const SizedBox.shrink());
@@ -266,4 +324,3 @@ class _LegendRow extends StatelessWidget {
     );
   }
 }
-
