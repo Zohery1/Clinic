@@ -1,14 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/ui/feedback/app_status_page.dart';
-import '../../../core/ui/layout/app_shell.dart';
-import '../../../core/ui/layout/app_top_bar.dart';
 import '../../../core/ui/tokens/colors.dart';
 import '../../auth/presentation/login_controller.dart';
-import '../../clinics/presentation/clinics_controller.dart';
-import '../../dashboard/presentation/notifications_controller.dart';
-import 'reports_controller.dart';
 import 'widgets/daily_logs_tab.dart';
 import 'widgets/monthly_logs_tab.dart';
 import 'widgets/overview_tab.dart';
@@ -41,8 +36,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       return const AppStatusPage(
         icon: Icons.lock_outline_rounded,
         iconColor: AppColors.warning,
-        title: '???? ????? ?????? ?????',
-        message: '??? ????? ?????? ?????? ??? ????????.',
+        title: 'يرجى تسجيل الدخول أولاً',
+        message: 'قم بتسجيل الدخول للوصول إلى التقارير.',
         compact: true,
       );
     }
@@ -50,19 +45,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       return AppStatusPage(
         icon: Icons.lock_outline_rounded,
         iconColor: AppColors.danger,
-        title: '???????? ??????? ????? ????? ??????? ???',
+        title: 'هذه الصفحة متاحة لمدير العيادة فقط',
         message:
-            '???? ???????? ??????? ?????????? ????? ????? ??????? ???? ??? ???? ????? ???????? ?? ??????? ?????? ?????.',
+            'يرجى التواصل مع مدير العيادة لطلب صلاحية الوصول إلى التقارير والبيانات المالية.',
         compact: true,
       );
     }
-
-    final unread = ref
-        .watch(notificationsProvider)
-        .notifications
-        .where((n) => !n.isRead)
-        .length;
-    final clinicName = ref.watch(activeClinicSummaryProvider)?.clinicName;
 
     final child = switch (_selectedTab) {
       0 => OverviewTab(startDate: _startDate, endDate: _endDate),
@@ -74,49 +62,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       _ => const MonthlyLogsTab(),
     };
 
-    return AppShell(
-      title: '???????? ???????',
-      subtitle: '?????? ?????? ??????????',
-      breadcrumbs: const [
-        AppBreadcrumbItem(label: '????????'),
-        AppBreadcrumbItem(label: '????????'),
-      ],
-      currentRoute: '/reports',
-      onNavigate: (_) {},
-      user: user,
-      clinicName: clinicName,
-      unreadCount: unread,
-      actions: [_refreshAction(context)],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _SubTabsInline(
-            selected: _selectedTab,
-            onSelect: (i) => setState(() => _selectedTab = i),
-          ),
-          const SizedBox(height: 12),
-          Expanded(child: child),
-        ],
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: AppColors.canvas(context),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _SubTabsInline(
+              selected: _selectedTab,
+              onSelect: (i) => setState(() => _selectedTab = i),
+            ),
+            const SizedBox(height: 12),
+            Expanded(child: child),
+          ],
+        ),
       ),
     );
   }
-}
-
-Widget _refreshAction(BuildContext context) {
-  return IconButton(
-    icon: const Icon(Icons.refresh_rounded),
-    tooltip: '?????',
-    onPressed: () {
-      final container = ProviderScope.containerOf(context, listen: false);
-      container.invalidate(todayRevenueProvider);
-      container.invalidate(monthRevenueProvider);
-      container.invalidate(weeklyRevenueProvider);
-      container.invalidate(sixWeeksRevenueProvider);
-      container.invalidate(monthlyStatsProvider);
-      container.invalidate(dailyStatsProvider);
-      container.invalidate(todayStatusCountsProvider);
-    },
-  );
 }
 
 class _SubTabsInline extends StatelessWidget {
@@ -125,7 +88,7 @@ class _SubTabsInline extends StatelessWidget {
   const _SubTabsInline({required this.selected, required this.onSelect});
   @override
   Widget build(BuildContext context) {
-    const labels = ['???? ????', '????? ??????', '????? ??????'];
+    const labels = ['نظرة عامة', 'السجلات اليومية', 'السجلات الشهرية'];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -162,7 +125,7 @@ class _SubTabsInline extends StatelessWidget {
                   ),
                 ),
               ),
- ),
+            ),
         ],
       ),
     );

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/ui/primitives/app_input.dart';
@@ -34,20 +34,20 @@ class _StepCredentialsState extends ConsumerState<StepCredentials> {
 
   String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ';
+      return 'يرجى إدخال البريد الإلكتروني';
     }
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
-      return 'ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø¨Ø±ÙŠØ¯ Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ ØµØ­ÙŠØ­';
+      return 'يرجى إدخال بريد إلكتروني صحيح';
     }
     return null;
   }
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±';
+      return 'يرجى إدخال كلمة المرور';
     }
     if (value.length < 6) {
-      return 'ÙŠØ¬Ø¨ Ø£Ù„Ø§ ØªÙ‚Ù„ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¹Ù† 6 Ø£Ø­Ø±Ù';
+      return 'يجب ألا تقل كلمة المرور عن 6 أحرف';
     }
     return null;
   }
@@ -100,7 +100,7 @@ class _StepCredentialsState extends ConsumerState<StepCredentials> {
               const SizedBox(width: AppSpace.md),
               Expanded(
                 child: Text(
-                  'Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¯Ø®ÙˆÙ„ ÙˆØ­Ù…Ø§ÙŠØ© Ø§Ù„Ø­Ø³Ø§Ø¨',
+                  'بيانات الدخول وحماية الحساب',
                   style: GoogleFonts.cairo(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
@@ -114,7 +114,7 @@ class _StepCredentialsState extends ConsumerState<StepCredentials> {
           const SizedBox(height: AppSpace.lg),
           AppTextField(
             controller: widget.emailController,
-            label: 'Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ',
+            label: 'البريد الإلكتروني',
             hint: 'example@clinic.com',
             keyboardType: TextInputType.emailAddress,
             prefixIcon: const Icon(Icons.email_outlined, size: 20),
@@ -124,7 +124,7 @@ class _StepCredentialsState extends ConsumerState<StepCredentials> {
           const SizedBox(height: AppSpace.lg),
           AppTextField(
             controller: widget.passwordController,
-            label: 'ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±',
+            label: 'كلمة المرور',
             obscure: _obscure,
             prefixIcon: const Icon(Icons.lock_outline, size: 20),
             suffixIcon: IconButton(
@@ -144,13 +144,13 @@ class _StepCredentialsState extends ConsumerState<StepCredentials> {
           _PasswordStrengthBar(strength: strength),
           const SizedBox(height: AppSpace.xxl),
           AppButton(
-            label: 'Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø© Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ø¹ÙŠØ§Ø¯Ø©',
+            label: 'المتابعة لمسار العيادة',
             icon: Icons.arrow_back_rounded,
             onPressed: _submit,
           ),
           const SizedBox(height: AppSpace.sm),
           AppButton(
-            label: 'Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ù„Ø¨ÙŠØ§Ù†Ø§Øª ÙˆØ±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ',
+            label: 'الرجوع للبيانات ورقم الهاتف',
             icon: Icons.arrow_forward_rounded,
             variant: AppButtonVariant.ghost,
             onPressed: widget.onBack,
@@ -168,9 +168,9 @@ class _PasswordStrengthBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color, segments) = switch (strength) {
-      _PasswordStrength.weak => ('Ø¶Ø¹ÙŠÙØ©', AppColors.danger, 1),
-      _PasswordStrength.medium => ('Ù…ØªÙˆØ³Ø·Ø©', AppColors.warning, 2),
-      _PasswordStrength.strong => ('Ù‚ÙˆÙŠØ©', AppColors.success, 3),
+      _PasswordStrength.weak => ('ضعيفة', AppColors.danger, 1),
+      _PasswordStrength.medium => ('متوسطة', AppColors.warning, 2),
+      _PasswordStrength.strong => ('قوية', AppColors.success, 3),
     };
 
     return Column(
@@ -198,7 +198,7 @@ class _PasswordStrengthBar extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Ù‚ÙˆØ© ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±: $label',
+          'قوة كلمة المرور: $label',
           style: GoogleFonts.cairo(
             fontSize: 11.5,
             fontWeight: FontWeight.w600,

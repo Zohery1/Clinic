@@ -90,7 +90,7 @@ class _NotificationsSheet extends ConsumerWidget {
                 const SizedBox(width: AppSpace.md),
                 Expanded(
                   child: Text(
-                    'Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª ÙˆØ§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª',
+                    'التنبيهات والإشعارات',
                     style: GoogleFonts.cairo(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -112,7 +112,7 @@ class _NotificationsSheet extends ConsumerWidget {
                     ),
                     onPressed: () => notifier.markAllAsRead(),
                     child: Text(
-                      'Ù…Ø³Ø­ Ø§Ù„ÙƒÙ„',
+                      'مسح الكل',
                       style: GoogleFonts.cairo(
                         fontSize: 12,
                         color: AppColors.primary,
@@ -134,7 +134,7 @@ class _NotificationsSheet extends ConsumerWidget {
                     padding: const EdgeInsets.all(AppSpace.xxl),
                     child: Center(
                       child: Text(
-                        'Ø¬Ø§Ø±Ù Ø§Ù„ØªØ­Ù…ÙŠÙ„â€¦',
+                        'جارٍ التحميل…',
                         style: GoogleFonts.cairo(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -156,7 +156,7 @@ class _NotificationsSheet extends ConsumerWidget {
                             ),
                             const SizedBox(height: AppSpace.md),
                             Text(
-                              'Ù„Ø§ ØªÙˆØ¬Ø¯ ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø­Ø§Ù„ÙŠØ§Ù‹',
+                              'لا توجد تنبيهات حالياً',
                               style: GoogleFonts.cairo(
                                 color: AppColors.textSecondary(context),
                                 fontSize: 13,
@@ -178,10 +178,10 @@ class _NotificationsSheet extends ConsumerWidget {
                           final n = state.notifications[index];
                           IconData icon = Icons.notifications_rounded;
                           Color color = AppColors.primary;
-                          if (n.title == 'Ø­Ø¬Ø² Ø¬Ø¯ÙŠØ¯') {
+                          if (n.title == 'حجز جديد') {
                             icon = Icons.event_available_rounded;
                             color = AppColors.primary;
-                          } else if (n.title == 'Ø¥Ø¶Ø§ÙØ© Ø®Ø¯Ù…Ø© Ø·Ø¨ÙŠØ©') {
+                          } else if (n.title == 'إضافة خدمة طبية') {
                             icon = Icons.medical_services_rounded;
                             color = AppColors.completed;
                           }
@@ -278,7 +278,7 @@ class _NotificationsSheet extends ConsumerWidget {
                     Navigator.of(context).pop();
                   },
                   child: Text(
-                    'Ø¥ØºÙ„Ø§Ù‚',
+                    'إغلاق',
                     style: GoogleFonts.cairo(
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,

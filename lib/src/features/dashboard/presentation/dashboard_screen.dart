@@ -93,11 +93,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: AppStatusPage(
           icon: Icons.event_busy_rounded,
           iconColor: AppColors.danger,
-          title: 'Ø§Ù†ØªÙ‡Ù‰ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ',
+          title: 'انتهى الاشتراك',
           message:
-              'ÙŠØ±Ø¬Ù‰ ØªØ¬Ø¯ÙŠØ¯ Ø§Ø´ØªØ±Ø§Ùƒ Ø§Ù„Ø¹ÙŠØ§Ø¯Ø© Ù„Ù„Ø§Ø³ØªÙ…Ø±Ø§Ø± ÙÙŠ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù†Ø¸Ø§Ù… ÙˆØ§Ù„ÙˆØµÙˆÙ„ Ø¥Ù„Ù‰ Ø¨ÙŠØ§Ù†Ø§ØªÙƒ.',
+              'يرجى تجديد اشتراك العيادة للاستمرار في استخدام النظام والوصول إلى بياناتك.',
           primaryAction: StatusAction(
-            label: 'ØªØ¬Ø¯ÙŠØ¯ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ',
+            label: 'تجديد الاشتراك',
             icon: Icons.refresh_rounded,
             onPressed: () {
               showDialog(
@@ -114,7 +114,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       constraints: const BoxConstraints(
                           maxWidth: 700, maxHeight: 750),
                       child: TopUpSubscriptionScreen(
-                        clinicName: widget.clinicName ?? 'Ø§Ù„Ø¹ÙŠØ§Ø¯Ø©',
+                        clinicName: widget.clinicName ?? 'العيادة',
                         inviteCode: widget.inviteCode ?? '',
                         clinicId: widget.clinicId ?? '',
                         onRefresh: () {
@@ -182,15 +182,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _resolveTitle(int idx, String? clinicName) {
     switch (idx) {
       case 0:
-        return clinicName ?? 'Ù„ÙˆØ­Ø© Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©';
+        return clinicName ?? 'لوحة الإدارة';
       case 1:
-        return 'Ø§Ù„Ù…ÙˆØ§Ø¹ÙŠØ¯';
+        return 'المواعيد';
       case 2:
-        return 'Ø§Ù„Ù…Ø±Ø¶Ù‰';
+        return 'المرضى';
       case 3:
-        return 'Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±';
+        return 'التقارير';
       case 4:
-        return 'Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª';
+        return 'الإعدادات';
       default:
         return '';
     }
@@ -199,15 +199,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String? _resolveSubtitle(int idx) {
     switch (idx) {
       case 0:
-        return 'Ù†Ø¸Ø±Ø© Ø¹Ø§Ù…Ø© Ø¹Ù„Ù‰ Ø¹ÙŠØ§Ø¯ØªÙƒ Ø§Ù„ÙŠÙˆÙ…';
+        return 'نظرة عامة على عيادتك اليوم';
       case 1:
-        return 'ÙƒÙ„ Ø­Ø¬ÙˆØ²Ø§ØªÙƒ ÙÙŠ Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯';
+        return 'كل حجوزاتك في مكان واحد';
       case 2:
-        return 'Ø³Ø¬Ù„ Ø§Ù„Ù…Ø±Ø¶Ù‰ ÙˆØ§Ù„Ù…ØªØ§Ø¨Ø¹Ø©';
+        return 'سجل المرضى والمتابعة';
       case 3:
-        return 'Ø£Ø¯Ø§Ø¡ Ø§Ù„Ø¹ÙŠØ§Ø¯Ø© ÙˆØ§Ù„Ù…Ø¤Ø´Ø±Ø§Øª Ø§Ù„Ù…Ø§Ù„ÙŠØ©';
+        return 'أداء العيادة والمؤشرات المالية';
       case 4:
-        return 'Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØ§Ù„Ø¹ÙŠØ§Ø¯Ø©';
+        return 'إعدادات الحساب والعيادة';
       default:
         return null;
     }

@@ -41,7 +41,7 @@ class StepClinicPath extends ConsumerWidget {
             const SizedBox(width: AppSpace.md),
             Expanded(
               child: Text(
-                'Ù…Ø³Ø§Ø± Ø§Ù„Ø¹ÙŠØ§Ø¯Ø© ÙÙŠ Ø§Ù„Ù…Ù†ØµØ©',
+                'مسار العيادة في المنصة',
                 style: GoogleFonts.cairo(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -54,7 +54,7 @@ class StepClinicPath extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpace.sm),
         Text(
-          'Ø­Ø¯Ø¯ Ù…Ø§ Ø¥Ø°Ø§ ÙƒÙ†Øª ØªØ¤Ø³Ø³ Ø¹ÙŠØ§Ø¯ØªÙƒ ÙˆÙ…Ø±ÙƒØ²Ùƒ Ø§Ù„Ø·Ø¨ÙŠ Ø§Ù„Ø®Ø§ØµØŒ Ø£Ù… ØªÙ†Ø¶Ù… Ø¥Ù„Ù‰ ÙØ±ÙŠÙ‚ Ø¹Ù…Ù„ Ø¹ÙŠØ§Ø¯Ø© Ù‚Ø§Ø¦Ù…Ø© Ø¨ÙƒÙˆØ¯ Ø¯Ø¹ÙˆØ©.',
+          'حدد ما إذا كنت تؤسس عيادتك ومركزك الطبي الخاص، أم تنضم إلى فريق عمل عيادة قائمة بكود دعوة.',
           style: GoogleFonts.cairo(
             fontSize: 12.5,
             fontWeight: FontWeight.w500,
@@ -69,30 +69,30 @@ class StepClinicPath extends ConsumerWidget {
         ],
         _PathCard(
           path: 'create',
-          title: 'ØªØ£Ø³ÙŠØ³ Ø¹ÙŠØ§Ø¯Ø© Ø¬Ø¯ÙŠØ¯Ø© (Ù…Ø§Ù„Ùƒ Ø§Ù„Ø¹ÙŠØ§Ø¯Ø©)',
+          title: 'تأسيس عيادة جديدة (مالك العيادة)',
           subtitle:
-              'Ø£Ù†Ø§ ØµØ§Ø­Ø¨ Ø§Ù„Ù…Ø±ÙƒØ² Ø§Ù„Ø·Ø¨ÙŠ Ø£Ùˆ Ø§Ù„Ø¹ÙŠØ§Ø¯Ø©ØŒ ÙˆØ£Ø±ØºØ¨ ÙÙŠ ØªØ£Ø³ÙŠØ³ Ø­Ø³Ø§Ø¨ Ø¹ÙŠØ§Ø¯Ø© ÙˆØ¥Ø¶Ø§ÙØ© ÙØ±ÙˆØ¹Ù‡Ø§ ÙˆØ¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø£Ø·Ø¨Ø§Ø¡ ÙˆØ§Ù„Ù…ÙˆØ¸ÙÙŠÙ†.',
+              'أنا صاحب المركز الطبي أو العيادة، وأرغب في تأسيس حساب عيادة وإضافة فروعها وإدارة الأطباء والموظفين.',
           icon: Icons.add_business_rounded,
-          tags: const ['Ù…Ø§Ù„Ùƒ Ø§Ù„Ø¹ÙŠØ§Ø¯Ø©', 'Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ÙØ±ÙˆØ¹', 'ØªÙ‚Ø§Ø±ÙŠØ± ÙƒØ§Ù…Ù„Ø©'],
+          tags: const ['مالك العيادة', 'إدارة الفروع', 'تقارير كاملة'],
           selected: state.clinicPath == 'create',
           onSelect: () => notifier.setClinicPath('create'),
         ),
         const SizedBox(height: AppSpace.md),
         _PathCard(
           path: 'join',
-          title: 'Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù… Ù„Ø¹ÙŠØ§Ø¯Ø© Ù…ÙˆØ¬ÙˆØ¯Ø© (ÙƒÙˆØ¯ Ø¯Ø¹ÙˆØ©)',
+          title: 'الانضمام لعيادة موجودة (كود دعوة)',
           subtitle:
-              'Ø£Ù†Ø§ Ø·Ø¨ÙŠØ¨ Ù…Ø¹Ø§Ù„Ø¬ Ø£Ùˆ Ù…Ø³Ø§Ø¹Ø¯/Ø³ÙƒØ±ØªÙŠØ±ØŒ ÙˆÙ„Ø¯ÙŠ ÙƒÙˆØ¯ Ø¯Ø¹ÙˆØ© Ù…Ù† Ù…Ø¯ÙŠØ± Ø§Ù„Ø¹ÙŠØ§Ø¯Ø© Ù„Ù„Ø§Ù†Ø¶Ù…Ø§Ù… Ø¥Ù„Ù‰ ÙØ±ÙŠÙ‚ Ø§Ù„Ø¹Ù…Ù„.',
+              "أنا طبيب معالج أو مساعد/سكرتير، ولدي كود دعوة من مدير العيادة للانضمام.",
           icon: Icons.group_add_rounded,
-          tags: const ['Ø·Ø¨ÙŠØ¨ Ù…Ø¹Ø§Ù„Ø¬', 'Ù…Ø³Ø§Ø¹Ø¯ / Ø³ÙƒØ±ØªÙŠØ±', 'Ø±Ø¨Ø· ÙÙˆØ±ÙŠ'],
+          tags: const ['طبيب معالج', 'مساعد / سكرتير', 'ربط فوري'],
           selected: state.clinicPath == 'join',
           onSelect: () => notifier.setClinicPath('join'),
         ),
         const SizedBox(height: AppSpace.xxl),
         AppButton(
           label: state.clinicPath == 'create'
-              ? 'Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø© Ù„Ø¥Ø¹Ø¯Ø§Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¹ÙŠØ§Ø¯Ø©'
-              : 'Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø© Ù„ÙƒÙˆØ¯ Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù…',
+              ? 'المتابعة لإعداد بيانات العيادة'
+              : 'المتابعة لكود الانضمام',
           icon: Icons.arrow_back_rounded,
           onPressed: () {
             notifier.setCurrentStep(3);
@@ -101,7 +101,7 @@ class StepClinicPath extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpace.sm),
         AppButton(
-          label: 'Ø§Ù„Ø±Ø¬ÙˆØ¹ Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¯Ø®ÙˆÙ„',
+          label: 'الرجوع للبيانات ورقم الهاتف',
           icon: Icons.arrow_forward_rounded,
           variant: AppButtonVariant.ghost,
           onPressed: onBack,
@@ -276,7 +276,7 @@ class _LockedBanner extends StatelessWidget {
           const SizedBox(width: AppSpace.md),
           Expanded(
             child: Text(
-              'ØªÙ… ÙØªØ­ Ø§Ù„Ø±Ø§Ø¨Ø· Ø¨ÙƒÙˆØ¯ Ø¯Ø¹ÙˆØ© ($code). ÙŠÙ…ÙƒÙ†Ùƒ Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù… Ù…Ø¨Ø§Ø´Ø±Ø© Ù„Ù„Ø¹ÙŠØ§Ø¯Ø©.',
+              'تم فتح الرابط بكود دعوة ($code). يمكنك الانضمام مباشرة للعيادة.',
               style: GoogleFonts.cairo(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,

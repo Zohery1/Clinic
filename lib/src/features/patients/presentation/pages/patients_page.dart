@@ -2,17 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/ui/feedback/app_empty_state.dart';
-import '../../../../core/ui/layout/app_shell.dart';
-import '../../../../core/ui/layout/app_top_bar.dart';
-import '../../../../core/ui/primitives/app_button.dart';
+import '../../../../core/ui/tokens/colors.dart';
 import '../../../auth/presentation/login_controller.dart';
-import '../widgets/add_patient_dialog.dart';
 import 'patients_desktop_layout.dart';
 import 'patients_mobile_layout.dart';
 
-/// Patients feature — responsive orchestrator. Splits between a
-/// master-detail desktop layout (>=900px) and a single-column mobile
-/// layout (<900px). Hosts the AppShell, breadcrumbs and primary action.
+/// Content-only widget for the Patients tab. The parent [AppShell]
+/// (hosted by [DashboardScreen]) provides the sidebar, top bar, and
+/// navigation. This screen renders only the inner patient layouts.
 class PatientsPage extends ConsumerWidget {
   const PatientsPage({super.key});
 
@@ -30,34 +27,16 @@ class PatientsPage extends ConsumerWidget {
     }
 
     final width = MediaQuery.sizeOf(context).width;
-    final isDesktop = width >= AppShell.kDesktopBreakpoint;
+    final isDesktop = width >= 900;
 
-    return AppShell(
-      currentRoute: '/patients',
-      onNavigate: (_) {},
-      user: user,
-      title: 'المرضى',
-      subtitle: 'سجل المرضى والمتابعة',
-      breadcrumbs: const [
-        AppBreadcrumbItem(label: 'الرئيسية'),
-        AppBreadcrumbItem(label: 'المرضى'),
-      ],
-      actions: [
-        AppButton(
-          label: '+ مريض جديد',
-          icon: Icons.person_add_alt_1_rounded,
-          expand: false,
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (_) => AddPatientDialog(clinicId: user.clinicId),
-            );
-          },
-        ),
-      ],
-      child: isDesktop
-          ? PatientsDesktopLayout(clinicId: user.clinicId, user: user)
-          : PatientsMobileLayout(clinicId: user.clinicId, user: user),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: AppColors.canvas(context),
+        body: isDesktop
+            ? PatientsDesktopLayout(clinicId: user.clinicId, user: user)
+            : PatientsMobileLayout(clinicId: user.clinicId, user: user),
+      ),
     );
   }
 }

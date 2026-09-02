@@ -7,7 +7,6 @@ import '../../auth/domain/user_model.dart';
 import 'clinic_branches_page.dart';
 import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
 
-import 'settings_providers.dart';
 import 'subpages/clinic_details_page.dart';
 import 'subpages/staff_permissions_page.dart';
 import 'subpages/theme_settings_page.dart';
@@ -17,13 +16,6 @@ import 'widgets/user_profile_header.dart';
 import 'widgets/clinic_subscription_card.dart';
 import 'widgets/settings_tile.dart';
 import 'widgets/settings_dialogs.dart';
-
-export 'settings_providers.dart';
-export 'subpages/clinic_details_page.dart';
-export 'subpages/staff_permissions_page.dart';
-export 'subpages/theme_settings_page.dart';
-export 'subpages/services_config_page.dart';
-export 'subpages/whatsapp_automation_page.dart';
 
 /// شاشة الإعدادات الرئيسية
 class SettingsScreen extends ConsumerWidget {
@@ -49,7 +41,7 @@ class SettingsScreen extends ConsumerWidget {
         body: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           children: [
-            // ─── بطاقة الملف الشخصي المختصرة ───
+            // ─── بطاقة الملف الشخصي المختصر ───
             UserProfileHeader(user: user),
             const SizedBox(height: 16),
 
