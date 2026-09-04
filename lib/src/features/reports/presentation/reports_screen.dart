@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/ui/feedback/app_status_page.dart';
 import '../../../core/ui/tokens/colors.dart';
 import '../../auth/presentation/login_controller.dart';
+import 'widgets/cash_drawer_reconciliation_tab.dart';
 import 'widgets/daily_logs_tab.dart';
 import 'widgets/monthly_logs_tab.dart';
 import 'widgets/overview_tab.dart';
@@ -42,7 +43,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       );
     }
     if (!user.isOwner) {
-      return AppStatusPage(
+      return const AppStatusPage(
         icon: Icons.lock_outline_rounded,
         iconColor: AppColors.danger,
         title: 'هذه الصفحة متاحة لمدير العيادة فقط',
@@ -59,7 +60,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           endDate: _endDate,
           onDateRangeChanged: _onDateRangeChanged,
         ),
-      _ => const MonthlyLogsTab(),
+      2 => const MonthlyLogsTab(),
+      _ => const CashDrawerReconciliationTab(),
     };
 
     return Directionality(
@@ -88,7 +90,12 @@ class _SubTabsInline extends StatelessWidget {
   const _SubTabsInline({required this.selected, required this.onSelect});
   @override
   Widget build(BuildContext context) {
-    const labels = ['نظرة عامة', 'السجلات اليومية', 'السجلات الشهرية'];
+    const labels = [
+      'نظرة عامة',
+      'السجلات اليومية',
+      'السجلات الشهرية',
+      'تقفيل الخزينة والدرج 💰'
+    ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -6,6 +7,7 @@ import '../../../core/ui/feedback/app_status_page.dart';
 import '../../../core/ui/layout/app_shell.dart';
 import '../../appointments/presentation/appointments_controller.dart';
 import '../../appointments/presentation/appointments_screen.dart';
+import '../../appointments/presentation/book_appointment_dialog.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/presentation/top_up_subscription_screen.dart';
 import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
@@ -159,21 +161,50 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: AppShell(
-        currentRoute: _routes[_effectiveIndex],
-        onNavigate: _onNavigate,
-        user: user,
-        title: _resolveTitle(_effectiveIndex, widget.clinicName),
-        subtitle: _resolveSubtitle(_effectiveIndex),
-        unreadCount: unreadCount,
-        onNotificationsTap: () =>
-            DashboardNotificationsDialog.show(context),
-        actions: <Widget>[
-          ClinicSwitcherButton(isCompact: true),
-        ],
-        child: IndexedStack(
-          index: _effectiveIndex,
-          children: tabs,
+      child: CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.keyN, control: true): () {
+            BookAppointmentDialog.show(
+              context: context,
+              clinicId: user.clinicId,
+            );
+          },
+          const SingleActivator(LogicalKeyboardKey.keyN, meta: true): () {
+            BookAppointmentDialog.show(
+              context: context,
+              clinicId: user.clinicId,
+            );
+          },
+          const SingleActivator(LogicalKeyboardKey.digit1, control: true): () =>
+              _navigateToTab(0),
+          const SingleActivator(LogicalKeyboardKey.digit2, control: true): () =>
+              _navigateToTab(1),
+          const SingleActivator(LogicalKeyboardKey.digit3, control: true): () =>
+              _navigateToTab(2),
+          const SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
+              _navigateToTab(3),
+          const SingleActivator(LogicalKeyboardKey.digit5, control: true): () =>
+              _navigateToTab(4),
+        },
+        child: Focus(
+          autofocus: true,
+          child: AppShell(
+            currentRoute: _routes[_effectiveIndex],
+            onNavigate: _onNavigate,
+            user: user,
+            title: _resolveTitle(_effectiveIndex, widget.clinicName),
+            subtitle: _resolveSubtitle(_effectiveIndex),
+            unreadCount: unreadCount,
+            onNotificationsTap: () =>
+                DashboardNotificationsDialog.show(context),
+            actions: const <Widget>[
+              ClinicSwitcherButton(isCompact: true),
+            ],
+            child: IndexedStack(
+              index: _effectiveIndex,
+              children: tabs,
+            ),
+          ),
         ),
       ),
     );

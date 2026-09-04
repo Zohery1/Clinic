@@ -1,31 +1,27 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 
-import '../../../core/ui/layout/app_stepper.dart';
 import '../../../core/ui/primitives/app_button.dart';
 import '../../../core/ui/tokens/colors.dart';
 import '../../../core/ui/tokens/motion.dart';
 import '../../../core/ui/tokens/spacing.dart';
-import '../../clinics/presentation/clinics_controller.dart';
 import '../../dashboard/presentation/notifications_controller.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../data/appointment_repository.dart';
-import '../domain/appointment_type_model.dart';
 import '../domain/service_model.dart';
 import 'appointments_controller.dart';
-import 'widgets/book_appointment/steps/step_appointment_type.dart';
-import 'widgets/book_appointment/steps/step_date_time.dart';
-import 'widgets/book_appointment/steps/step_doctor_branch.dart';
-import 'widgets/book_appointment/steps/step_patient.dart';
-import 'widgets/book_appointment/steps/step_services.dart';
-import 'widgets/book_appointment/steps/step_summary.dart';
+import 'widgets/appointment_doctor_branch_picker.dart';
+import 'widgets/appointment_patient_picker.dart';
+import 'widgets/appointment_services_picker.dart';
+import 'widgets/appointment_type_picker.dart';
 
-/// Multi-step booking dialog. Uses [AppStepper] for navigation and a
-/// footer with "السابق" / "التالي" buttons that becomes "تأكيد الحجز"
-/// on the final step.
+/// نافذة حجز المواعيد فائقة السرعة (Express Clinical Intake Workspace)
+/// تستبدل معالج الـ 6 خطوات السابق بنموذج استقبال تفاعلي متزامن
+/// يدعم اختصارات لوحة المفاتيح والتحصيل والحجز الفوري في طابور اليوم.
 class BookAppointmentDialog extends ConsumerStatefulWidget {
   final String clinicId;
   final String? preselectedPatientId;
@@ -45,8 +41,8 @@ class BookAppointmentDialog extends ConsumerStatefulWidget {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'حجز موعد جديد',
-      barrierColor: Colors.black.withValues(alpha: 0.40),
-      transitionDuration: const Duration(milliseconds: 260),
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      transitionDuration: const Duration(milliseconds: 240),
       transitionBuilder: (ctx, anim1, anim2, child) {
         final curve =
             CurvedAnimation(parent: anim1, curve: AppMotion.easeOutCubic);
@@ -58,7 +54,7 @@ class BookAppointmentDialog extends ConsumerStatefulWidget {
           child: FadeTransition(
             opacity: curve,
             child: ScaleTransition(
-              scale: Tween<double>(begin: 0.95, end: 1.0).animate(curve),
+              scale: Tween<double>(begin: 0.96, end: 1.0).animate(curve),
               child: child,
             ),
           ),
@@ -78,8 +74,8 @@ class BookAppointmentDialog extends ConsumerStatefulWidget {
 
 class _BookAppointmentDialogState
     extends ConsumerState<BookAppointmentDialog> {
-  int _step = 0;
   bool _isSaving = false;
+  bool _isWalkInNow = true;
 
   String? _selectedPatientId;
   TextEditingController? _autocompleteController;
@@ -91,42 +87,9 @@ class _BookAppointmentDialogState
   double _basePrice = 0.0;
 
   DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
+  TimeOfDay _selectedTime = TimeOfDay.now();
 
   final List<ServiceModel> _selectedServices = [];
-
-  static const _steps = <AppStepperStep>[
-    AppStepperStep(
-      title: 'نوع الكشف',
-      description: 'اختر نوع الزيارة',
-      icon: Icons.medical_information_outlined,
-    ),
-    AppStepperStep(
-      title: 'المريض',
-      description: 'اختر المريض',
-      icon: Icons.person_outline_rounded,
-    ),
-    AppStepperStep(
-      title: 'الطبيب والفرع',
-      description: 'تعيين الطبيب والفرع',
-      icon: Icons.person_pin_outlined,
-    ),
-    AppStepperStep(
-      title: 'الموعد',
-      description: 'التاريخ والوقت',
-      icon: Icons.calendar_today_rounded,
-    ),
-    AppStepperStep(
-      title: 'الخدمات',
-      description: 'خدمات إضافية',
-      icon: Icons.medical_services_outlined,
-    ),
-    AppStepperStep(
-      title: 'تأكيد',
-      description: 'مراجعة وإنهاء',
-      icon: Icons.check_circle_outline_rounded,
-    ),
-  ];
 
   @override
   void initState() {
@@ -136,44 +99,39 @@ class _BookAppointmentDialogState
     }
   }
 
-  AppointmentTypeModel? _resolveSelectedType(
-      List<AppointmentTypeModel> types) {
-    if (_selectedAppointmentTypeId == null) return null;
-    for (final t in types) {
-      if (t.id == _selectedAppointmentTypeId) return t;
-    }
-    return null;
-  }
-
-  bool _canAdvance() {
-    switch (_step) {
-      case 0:
-        return _selectedAppointmentTypeId != null;
-      case 1:
-        return _selectedPatientId != null;
-      default:
-        return true;
-    }
+  double get _totalPrice {
+    final servicesSum = _selectedServices.fold<double>(
+      0.0,
+      (acc, s) => acc + s.price,
+    );
+    return _basePrice + servicesSum;
   }
 
   Future<void> _submit() async {
+    if (_isSaving) return;
+
     if (_selectedPatientId == null) {
-      _showError('يرجى اختيار مريض من القائمة');
+      _showError('يرجى اختيار مريض من القائمة أو تسجيل مريض جديد');
       return;
     }
     if (_selectedAppointmentTypeId == null) {
-      _showError('يرجى اختيار نوع الكشف');
+      _showError('يرجى اختيار نوع الكشف والزيارة');
       return;
     }
+
     setState(() => _isSaving = true);
     try {
-      final dt = DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day,
-        _selectedTime.hour,
-        _selectedTime.minute,
-      );
+      final now = DateTime.now();
+      final dt = _isWalkInNow
+          ? now
+          : DateTime(
+              _selectedDate.year,
+              _selectedDate.month,
+              _selectedDate.day,
+              _selectedTime.hour,
+              _selectedTime.minute,
+            );
+
       await ref.read(appointmentRepositoryProvider).bookAppointment(
             clinicId: widget.clinicId,
             branchId: _selectedBranchId,
@@ -184,6 +142,7 @@ class _BookAppointmentDialogState
             priceCharged: _basePrice,
             selectedServices: _selectedServices,
           );
+
       ref.invalidate(todayAppointmentsProvider);
       ref.invalidate(appointmentsForDateProvider);
       ref.invalidate(todayRevenueProvider);
@@ -193,17 +152,19 @@ class _BookAppointmentDialogState
       ref.invalidate(monthlyStatsProvider);
       ref.invalidate(dailyStatsProvider);
       ref.invalidate(detailedReportProvider);
+
       try {
         final formattedTime = intl.DateFormat('hh:mm a', 'ar').format(dt);
         final patientName = _autocompleteController?.text ?? '';
         ref.read(notificationsProvider.notifier).sendBroadcastNotification(
               title: 'حجز جديد',
               body:
-                  'تم إضافة حجز جديد للمريض ($patientName) الساعة $formattedTime',
+                  'تم تسجيل حجز جديد للمريض ($patientName) الساعة $formattedTime',
               targetRole: 'doctor',
               playSound: false,
             );
       } catch (_) {}
+
       if (!mounted) return;
       _showSuccess('تم حجز وتأكيد الموعد بنجاح');
       Navigator.pop(context, true);
@@ -244,295 +205,197 @@ class _BookAppointmentDialogState
     );
   }
 
-  Widget _buildStepContent() {
-    final typesAsync = ref.watch(appointmentTypesProvider);
-    final types = typesAsync.value ?? const <AppointmentTypeModel>[];
-    final selectedType = _resolveSelectedType(types);
-    switch (_step) {
-      case 0:
-        return StepAppointmentType(
-          selectedTypeId: _selectedAppointmentTypeId,
-          onChanged: (AppointmentTypeModel? t) {
-            setState(() {
-              _selectedAppointmentTypeId = t?.id;
-              _basePrice = t?.price ?? 0.0;
-            });
-          },
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 7)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (ctx, child) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: child ?? const SizedBox.shrink(),
         );
-      case 1:
-        return StepPatient(
-          clinicId: widget.clinicId,
-          selectedPatientId: _selectedPatientId,
-          onChanged: (id) => setState(() => _selectedPatientId = id),
-          onControllerReady: (c) => _autocompleteController = c,
-        );
-      case 2:
-        return StepDoctorBranch(
-          clinicId: widget.clinicId,
-          selectedDoctorId: _selectedDoctorId,
-          selectedBranchId: _selectedBranchId,
-          onDoctorChanged: (id) => setState(() => _selectedDoctorId = id),
-          onBranchChanged: (id) => setState(() => _selectedBranchId = id),
-        );
-      case 3:
-        return StepDateTime(
-          selectedDate: _selectedDate,
-          selectedTime: _selectedTime,
-          onDateChanged: (d) => setState(() => _selectedDate = d),
-          onTimeChanged: (t) => setState(() => _selectedTime = t),
-        );
-      case 4:
-        return StepServices(
-          clinicId: widget.clinicId,
-          selectedServices: _selectedServices,
-          onChanged: (list) {
-            setState(() {
-              _selectedServices
-                ..clear()
-                ..addAll(list);
-            });
-          },
-        );
-      case 5:
-        final doctorsAsync = ref.watch(clinicDoctorsProvider(widget.clinicId));
-        final branchesAsync = ref.watch(clinicBranchesProvider(widget.clinicId));
-        final doctorName = doctorsAsync.maybeWhen(
-          data: (list) {
-            final doctor = list.where((d) => d.id == _selectedDoctorId).firstOrNull;
-            return doctor?.fullName;
-          },
-          orElse: () => null,
-        );
-        final branchName = branchesAsync.maybeWhen(
-          data: (list) {
-            final branch = list.where((b) => b.id == _selectedBranchId).firstOrNull;
-            return branch?.name;
-          },
-          orElse: () => null,
-        );
-        return StepSummary(
-          clinicId: widget.clinicId,
-          patientId: _selectedPatientId,
-          patientName: _autocompleteController?.text,
-          doctorName: doctorName,
-          branchName: branchName,
-          selectedDate: _selectedDate,
-          selectedTime: _selectedTime,
-          selectedType: selectedType,
-          selectedServices: _selectedServices,
-        );
-      default:
-        return const SizedBox.shrink();
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isMobile = size.width < 720;
-    final isLast = _step == _steps.length - 1;
-    final canAdvance = _canAdvance();
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Center(
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 768;
+
+    // Auto-select first appointment type if none selected
+    ref.watch(appointmentTypesProvider).whenData((types) {
+      if (_selectedAppointmentTypeId == null && types.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _selectedAppointmentTypeId == null) {
+            setState(() {
+              _selectedAppointmentTypeId = types.first.id;
+              _basePrice = types.first.price;
+            });
+          }
+        });
+      }
+    });
+
+    final content = CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.enter, control: true): _submit,
+        const SingleActivator(LogicalKeyboardKey.enter, meta: true): _submit,
+      },
+      child: Focus(
+        autofocus: true,
         child: Dialog(
           backgroundColor: Colors.transparent,
-          elevation: 0,
           insetPadding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 12 : 24,
-            vertical: isMobile ? 16 : 28,
+            horizontal: isMobile ? 12 : 28,
+            vertical: isMobile ? 16 : 32,
           ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: 880,
-              maxHeight: size.height * 0.92,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 880, maxHeight: 780),
+            decoration: BoxDecoration(
+              color: AppColors.surface(context),
+              borderRadius: BorderRadius.circular(AppRadii.radiusXl),
+              border: Border.all(color: AppColors.borderSubtle(context)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 32,
+                  offset: const Offset(0, 16),
+                ),
+              ],
             ),
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-              body: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface(context),
-                  borderRadius: BorderRadius.circular(AppRadii.radiusXl),
-                  border: Border.all(color: AppColors.borderSubtle(context)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (isMobile) ...[
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Container(
-                          width: 44,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: AppColors.border(context),
-                            borderRadius: BorderRadius.circular(2),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(context, isMobile),
+                const Divider(height: 1),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(isMobile ? AppSpace.md : AppSpace.xl),
+                    child: isMobile
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildPatientAndTypeSection(context),
+                              const SizedBox(height: AppSpace.xl),
+                              _buildDoctorAndTimingSection(context),
+                              const SizedBox(height: AppSpace.xl),
+                              _buildServicesSection(context),
+                            ],
+                          )
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 5,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    _buildPatientAndTypeSection(context),
+                                    const SizedBox(height: AppSpace.xl),
+                                    _buildServicesSection(context),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: AppSpace.xl),
+                              Container(
+                                width: 1,
+                                height: 480,
+                                color: AppColors.borderSubtle(context),
+                              ),
+                              const SizedBox(width: AppSpace.xl),
+                              Expanded(
+                                flex: 5,
+                                child: _buildDoctorAndTimingSection(context),
+                              ),
+                            ],
                           ),
-                        ),
-                      ),
-                    ],
-                    _Header(
-                      title: 'حجز موعد جديد',
-                      subtitle: 'أدخل بيانات الموعد وحدد التاريخ والوقت المناسب',
-                      onClose: () => Navigator.pop(context),
-                    ),
-                    const Divider(height: 1),
-                    Flexible(
-                      child: isMobile
-                          ? Column(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(AppSpace.lg),
-                                  child: AppStepper(
-                                    steps: _steps,
-                                    currentIndex: _step,
-                                    onStepTap: (i) {
-                                      if (i <= _step) {
-                                        setState(() => _step = i);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                const Divider(height: 1),
-                                Expanded(
-                                  child: SingleChildScrollView(
-                                    padding: const EdgeInsets.all(AppSpace.lg),
-                                    child: _buildStepContent(),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Container(
-                                  width: 220,
-                                  padding: const EdgeInsets.all(AppSpace.lg),
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      left: BorderSide(
-                                        color: AppColors.borderSubtle(context),
-                                      ),
-                                    ),
-                                  ),
-                                  child: AppStepper(
-                                    steps: _steps,
-                                    currentIndex: _step,
-                                    onStepTap: (i) {
-                                      if (i <= _step) {
-                                        setState(() => _step = i);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                Expanded(
-                                  child: SingleChildScrollView(
-                                    padding: const EdgeInsets.all(AppSpace.xl),
-                                    child: _buildStepContent(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                    const Divider(height: 1),
-                    Padding(
-                      padding: const EdgeInsets.all(AppSpace.lg),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          if (_step > 0)
-                            AppButton(
-                              label: 'السابق',
-                              icon: Icons.chevron_right_rounded,
-                              variant: AppButtonVariant.ghost,
-                              expand: false,
-                              onPressed:
-                                  _isSaving ? null : () => setState(() => _step -= 1),
-                            )
-                          else
-                            AppButton(
-                              label: 'إلغاء',
-                              variant: AppButtonVariant.ghost,
-                              expand: false,
-                              onPressed: _isSaving
-                                  ? null
-                                  : () => Navigator.pop(context),
-                            ),
-                          AppButton(
-                            label: isLast ? 'تأكيد الحجز' : 'التالي',
-                            icon: isLast
-                                ? Icons.check_rounded
-                                : Icons.chevron_left_rounded,
-                            variant: AppButtonVariant.primary,
-                            expand: false,
-                            loading: _isSaving,
-                            onPressed: (_isSaving || !canAdvance)
-                                ? null
-                                : () {
-                                    if (isLast) {
-                                      _submit();
-                                    } else {
-                                      setState(() => _step += 1);
-                                    }
-                                  },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                const Divider(height: 1),
+                _buildFooter(context, isMobile),
+              ],
             ),
           ),
         ),
       ),
     );
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: content,
+    );
   }
-}
 
-class _Header extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final VoidCallback onClose;
-  const _Header({
-    required this.title,
-    required this.subtitle,
-    required this.onClose,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(AppSpace.lg),
+  Widget _buildHeader(BuildContext context, bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? AppSpace.md : AppSpace.xl,
+        vertical: AppSpace.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.subtle(context).withValues(alpha: 0.5),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadii.radiusXl),
+        ),
+      ),
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: AppColors.primarySubtle,
-              borderRadius: BorderRadius.circular(AppRadii.radiusMd),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.calendar_today_rounded, color: AppColors.primary),
+            child: const Icon(
+              Icons.bolt_rounded,
+              color: AppColors.primary,
+              size: 24,
+            ),
           ),
           const SizedBox(width: AppSpace.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary(context),
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'حجز كشف واستقبال سريع',
+                      style: GoogleFonts.cairo(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary(context),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.successSubtle,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'Express Intake',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
-                  subtitle,
-                  style: TextStyle(
+                  'تسجيل المريض وإضافته لطابور العيادة في خطوة واحدة',
+                  style: GoogleFonts.cairo(
                     fontSize: 12,
                     color: AppColors.textSecondary(context),
                   ),
@@ -541,8 +404,407 @@ class _Header extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: onClose,
+            onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.close_rounded),
+            tooltip: 'إغلاق (Esc)',
+            style: IconButton.styleFrom(
+              foregroundColor: AppColors.textSecondary(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPatientAndTypeSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.person_outline_rounded,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text(
+              '1. بيانات المريض',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.sm),
+        AppointmentPatientPicker(
+          clinicId: widget.clinicId,
+          selectedPatientId: _selectedPatientId,
+          onPatientSelected: (p) => setState(() => _selectedPatientId = p?.id),
+          onControllerReady: (c) => _autocompleteController = c,
+        ),
+        const SizedBox(height: AppSpace.xl),
+        Row(
+          children: [
+            const Icon(Icons.medical_information_outlined,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text(
+              '2. نوع الكشف والزيارة',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.sm),
+        AppointmentTypePicker(
+          selectedTypeId: _selectedAppointmentTypeId,
+          onTypeChanged: (t) {
+            setState(() {
+              _selectedAppointmentTypeId = t?.id;
+              _basePrice = t?.price ?? 0.0;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDoctorAndTimingSection(BuildContext context) {
+    final formattedDate =
+        intl.DateFormat('yyyy/MM/dd', 'ar').format(_selectedDate);
+    final formattedTime = _selectedTime.format(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.badge_outlined,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text(
+              '3. الطبيب المعالج والفرع',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.sm),
+        AppointmentDoctorBranchPicker(
+          clinicId: widget.clinicId,
+          selectedDoctorId: _selectedDoctorId,
+          selectedBranchId: _selectedBranchId,
+          onDoctorChanged: (id) => setState(() => _selectedDoctorId = id),
+          onBranchChanged: (id) => setState(() => _selectedBranchId = id),
+        ),
+        const SizedBox(height: AppSpace.xl),
+        Row(
+          children: [
+            const Icon(Icons.schedule_rounded,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text(
+              '4. التوقيت وحالة الانتظار',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.sm),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: AppColors.subtle(context),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.borderSubtle(context)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() {
+                    _isWalkInNow = true;
+                    _selectedDate = DateTime.now();
+                    _selectedTime = TimeOfDay.now();
+                  }),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _isWalkInNow
+                          ? AppColors.primary
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.flash_on_rounded,
+                          size: 16,
+                          color: _isWalkInNow
+                              ? Colors.white
+                              : AppColors.textSecondary(context),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'طابور الانتظار الآن (Walk-in)',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: _isWalkInNow
+                                ? Colors.white
+                                : AppColors.textSecondary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _isWalkInNow = false),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: !_isWalkInNow
+                          ? AppColors.primary
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.event_available_rounded,
+                          size: 16,
+                          color: !_isWalkInNow
+                              ? Colors.white
+                              : AppColors.textSecondary(context),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'موعد محدد لاحقاً',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: !_isWalkInNow
+                                ? Colors.white
+                                : AppColors.textSecondary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!_isWalkInNow) ...[
+          const SizedBox(height: AppSpace.md),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: _pickDate,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 11),
+                    decoration: BoxDecoration(
+                      color: AppColors.subtle(context),
+                      borderRadius: BorderRadius.circular(10),
+                      border:
+                          Border.all(color: AppColors.borderSubtle(context)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_month_outlined,
+                            size: 18, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          formattedDate,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpace.md),
+              Expanded(
+                child: InkWell(
+                  onTap: () async {
+                    final t = await showTimePicker(
+                      context: context,
+                      initialTime: _selectedTime,
+                    );
+                    if (t != null) setState(() => _selectedTime = t);
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 11),
+                    decoration: BoxDecoration(
+                      color: AppColors.subtle(context),
+                      borderRadius: BorderRadius.circular(10),
+                      border:
+                          Border.all(color: AppColors.borderSubtle(context)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.access_time_rounded,
+                            size: 18, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          formattedTime,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildServicesSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.medical_services_outlined,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text(
+              'خدمات إضافية (اختياري)',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.sm),
+        AppointmentServicesPicker(
+          clinicId: widget.clinicId,
+          selectedServices: _selectedServices,
+          onServicesChanged: (list) {
+            setState(() {
+              _selectedServices
+                ..clear()
+                ..addAll(list);
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFooter(BuildContext context, bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? AppSpace.md : AppSpace.xl,
+        vertical: AppSpace.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.subtle(context).withValues(alpha: 0.3),
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(AppRadii.radiusXl),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primarySubtle,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'المطلوب تحصيله: ',
+                  style: GoogleFonts.cairo(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary(context),
+                  ),
+                ),
+                Text(
+                  '${_totalPrice.toStringAsFixed(0)} ج.م',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.subtle(context),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'Ctrl + Enter للحفظ السريع',
+                style: GoogleFonts.cairo(
+                  fontSize: 11,
+                  color: AppColors.textSecondary(context),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpace.md),
+          ],
+          AppButton(
+            label: 'إلغاء',
+            variant: AppButtonVariant.ghost,
+            expand: false,
+            onPressed: _isSaving ? null : () => Navigator.pop(context),
+          ),
+          const SizedBox(width: AppSpace.sm),
+          AppButton(
+            label: 'تأكيد الحجز فوراً',
+            icon: Icons.check_rounded,
+            variant: AppButtonVariant.primary,
+            expand: false,
+            loading: _isSaving,
+            onPressed: _isSaving ? null : _submit,
           ),
         ],
       ),
