@@ -8,7 +8,6 @@ import '../../../../core/widgets/double_bezel_card.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../clinics/domain/branch_model.dart';
 import '../../../clinics/presentation/clinics_controller.dart';
-import '../../../settings/presentation/settings_providers.dart';
 import '../../data/appointment_repository.dart';
 import '../appointments_controller.dart';
 

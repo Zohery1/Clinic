@@ -176,7 +176,9 @@ class AdmissionConfirmationSheet extends StatelessWidget {
                   flex: 2,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.pop(context);
+                      }
                       onConfirm();
                     },
                     style: ElevatedButton.styleFrom(

@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -145,6 +145,7 @@ class _DesktopListPaneState extends ConsumerState<DesktopListPane> {
                     return AppointmentCard(
                       appointment: a,
                       clinicId: widget.user.clinicId,
+                      queueIndex: i + 1,
                       isSelected: widget.selected?.id == a.id,
                       onTap: () => widget.onSelect(a),
                     );

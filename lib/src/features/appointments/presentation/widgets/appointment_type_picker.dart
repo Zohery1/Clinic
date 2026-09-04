@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../reports/presentation/reports_controller.dart';
-import '../appointments_controller.dart';
 import '../../domain/appointment_type_model.dart';
 
 /// ويدجت اختيار نوع الكشف / الزيارة بنظام Soft Structuralism Tactile Card Chips مع شارات الأسعار.

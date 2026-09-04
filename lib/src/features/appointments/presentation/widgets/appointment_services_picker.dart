@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../reports/presentation/reports_controller.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
-import '../appointments_controller.dart';
 import '../../domain/service_model.dart';
 
 /// ويدجت اختيار الخدمات الإضافية وإضافة خدمة مخصصة
