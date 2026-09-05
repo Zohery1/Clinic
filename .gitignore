@@ -46,3 +46,6 @@ app.*.map.json
 
 # Environment secrets
 .env
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+.kilo/

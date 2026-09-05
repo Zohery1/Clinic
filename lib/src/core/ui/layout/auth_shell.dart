@@ -47,8 +47,8 @@ class AuthShell extends StatelessWidget {
             body: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(flex: 4, child: SafeArea(child: _FormContainer(child: child, footer: footer))),
                 Expanded(flex: 5, child: _HeroPanel(title: heroTitle, subtitle: heroSubtitle, bullets: heroBullets)),
+                Expanded(flex: 4, child: SafeArea(child: _FormContainer(child: child, footer: footer))),
               ],
             ),
           ),

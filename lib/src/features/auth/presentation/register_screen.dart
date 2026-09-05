@@ -229,28 +229,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (showMobileLogo) ...[
-              Center(
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: AppRadii.brMd,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        blurRadius: 16,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.medical_services_rounded,
-                      color: Colors.white, size: 28),
-                ),
-              ),
-              const SizedBox(height: AppSpace.lg),
-            ],
             Text(
               'إنشاء حساب جديد',
               textAlign: TextAlign.center,

@@ -81,12 +81,10 @@ class MyApp extends ConsumerWidget {
             } catch (_) {}
           }
 
-          if (apptId != null && apptId.isNotEmpty) {
-            return MaterialPageRoute(
-              builder: (context) => PatientQueueTrackingScreen(appointmentId: apptId!),
-              settings: settings,
-            );
-          }
+          return MaterialPageRoute(
+            builder: (context) => PatientQueueTrackingScreen(appointmentId: apptId ?? ''),
+            settings: settings,
+          );
         }
 
         if (name.contains('/reset')) {

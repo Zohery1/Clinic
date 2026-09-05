@@ -49,6 +49,17 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
       });
     }
 
+    if (widget.appointmentId.trim().isEmpty) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+              'رابط المتابعة غير مكتمل أو غير صحيح.\nيرجى التأكد من فتح الرابط المرسل إليك كاملاً أو مراجعة استقبال العيادة.';
+        });
+      }
+      return;
+    }
+
     try {
       final dynamic response = await Supabase.instance.client.rpc(
         'get_patient_queue_status',
@@ -59,7 +70,8 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
         if (mounted) {
           setState(() {
             _isLoading = false;
-            _errorMessage = response?['message'] ?? 'لم يتم العثور على بيانات هذا الموعد.';
+            _errorMessage = response?['message'] ??
+                'رابط المتابعة غير صحيح أو منتهي الصلاحية. يرجى التأكد من صحة الرابط أو مراجعة العيادة.';
           });
         }
         return;
@@ -75,9 +87,23 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
       }
     } catch (e) {
       if (mounted && !isBackground) {
+        String cleanMessage = 'تعذر الاتصال بالنظام. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
+        final errStr = e.toString().toLowerCase();
+        if (errStr.contains('uuid') ||
+            errStr.contains('22p02') ||
+            errStr.contains('not found') ||
+            errStr.contains('invalid input syntax')) {
+          cleanMessage =
+              'رابط المتابعة غير صحيح أو منتهي الصلاحية.\nيرجى التأكد من الرابط المرسل إليك أو مراجعة الاستقبال بالعيادة.';
+        } else if (errStr.contains('socket') ||
+            errStr.contains('network') ||
+            errStr.contains('failed to fetch') ||
+            errStr.contains('xmlhttprequest')) {
+          cleanMessage = 'تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
+        }
         setState(() {
           _isLoading = false;
-          _errorMessage = 'حدث خطأ أثناء تحميل بيانات الدور: $e';
+          _errorMessage = cleanMessage;
         });
       }
     }
@@ -105,14 +131,22 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
           ),
           centerTitle: true,
           actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh_rounded),
-              tooltip: 'تحديث الدور الآن',
-              onPressed: () => _fetchQueueStatus(),
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 8.0),
+              child: IconButton(
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'تحديث الدور الآن',
+                onPressed: () => _fetchQueueStatus(),
+              ),
             ),
           ],
         ),
-        body: _buildBody(context),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: _buildBody(context),
+          ),
+        ),
       ),
     );
   }
@@ -136,37 +170,59 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
 
     if (_errorMessage != null && _queueData == null) {
       return Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
-                child: const Icon(Icons.error_outline_rounded, size: 50, color: Colors.red),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'تعذر تحميل الموعد',
-                style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.cairo(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: () => _fetchQueueStatus(),
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: Text('إعادة المحاولة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.qr_code_scanner_rounded, size: 48, color: Colors.amber),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'تعذر عرض تفاصيل الدور',
+                  style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cairo(fontSize: 13.5, color: Colors.grey.shade600, height: 1.6),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: 200,
+                  height: 44,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _fetchQueueStatus(),
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: Text('إعادة المحاولة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
