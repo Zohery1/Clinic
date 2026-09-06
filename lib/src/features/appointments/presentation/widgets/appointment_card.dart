@@ -5,6 +5,7 @@ import 'package:intl/intl.dart' as intl;
 
 import '../../../../core/ui/primitives/app_badge.dart';
 import '../../../../core/ui/tokens/colors.dart';
+import '../../../../core/utils/doctor_utils.dart';
 import '../../../../core/widgets/clinic_toast.dart';
 import '../../../../core/widgets/send_whatsapp_dialog.dart';
 import '../../../auth/domain/user_model.dart';
@@ -177,28 +178,40 @@ class AppointmentCard extends ConsumerWidget {
         margin: const EdgeInsets.symmetric(vertical: 3),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primarySubtle
-              : (AppColors.isDark(context)
-                  ? const Color(0xFF1E293B)
-                  : Colors.white),
+              ? (AppColors.isDark(context)
+                  ? AppColors.primary.withValues(alpha: 0.18)
+                  : AppColors.primarySubtle)
+              : (isPending
+                  ? (AppColors.isDark(context)
+                      ? AppColors.info.withValues(alpha: 0.12)
+                      : AppColors.infoSubtle)
+                  : AppColors.surface(context)),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
                 : (isPending
-                    ? AppColors.info.withValues(alpha: 0.4)
+                    ? AppColors.info.withValues(alpha: 0.45)
                     : AppColors.borderSubtle(context)),
-            width: isSelected ? 1.5 : 1.0,
+            width: isSelected ? 1.5 : (isPending ? 1.2 : 1.0),
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.08),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   )
                 ]
-              : null,
+              : (isPending
+                  ? [
+                      BoxShadow(
+                        color: AppColors.info.withValues(alpha: 0.08),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null),
         ),
         child: Material(
           color: Colors.transparent,
@@ -216,17 +229,19 @@ class AppointmentCard extends ConsumerWidget {
                 },
             borderRadius: BorderRadius.circular(10),
             child: Opacity(
-              opacity: (isCompleted || isCancelled) ? 0.75 : 1.0,
+              opacity: isCompleted
+                  ? 0.85
+                  : (isCancelled ? 0.70 : 1.0),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                 child: Row(
                   children: [
                     // ─── 1. المؤشر اللوني للحالة + رقم الطابور ───
                     Container(
-                      width: 4,
+                      width: 3,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: color,
+                        color: isPending ? AppColors.info : color,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -241,7 +256,7 @@ class AppointmentCard extends ConsumerWidget {
                             ? AppColors.infoSubtle
                             : (isSelected
                                 ? AppColors.primary.withValues(alpha: 0.15)
-                                : color.withValues(alpha: 0.1)),
+                                : color.withValues(alpha: 0.12)),
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
@@ -251,13 +266,21 @@ class AppointmentCard extends ConsumerWidget {
                             : (appointment.patient.fullName.isNotEmpty
                                 ? appointment.patient.fullName[0]
                                 : '#'),
-                        style: GoogleFonts.cairo(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: isPending
-                              ? AppColors.info
-                              : (isSelected ? AppColors.primary : color),
-                        ),
+                        style: queueIndex != null
+                            ? GoogleFonts.jetBrainsMono(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: isPending
+                                    ? AppColors.info
+                                    : (isSelected ? AppColors.primary : color),
+                              )
+                            : GoogleFonts.cairo(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: isPending
+                                    ? AppColors.info
+                                    : (isSelected ? AppColors.primary : color),
+                              ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -271,6 +294,12 @@ class AppointmentCard extends ConsumerWidget {
                             ? AppColors.info.withValues(alpha: 0.12)
                             : AppColors.subtle(context),
                         borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isPending
+                              ? AppColors.info.withValues(alpha: 0.25)
+                              : AppColors.borderSubtle(context),
+                          width: 0.8,
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -307,15 +336,17 @@ class AppointmentCard extends ConsumerWidget {
                           // السطر الأول: الاسم + الهاتف واتساب + نوع الكشف
                           Row(
                             children: [
-                              Flexible(
+                              Expanded(
                                 child: Text(
                                   appointment.patient.fullName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.cairo(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w700,
                                     color: AppColors.textPrimary(context),
+                                    height: 1.35,
                                   ),
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               if (appointment.patient.phone != null &&
@@ -370,10 +401,13 @@ class AppointmentCard extends ConsumerWidget {
                                   ),
                                   child: Text(
                                     appointment.appointmentTypeName!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.cairo(
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.textSecondary(context),
+                                      height: 1.35,
                                     ),
                                   ),
                                 ),
@@ -393,12 +427,17 @@ class AppointmentCard extends ConsumerWidget {
                               if (appointment.doctorName != null &&
                                   appointment.doctorName!.isNotEmpty) ...[
                                 const SizedBox(width: 8),
-                                Text(
-                                  'د. ${appointment.doctorName}',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 11,
-                                    color: AppColors.textMuted(context),
-                                    fontWeight: FontWeight.w600,
+                                Flexible(
+                                  child: Text(
+                                    DoctorUtils.formatTitle(appointment.doctorName),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.cairo(
+                                      fontSize: 11,
+                                      color: AppColors.textMuted(context),
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.35,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -450,7 +489,16 @@ class AppointmentCard extends ConsumerWidget {
                     const SizedBox(width: 8),
 
                     // ─── 4. الإجراء الفوري السريع ───
-                    _buildQuickAction(context, ref, status, isDoctor),
+                    Builder(
+                      builder: (context) {
+                        final action = _buildQuickAction(context, ref, status, isDoctor);
+                        if (action == null) return const SizedBox(width: 8);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: action,
+                        );
+                      },
+                    ),
 
                     // ─── 5. قائمة الخيارات المنبثقة ───
                     PopupMenuButton<String>(
@@ -558,30 +606,34 @@ class AppointmentCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickAction(
+  Widget? _buildQuickAction(
       BuildContext context, WidgetRef ref, String status, bool isDoctor) {
     if (status == 'confirmed') {
-      return Padding(
-        padding: const EdgeInsets.only(left: 4),
-        child: FilledButton.icon(
-          onPressed: () => _openAdmission(context, ref, 'pending'),
-          icon: const Icon(Icons.arrow_forward_rounded, size: 14),
-          label: Text(
-            'دخول للطبيب',
-            style: GoogleFonts.cairo(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Center(
+          child: FilledButton.icon(
+            onPressed: () => _openAdmission(context, ref, 'pending'),
+            icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+            label: Text(
+              'دخول للطبيب',
+              style: GoogleFonts.cairo(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
             ),
-          ),
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.info,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-            minimumSize: const Size(0, 32),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(7),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.info,
+              foregroundColor: AppColors.onPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              minimumSize: const Size(0, 36),
+              tapTargetSize: MaterialTapTargetSize.padded,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(7),
+              ),
+              elevation: 0,
             ),
-            elevation: 0,
           ),
         ),
       );
@@ -589,9 +641,82 @@ class AppointmentCard extends ConsumerWidget {
 
     if (status == 'pending') {
       if (isDoctor) {
-        return Padding(
-          padding: const EdgeInsets.only(left: 4),
-          child: FilledButton.icon(
+        return ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Center(
+            child: FilledButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ExaminationScreen(
+                      clinicId: clinicId,
+                      appointmentId: appointment.id,
+                      patientId: appointment.patientId,
+                      patientName: appointment.patient.fullName,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.medical_services_outlined, size: 14),
+              label: Text(
+                'بدء الفحص',
+                style: GoogleFonts.cairo(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
+                ),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.padded,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        );
+      } else {
+        return ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Center(
+            child: FilledButton.icon(
+              onPressed: () => _openAdmission(context, ref, 'completed'),
+              icon: const Icon(Icons.check_rounded, size: 14),
+              label: Text(
+                'إنهاء الكشف',
+                style: GoogleFonts.cairo(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
+                ),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: AppColors.onPrimary,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.padded,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    if (status == 'completed' && isDoctor) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Center(
+          child: OutlinedButton.icon(
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
@@ -604,92 +729,31 @@ class AppointmentCard extends ConsumerWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.medical_services_outlined, size: 14),
+            icon: const Icon(Icons.edit_note_rounded, size: 14),
             label: Text(
-              'بدء الفحص',
+              'عرض التقرير',
               style: GoogleFonts.cairo(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
               ),
             ),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-              minimumSize: const Size(0, 32),
+              minimumSize: const Size(0, 36),
+              tapTargetSize: MaterialTapTargetSize.padded,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(7),
               ),
-              elevation: 0,
-            ),
-          ),
-        );
-      } else {
-        return Padding(
-          padding: const EdgeInsets.only(left: 4),
-          child: FilledButton.icon(
-            onPressed: () => _openAdmission(context, ref, 'completed'),
-            icon: const Icon(Icons.check_rounded, size: 14),
-            label: Text(
-              'إنهاء الكشف',
-              style: GoogleFonts.cairo(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.success,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-              minimumSize: const Size(0, 32),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(7),
-              ),
-              elevation: 0,
-            ),
-          ),
-        );
-      }
-    }
-
-    if (status == 'completed' && isDoctor) {
-      return Padding(
-        padding: const EdgeInsets.only(left: 4),
-        child: OutlinedButton.icon(
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => ExaminationScreen(
-                  clinicId: clinicId,
-                  appointmentId: appointment.id,
-                  patientId: appointment.patientId,
-                  patientName: appointment.patient.fullName,
-                ),
-              ),
-            );
-          },
-          icon: const Icon(Icons.edit_note_rounded, size: 14),
-          label: Text(
-            'عرض التقرير',
-            style: GoogleFonts.cairo(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            side: const BorderSide(color: AppColors.primary),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-            minimumSize: const Size(0, 30),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(7),
             ),
           ),
         ),
       );
     }
 
-    return const SizedBox.shrink();
+    return null;
   }
 
   Widget _popupRow(IconData icon, String text, Color color) {

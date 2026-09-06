@@ -257,6 +257,7 @@ class _AppointmentsDesktopViewState
                       color: isToday
                           ? AppColors.primary
                           : AppColors.textSecondary(context),
+                      height: 1.35,
                     ),
                   ),
                 ),
@@ -292,6 +293,7 @@ class _AppointmentsDesktopViewState
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary(context),
+                          height: 1.35,
                         ),
                       ),
                     ],
@@ -393,6 +395,7 @@ class _AppointmentsDesktopViewState
                   style: GoogleFonts.cairo(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
+                    height: 1.35,
                   ),
                 ),
                 style: FilledButton.styleFrom(
@@ -454,6 +457,7 @@ class _AppointmentsDesktopViewState
                 fontSize: 11.5,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 color: isSelected ? color : AppColors.textSecondary(context),
+                height: 1.35,
               ),
             ),
             const SizedBox(width: 5),
@@ -520,6 +524,7 @@ class _AppointmentsDesktopViewState
                 color: active
                     ? AppColors.primary
                     : AppColors.textSecondary(context),
+                height: 1.35,
               ),
             ),
           ],
@@ -568,13 +573,14 @@ class _AppointmentsDesktopViewState
                         child: TextField(
                           controller: _searchController,
                           onChanged: _onSearchChanged,
-                          style: GoogleFonts.cairo(fontSize: 12.5),
+                          style: GoogleFonts.cairo(fontSize: 12.5, height: 1.35),
                           decoration: InputDecoration(
                             hintText:
                                 'البحث الفوري باسم المريض، رقم الهاتف، الطبيب، أو نوع الكشف...',
                             hintStyle: GoogleFonts.cairo(
                               fontSize: 12,
                               color: AppColors.textMuted(context),
+                              height: 1.35,
                             ),
                             prefixIcon: const Icon(Icons.search_rounded,
                                 size: 18, color: AppColors.primary),
@@ -607,6 +613,7 @@ class _AppointmentsDesktopViewState
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textSecondary(context),
+                          height: 1.35,
                         ),
                       ),
                     ),
@@ -698,70 +705,142 @@ class _AppointmentsDesktopViewState
         .toList()
       ..sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // مسار 1: في الانتظار
-        Expanded(
-          child: _buildKanbanLane(
-            title: 'طابور الانتظار',
-            subtitle: 'مرضى جاهزون للدخول',
-            count: waiting.length,
-            color: AppColors.warning,
-            icon: Icons.hourglass_top_rounded,
-            items: waiting,
-            activeSelected: activeSelected,
-          ),
-        ),
-        const SizedBox(width: 10),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalWidth = constraints.maxWidth;
+        final isCompactDesktop = totalWidth < 1400;
+        final detailsWidth = isCompactDesktop ? 340.0 : 360.0;
+        final hasDetails = activeSelected != null;
 
-        // مسار 2: مع الطبيب
-        Expanded(
-          child: _buildKanbanLane(
-            title: 'مع الطبيب',
-            subtitle: 'جلسات الفحص الجارية',
-            count: inDoctor.length,
-            color: AppColors.info,
-            icon: Icons.medical_services_outlined,
-            items: inDoctor,
-            activeSelected: activeSelected,
-          ),
-        ),
-        const SizedBox(width: 10),
+        // Ensure 3 lanes never get squashed below 260px (min 3 * 260 + 20 = 800px)
+        final availableForLanes =
+            hasDetails ? (totalWidth - detailsWidth - 10) : totalWidth;
+        final needsHorizontalScroll = availableForLanes < 850;
 
-        // مسار 3: مكتمل اليوم
-        Expanded(
-          child: _buildKanbanLane(
-            title: 'مكتمل اليوم',
-            subtitle: 'تم الكشف وإنهاء الزيارة',
-            count: completed.length,
-            color: AppColors.success,
-            icon: Icons.check_circle_rounded,
-            items: completed,
-            activeSelected: activeSelected,
-          ),
-        ),
+        Widget buildLanesRow() {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // مسار 1: في الانتظار
+              needsHorizontalScroll
+                  ? SizedBox(
+                      width: 260,
+                      child: _buildKanbanLane(
+                        title: 'طابور الانتظار',
+                        subtitle: 'مرضى جاهزون للدخول',
+                        count: waiting.length,
+                        color: AppColors.warning,
+                        icon: Icons.hourglass_top_rounded,
+                        items: waiting,
+                        activeSelected: activeSelected,
+                      ),
+                    )
+                  : Expanded(
+                      child: _buildKanbanLane(
+                        title: 'طابور الانتظار',
+                        subtitle: 'مرضى جاهزون للدخول',
+                        count: waiting.length,
+                        color: AppColors.warning,
+                        icon: Icons.hourglass_top_rounded,
+                        items: waiting,
+                        activeSelected: activeSelected,
+                      ),
+                    ),
+              const SizedBox(width: 10),
 
-        // فحص جانبي إذا تم تحديد موعد
-        if (activeSelected != null) ...[
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 360,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface(context),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderSubtle(context)),
-              ),
-              child: DesktopDetailsPane(
-                user: widget.user,
-                selected: activeSelected,
-                onClose: () => setState(() => _selected = null),
-              ),
+              // مسار 2: مع الطبيب
+              needsHorizontalScroll
+                  ? SizedBox(
+                      width: 260,
+                      child: _buildKanbanLane(
+                        title: 'مع الطبيب',
+                        subtitle: 'جلسات الفحص الجارية',
+                        count: inDoctor.length,
+                        color: AppColors.info,
+                        icon: Icons.medical_services_outlined,
+                        items: inDoctor,
+                        activeSelected: activeSelected,
+                      ),
+                    )
+                  : Expanded(
+                      child: _buildKanbanLane(
+                        title: 'مع الطبيب',
+                        subtitle: 'جلسات الفحص الجارية',
+                        count: inDoctor.length,
+                        color: AppColors.info,
+                        icon: Icons.medical_services_outlined,
+                        items: inDoctor,
+                        activeSelected: activeSelected,
+                      ),
+                    ),
+              const SizedBox(width: 10),
+
+              // مسار 3: مكتمل اليوم
+              needsHorizontalScroll
+                  ? SizedBox(
+                      width: 260,
+                      child: _buildKanbanLane(
+                        title: 'مكتمل اليوم',
+                        subtitle: 'تم الكشف وإنهاء الزيارة',
+                        count: completed.length,
+                        color: AppColors.success,
+                        icon: Icons.check_circle_rounded,
+                        items: completed,
+                        activeSelected: activeSelected,
+                      ),
+                    )
+                  : Expanded(
+                      child: _buildKanbanLane(
+                        title: 'مكتمل اليوم',
+                        subtitle: 'تم الكشف وإنهاء الزيارة',
+                        count: completed.length,
+                        color: AppColors.success,
+                        icon: Icons.check_circle_rounded,
+                        items: completed,
+                        activeSelected: activeSelected,
+                      ),
+                    ),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: needsHorizontalScroll
+                  ? SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: 800,
+                        child: buildLanesRow(),
+                      ),
+                    )
+                  : buildLanesRow(),
             ),
-          ),
-        ],
-      ],
+
+            // فحص جانبي إذا تم تحديد موعد
+            if (activeSelected != null) ...[
+              const SizedBox(width: 10),
+              SizedBox(
+                width: detailsWidth,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surface(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.borderSubtle(context)),
+                  ),
+                  child: DesktopDetailsPane(
+                    user: widget.user,
+                    selected: activeSelected,
+                    onClose: () => setState(() => _selected = null),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 
@@ -809,6 +888,7 @@ class _AppointmentsDesktopViewState
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary(context),
+                        height: 1.35,
                       ),
                     ),
                     Text(
@@ -816,6 +896,7 @@ class _AppointmentsDesktopViewState
                       style: GoogleFonts.cairo(
                         fontSize: 10.5,
                         color: AppColors.textSecondary(context),
+                        height: 1.35,
                       ),
                     ),
                   ],
@@ -852,6 +933,7 @@ class _AppointmentsDesktopViewState
                         style: GoogleFonts.cairo(
                           fontSize: 12,
                           color: AppColors.textMuted(context),
+                          height: 1.35,
                         ),
                       ),
                     ),
