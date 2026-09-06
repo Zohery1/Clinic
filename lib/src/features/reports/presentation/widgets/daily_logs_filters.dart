@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
@@ -6,8 +6,8 @@ import 'package:intl/intl.dart' as intl;
 import '../../../../core/ui/primitives/app_button.dart';
 import '../../../../core/ui/primitives/app_chip.dart';
 import '../../../../core/ui/tokens/colors.dart';
-import '../../../../core/ui/tokens/radii.dart';
 import '../../../../core/ui/tokens/spacing.dart';
+import '../../../../core/utils/doctor_utils.dart';
 import '../../../appointments/data/appointment_repository.dart';
 import '../../../auth/presentation/login_controller.dart';
 import '../../../clinics/presentation/clinics_controller.dart';
@@ -27,6 +27,25 @@ class DailyLogsFilters extends ConsumerWidget {
     required this.onExport,
   });
 
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  Future<void> _pickCustomRange(BuildContext context) async {
+    final now = DateTime.now();
+    final initial = DateTimeRange(start: startDate, end: endDate);
+    final first = DateTime(now.year - 5);
+    final last = DateTime(now.year + 1);
+    final picked = await showDateRangePicker(
+      context: context,
+      initialDateRange: initial,
+      firstDate: first,
+      lastDate: last,
+      saveText: 'تطبيق',
+      cancelText: 'إلغاء',
+    );
+    if (picked != null) onDateRangeChanged(picked);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
@@ -38,6 +57,63 @@ class DailyLogsFilters extends ConsumerWidget {
 
     final canFilterDoctors =
         user?.isOwner == true || user?.canViewReports == true;
+
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final todayEnd = DateTime(now.year, now.month, now.day);
+
+    final last7Start = DateTime(now.year, now.month, now.day)
+        .subtract(const Duration(days: 6));
+    final last7End = DateTime(now.year, now.month, now.day);
+
+    final thisMonthStart = DateTime(now.year, now.month, 1);
+    final thisMonthEnd = DateTime(now.year, now.month, now.day);
+
+    final isToday =
+        _isSameDay(startDate, todayStart) && _isSameDay(endDate, todayEnd);
+    final isLast7 =
+        _isSameDay(startDate, last7Start) && _isSameDay(endDate, last7End);
+    final isThisMonth = _isSameDay(startDate, thisMonthStart) &&
+        _isSameDay(endDate, thisMonthEnd);
+    final isCustom = !isToday && !isLast7 && !isThisMonth;
+
+    final datePresets = _ChipRow(
+      children: [
+        AppChip(
+          label: 'اليوم',
+          variant: AppChipVariant.filter,
+          selected: isToday,
+          onSelected: (_) => onDateRangeChanged(
+            DateTimeRange(start: todayStart, end: todayEnd),
+          ),
+        ),
+        AppChip(
+          label: 'آخر 7 أيام',
+          variant: AppChipVariant.filter,
+          selected: isLast7,
+          onSelected: (_) => onDateRangeChanged(
+            DateTimeRange(start: last7Start, end: last7End),
+          ),
+        ),
+        AppChip(
+          label: 'هذا الشهر',
+          variant: AppChipVariant.filter,
+          selected: isThisMonth,
+          onSelected: (_) => onDateRangeChanged(
+            DateTimeRange(start: thisMonthStart, end: thisMonthEnd),
+          ),
+        ),
+        AppChip(
+          label: isCustom
+              ? 'مخصص (${intl.DateFormat('d MMM', 'ar').format(startDate)} - ${intl.DateFormat('d MMM', 'ar').format(endDate)})'
+              : 'مخصص',
+          icon: Icons.tune_rounded,
+          variant: AppChipVariant.filter,
+          selected: isCustom,
+          onSelected: (_) => _pickCustomRange(context),
+        ),
+      ],
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -76,7 +152,7 @@ class DailyLogsFilters extends ConsumerWidget {
                         ),
                         for (final d in doctors)
                           AppChip(
-                            label: 'د. ${d.fullName}',
+                            label: DoctorUtils.formatTitle(d.fullName),
                             variant: AppChipVariant.filter,
                             selected: selectedDoctorId == d.id,
                             onSelected: (_) => ref
@@ -130,18 +206,21 @@ class DailyLogsFilters extends ConsumerWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                dateBtn,
+                datePresets,
+                const SizedBox(height: AppSpace.xs),
+                Row(
+                  children: [
+                    Expanded(child: dateBtn),
+                    const SizedBox(width: AppSpace.sm),
+                    exportBtn,
+                  ],
+                ),
                 const SizedBox(height: AppSpace.sm),
                 doctorFilter,
                 if (branchFilter is! SizedBox) ...[
                   const SizedBox(height: AppSpace.xs),
                   branchFilter,
                 ],
-                const SizedBox(height: AppSpace.sm),
-                Align(
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: exportBtn,
-                ),
               ],
             );
           }
@@ -151,6 +230,8 @@ class DailyLogsFilters extends ConsumerWidget {
             children: [
               Row(
                 children: [
+                  datePresets,
+                  const SizedBox(width: AppSpace.sm),
                   dateBtn,
                   const Spacer(),
                   exportBtn,
@@ -246,7 +327,7 @@ class _DoctorLockedBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.person_pin_rounded, color: AppColors.primary, size: 18),
+          const Icon(Icons.person_pin_rounded, color: AppColors.primary, size: 18),
           const SizedBox(width: AppSpace.sm),
           Expanded(
             child: Text(

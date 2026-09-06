@@ -1,4 +1,4 @@
-﻿import 'package:fl_chart/fl_chart.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -13,25 +13,58 @@ class StatusDonutChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final entries = data.entries.where((e) => e.value > 0).toList();
     final total = entries.fold<double>(0.0, (s, e) => s + e.value);
-    final isDark = AppColors.isDark(context);
-
-    if (total == 0) {
-      return Center(
-        child: Text(
-          'لا توجد بيانات',
-          style: GoogleFonts.cairo(
-            fontSize: 13,
-            color: AppColors.textMuted(context),
-          ),
-        ),
-      );
-    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = constraints.biggest.shortestSide;
         final radius = (size / 2) * 0.45;
         final centerSpace = (size / 2) * 0.48;
+
+        if (total == 0) {
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              PieChart(
+                PieChartData(
+                  sectionsSpace: 0,
+                  centerSpaceRadius: centerSpace,
+                  startDegreeOffset: -90,
+                  sections: [
+                    PieChartSectionData(
+                      value: 1,
+                      color: AppColors.borderSubtle(context),
+                      radius: radius,
+                      showTitle: false,
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '0 مواعيد',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMuted(context),
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'لا توجد مواعيد',
+                    style: GoogleFonts.cairo(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMuted(context),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
 
         return Stack(
           alignment: Alignment.center,

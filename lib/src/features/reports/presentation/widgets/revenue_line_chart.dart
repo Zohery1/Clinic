@@ -1,9 +1,11 @@
-﻿import 'package:fl_chart/fl_chart.dart';
+import 'dart:math' as math;
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 
 import '../../../../core/ui/tokens/colors.dart';
+import '../../../../core/ui/tokens/spacing.dart';
 
 class RevenueLineChart extends StatelessWidget {
   final List<double> data;
@@ -18,27 +20,28 @@ class RevenueLineChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (data.isEmpty || data.length != labels.length) {
-      return Center(
-        child: Text(
-          'لا توجد بيانات',
-          style: GoogleFonts.cairo(
-            fontSize: 13,
-            color: AppColors.textMuted(context),
-          ),
-        ),
-      );
+      return const _GhostGridWithEmptyState();
     }
 
     final spots = <FlSpot>[
       for (var i = 0; i < data.length; i++) FlSpot(i.toDouble(), data[i]),
     ];
 
-    final maxY = data.reduce((a, b) => a > b ? a : b);
-    final minY = data.reduce((a, b) => a < b ? a : b);
-    final range = (maxY - minY) == 0 ? 1.0 : (maxY - minY);
-    final paddedMax = maxY + range * 0.18;
-    final paddedMin = (minY - range * 0.10).clamp(0.0, double.infinity);
+    final rawMaxY = data.reduce((a, b) => a > b ? a : b);
+    final rawMinY = data.reduce((a, b) => a < b ? a : b);
 
+    final double paddedMax;
+    final double paddedMin;
+    if (rawMaxY <= 0) {
+      paddedMax = 1000.0;
+      paddedMin = 0.0;
+    } else {
+      final range = (rawMaxY - rawMinY) == 0 ? 1.0 : (rawMaxY - rawMinY);
+      paddedMax = rawMaxY + range * 0.18;
+      paddedMin = (rawMinY - range * 0.10).clamp(0.0, double.infinity);
+    }
+
+    final horizontalInterval = (paddedMax - paddedMin) / 4;
     final gridColor = AppColors.borderSubtle(context);
     final axisColor = AppColors.textMuted(context);
 
@@ -49,7 +52,7 @@ class RevenueLineChart extends StatelessWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: (paddedMax - paddedMin) / 4,
+          horizontalInterval: horizontalInterval,
           getDrawingHorizontalLine: (_) => FlLine(
             color: gridColor,
             strokeWidth: 1,
@@ -97,15 +100,16 @@ class RevenueLineChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 44,
-              interval: (paddedMax - paddedMin) / 4,
+              interval: horizontalInterval,
               getTitlesWidget: (value, meta) {
                 if (value <= 0 && paddedMin == 0) {
                   return const SizedBox.shrink();
                 }
+                final whole = value.roundToDouble();
                 return Padding(
                   padding: const EdgeInsets.only(right: 4),
                   child: Text(
-                    _shortMoney(value),
+                    _shortMoney(whole),
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
@@ -155,12 +159,12 @@ class RevenueLineChart extends StatelessWidget {
         lineBarsData: [
           LineChartBarData(
             spots: spots,
-            isCurved: true,
+            isCurved: data.length > 1,
             curveSmoothness: 0.32,
             preventCurveOverShooting: true,
             barWidth: 2.5,
             color: AppColors.primary,
-            dotData: const FlDotData(show: false),
+            dotData: FlDotData(show: data.length == 1),
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
@@ -181,8 +185,100 @@ class RevenueLineChart extends StatelessWidget {
   String _formatCurrency(double v) => '${v.toStringAsFixed(0)} ج.م';
 
   String _shortMoney(double v) {
-    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}م';
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}ك';
-    return v.toStringAsFixed(0);
+    final intVal = v.round();
+    final isNegative = intVal < 0;
+    final absVal = intVal.abs();
+    String res;
+    if (absVal >= 1000000) {
+      res = '${(absVal / 1000000).toStringAsFixed(1)}م';
+    } else if (absVal >= 1000) {
+      res = '${(absVal / 1000).toStringAsFixed(0)}ك';
+    } else {
+      res = absVal.toString();
+    }
+    return isNegative ? '-$res' : res;
   }
+}
+
+class _GhostGridWithEmptyState extends StatelessWidget {
+  const _GhostGridWithEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _GhostGridPainter(
+              color: AppColors.borderSubtle(context),
+            ),
+          ),
+        ),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.subtle(context),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.show_chart_rounded,
+                  size: 22,
+                  color: AppColors.textMuted(context),
+                ),
+              ),
+              const SizedBox(height: AppSpace.sm),
+              Text(
+                'لا توجد حركات إيرادات مسجلة لهذه الفترة',
+                style: GoogleFonts.cairo(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted(context),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GhostGridPainter extends CustomPainter {
+  final Color color;
+  const _GhostGridPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    const dashWidth = 4.0;
+    const dashSpace = 4.0;
+    const lines = 4;
+    final interval = size.height / (lines + 1);
+
+    for (int i = 1; i <= lines; i++) {
+      final y = interval * i;
+      double startX = 0;
+      while (startX < size.width) {
+        canvas.drawLine(
+          Offset(startX, y),
+          Offset(math.min(startX + dashWidth, size.width), y),
+          paint,
+        );
+        startX += dashWidth + dashSpace;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GhostGridPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

@@ -1,9 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/ui/data/app_chart_card.dart';
-import '../../../../core/ui/data/app_section.dart';
 import '../../../../core/ui/data/app_stat_card.dart';
 import '../../../../core/ui/feedback/app_error_state.dart';
 import '../../../../core/ui/feedback/app_skeleton.dart';
@@ -52,7 +51,8 @@ class OverviewTab extends ConsumerWidget {
         children: [
           LayoutBuilder(
             builder: (context, c) {
-              final vertical = c.maxWidth < 700;
+              // Responsive KPI layout: mobile (<600px) single column, tablet/desktop (>=600px) 3 columns
+              final isMobile = c.maxWidth < 600;
               final cards = [
                 _kpi(
                   context,
@@ -80,7 +80,7 @@ class OverviewTab extends ConsumerWidget {
                 ),
               ];
 
-              if (vertical) {
+              if (isMobile) {
                 return Column(
                   children: [
                     for (var i = 0; i < cards.length; i++) ...[
@@ -121,7 +121,7 @@ class OverviewTab extends ConsumerWidget {
               }
 
               return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(flex: 2, child: lineCard),
                   const SizedBox(width: AppSpace.lg),
@@ -214,43 +214,39 @@ class OverviewTab extends ConsumerWidget {
     BuildContext context,
     AsyncValue<Map<String, double>> status,
   ) {
-    return AppSection(
+    return AppChartCard(
       title: 'حالات المواعيد اليوم',
       subtitle: 'توزيع الحالات',
-      padding: EdgeInsets.zero,
-      child: AppChartCard(
-        title: '',
-        height: 280,
-        padding: const EdgeInsets.all(AppSpace.lg),
-        child: status.when(
-          data: (m) => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: StatusDonutChart(data: m)),
-              const SizedBox(height: AppSpace.sm),
-              Wrap(
-                spacing: AppSpace.sm,
-                runSpacing: AppSpace.xs,
-                alignment: WrapAlignment.center,
-                children: [
-                  _legend(context, 'في الانتظار',
-                      m['waiting'] ?? 0, AppColors.warning),
-                  _legend(context, 'مع الطبيب',
-                      m['with_doctor'] ?? 0, AppColors.info),
-                  _legend(context, 'مكتمل',
-                      m['completed'] ?? 0, AppColors.success),
-                  _legend(context, 'ملغي',
-                      m['cancelled'] ?? 0, AppColors.danger),
-                ],
-              ),
-            ],
-          ),
-          loading: () => const AppSkeleton(height: 220, radius: 8),
-          error: (e, _) => AppErrorState(
-            icon: Icons.error_outline_rounded,
-            title: 'تعذر تحميل البيانات',
-            message: e.toString(),
-          ),
+      height: 280,
+      padding: const EdgeInsets.all(AppSpace.lg),
+      child: status.when(
+        data: (m) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: StatusDonutChart(data: m)),
+            const SizedBox(height: AppSpace.sm),
+            Wrap(
+              spacing: AppSpace.sm,
+              runSpacing: AppSpace.xs,
+              alignment: WrapAlignment.center,
+              children: [
+                _legend(context, 'في الانتظار',
+                    m['waiting'] ?? 0, AppColors.warning),
+                _legend(context, 'مع الطبيب',
+                    m['with_doctor'] ?? 0, AppColors.info),
+                _legend(context, 'مكتمل',
+                    m['completed'] ?? 0, AppColors.success),
+                _legend(context, 'ملغي',
+                    m['cancelled'] ?? 0, AppColors.danger),
+              ],
+            ),
+          ],
+        ),
+        loading: () => const AppSkeleton(height: 220, radius: 8),
+        error: (e, _) => AppErrorState(
+          icon: Icons.error_outline_rounded,
+          title: 'تعذر تحميل البيانات',
+          message: e.toString(),
         ),
       ),
     );
@@ -266,12 +262,26 @@ class OverviewTab extends ConsumerWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(
-          '$label · ${value.toStringAsFixed(0)}',
-          style: GoogleFonts.cairo(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textMuted(context),
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: '$label · ',
+                style: GoogleFonts.cairo(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted(context),
+                ),
+              ),
+              TextSpan(
+                text: value.toStringAsFixed(0),
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary(context),
+                ),
+              ),
+            ],
           ),
         ),
       ],

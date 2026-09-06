@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/ui/feedback/app_status_page.dart';
 import '../../../core/ui/tokens/colors.dart';
+import '../../../core/ui/tokens/motion.dart';
+import '../../../core/ui/tokens/spacing.dart';
 import '../../auth/presentation/login_controller.dart';
 import 'widgets/cash_drawer_reconciliation_tab.dart';
 import 'widgets/daily_logs_tab.dart';
@@ -71,11 +74,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _SubTabsInline(
-              selected: _selectedTab,
-              onSelect: (i) => setState(() => _selectedTab = i),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpace.lg,
+                AppSpace.lg,
+                AppSpace.lg,
+                0,
+              ),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: _SubTabsInline(
+                  selected: _selectedTab,
+                  onSelect: (i) => setState(() => _selectedTab = i),
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpace.sm),
             Expanded(child: child),
           ],
         ),
@@ -88,43 +102,56 @@ class _SubTabsInline extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onSelect;
   const _SubTabsInline({required this.selected, required this.onSelect});
+
   @override
   Widget build(BuildContext context) {
     const labels = [
       'نظرة عامة',
       'السجلات اليومية',
       'السجلات الشهرية',
-      'تقفيل الخزينة والدرج 💰'
+      'تقفيل الخزينة والدرج 💰',
     ];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (var i = 0; i < labels.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(left: 6),
-              child: InkWell(
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpace.xs),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderSubtle(context)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < labels.length; i++) ...[
+              InkWell(
                 onTap: () => onSelect(i),
                 borderRadius: BorderRadius.circular(8),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 120),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  duration: AppMotion.normal,
+                  curve: AppMotion.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: selected == i
-                        ? AppColors.primary.withValues(alpha: 0.10)
+                        ? AppColors.primarySubtle
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: selected == i
-                          ? AppColors.primary.withValues(alpha: 0.5)
-                          : AppColors.borderSubtle(context),
+                          ? AppColors.primary.withValues(alpha: 0.4)
+                          : Colors.transparent,
                     ),
                   ),
                   child: Text(
                     labels[i],
-                    style: TextStyle(
+                    style: GoogleFonts.cairo(
                       fontSize: 13,
-                      fontWeight: FontWeight.w800,
+                      fontWeight:
+                          selected == i ? FontWeight.w700 : FontWeight.w600,
                       color: selected == i
                           ? AppColors.primary
                           : AppColors.textSecondary(context),
@@ -132,8 +159,10 @@ class _SubTabsInline extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-        ],
+              if (i < labels.length - 1) const SizedBox(width: AppSpace.xs),
+            ],
+          ],
+        ),
       ),
     );
   }

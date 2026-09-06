@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
@@ -50,14 +51,27 @@ class _CashDrawerReconciliationTabState
     super.dispose();
   }
 
-  double get _openingFloat => double.tryParse(_openingFloatCtrl.text) ?? 0.0;
-  double get _actualCash => double.tryParse(_actualCashCtrl.text) ?? 0.0;
+  double get _openingFloat {
+    final text = _openingFloatCtrl.text.trim();
+    if (text.isEmpty || text == '.') return 0.0;
+    return double.tryParse(text) ?? 0.0;
+  }
+
+  double get _actualCash {
+    final text = _actualCashCtrl.text.trim();
+    if (text.isEmpty || text == '.') return 0.0;
+    return double.tryParse(text) ?? 0.0;
+  }
+
   double get _totalExpenses =>
       _expenses.fold<double>(0.0, (acc, item) => acc + item.amount);
 
   void _addExpense() {
     final title = _expenseTitleCtrl.text.trim();
-    final amount = double.tryParse(_expenseAmountCtrl.text.trim());
+    final amountText = _expenseAmountCtrl.text.trim();
+    final amount = (amountText.isEmpty || amountText == '.')
+        ? null
+        : double.tryParse(amountText);
     if (title.isEmpty || amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -302,7 +316,14 @@ class _CashDrawerReconciliationTabState
                         width: 90,
                         child: TextField(
                           controller: _openingFloatCtrl,
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}'),
+                            ),
+                          ],
                           onChanged: (_) => setState(() {}),
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 18,
@@ -549,7 +570,14 @@ class _CashDrawerReconciliationTabState
                 Expanded(
                   child: TextField(
                     controller: _actualCashCtrl,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d+\.?\d{0,2}'),
+                      ),
+                    ],
                     onChanged: (_) => setState(() {}),
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 20,
@@ -580,64 +608,98 @@ class _CashDrawerReconciliationTabState
 
           // Variance Result Indicator
           if (diff != null) ...[
-            Container(
-              padding: const EdgeInsets.all(AppSpace.md),
-              decoration: BoxDecoration(
-                color: diff == 0
+            Builder(
+              builder: (context) {
+                final isBalanced = diff.abs() < 0.01;
+                final isDeficit = !isBalanced && diff < 0;
+
+                final Color bgColor = isBalanced
                     ? AppColors.successSubtle
-                    : (diff < 0 ? AppColors.dangerSubtle : AppColors.infoSubtle),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: diff == 0
-                      ? AppColors.success
-                      : (diff < 0 ? AppColors.danger : AppColors.info),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    diff == 0
-                        ? Icons.check_circle_rounded
-                        : (diff < 0
-                            ? Icons.warning_amber_rounded
-                            : Icons.info_outline_rounded),
-                    color: diff == 0
-                        ? AppColors.success
-                        : (diff < 0 ? AppColors.danger : AppColors.info),
+                    : (isDeficit ? AppColors.dangerSubtle : AppColors.infoSubtle);
+                final Color borderColor = isBalanced
+                    ? AppColors.success
+                    : (isDeficit ? AppColors.danger : AppColors.info);
+                final IconData icon = isBalanced
+                    ? Icons.check_circle_rounded
+                    : (isDeficit
+                        ? Icons.warning_amber_rounded
+                        : Icons.info_outline_rounded);
+
+                final String subtitle = isBalanced
+                    ? 'المبلغ الفعلي يطابق الرصيد المحسوب بالمليم.'
+                    : (isDeficit
+                        ? 'يرجى مراجعة فواتير الكشوفات وسندات الصرف النثري قبل التقفيل.'
+                        : 'يوجد فائض في النقدية الفعلية مقارنة بالحركات المسجلة.');
+
+                return Container(
+                  padding: const EdgeInsets.all(AppSpace.md),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderColor),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          diff == 0
-                              ? 'الدرج متطابق تماماً!'
-                              : (diff < 0
-                                  ? 'يوجد عجز نقدي بمقدار: ${diff.abs().toStringAsFixed(0)} ج.م'
-                                  : 'يوجد فائض نقدي بمقدار: +${diff.toStringAsFixed(0)} ج.م'),
-                          style: GoogleFonts.cairo(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w800,
-                            color: diff == 0
-                                ? AppColors.success
-                                : (diff < 0 ? AppColors.danger : AppColors.info),
-                          ),
+                  child: Row(
+                    children: [
+                      Icon(icon, color: borderColor, size: 22),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text.rich(
+                              TextSpan(
+                                style: GoogleFonts.cairo(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: borderColor,
+                                ),
+                                children: [
+                                  if (isBalanced) ...[
+                                    const TextSpan(text: 'الخزينة مطابقة تماماً ('),
+                                    TextSpan(
+                                      text: '0.00 ج.م',
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const TextSpan(text: ')'),
+                                  ] else if (isDeficit) ...[
+                                    const TextSpan(text: 'عجز بالدرج ('),
+                                    TextSpan(
+                                      text: '-${diff.abs().toStringAsFixed(2)} ج.م',
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const TextSpan(text: ')'),
+                                  ] else ...[
+                                    const TextSpan(text: 'فائض بالدرج ('),
+                                    TextSpan(
+                                      text: '+${diff.toStringAsFixed(2)} ج.م',
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const TextSpan(text: ')'),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              style: GoogleFonts.cairo(
+                                fontSize: 11,
+                                color: AppColors.textSecondary(context),
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          diff == 0
-                              ? 'المبلغ الفعلي يطابق الرصيد المحسوب بالمليم.'
-                              : 'يرجى مراجعة فواتير الكشوفات وسندات الصرف النثري قبل التقفيل.',
-                          style: GoogleFonts.cairo(
-                            fontSize: 11,
-                            color: AppColors.textSecondary(context),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
             const SizedBox(height: AppSpace.xl),
           ],
@@ -736,7 +798,14 @@ class _CashDrawerReconciliationTabState
                 flex: 3,
                 child: TextField(
                   controller: _expenseAmountCtrl,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d+\.?\d{0,2}'),
+                    ),
+                  ],
                   decoration: InputDecoration(
                     hintText: 'المبلغ (ج.م)',
                     hintStyle: GoogleFonts.cairo(fontSize: 12),

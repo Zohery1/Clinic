@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart' as intl;
 import '../../../core/theme/app_theme.dart';
-import '../../../core/ui/tokens/colors.dart';
 import 'reports_controller.dart';
 
 /// صفحة التقرير التفصيلي — يوم أو فترة زمنية محددة
@@ -475,7 +474,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     final svcPct = total > 0 ? (totalSvcRev / total * 100) : 0.0;
 
     final appColor = Theme.of(context).colorScheme.primary;
-    final svcColor = AppColors.success;
+    const svcColor = AppColors.success;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -675,8 +674,8 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
   Widget _buildPatientsCard(
       BuildContext context, bool isDark, int newPts, int oldPts) {
     final total = newPts + oldPts;
-    final newColor = AppColors.success;
-    final oldColor = AppColors.info;
+    const newColor = AppColors.success;
+    const oldColor = AppColors.info;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -692,7 +691,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                   color: newColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.people_alt_outlined, size: 16, color: newColor),
+                child: const Icon(Icons.people_alt_outlined, size: 16, color: newColor),
               ),
               const SizedBox(width: 10),
               Text(
@@ -735,11 +734,11 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
               children: [
                 Text(
                   'جدد: ${total > 0 ? (newPts / total * 100).toStringAsFixed(0) : 0}%',
-                  style: TextStyle(fontSize: 10, color: newColor, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 10, color: newColor, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   'قدامى: ${total > 0 ? (oldPts / total * 100).toStringAsFixed(0) : 0}%',
-                  style: TextStyle(fontSize: 10, color: oldColor, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 10, color: oldColor, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
