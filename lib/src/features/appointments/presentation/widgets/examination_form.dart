@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/ui/tokens/colors.dart';
 import '../../domain/service_model.dart';
 import 'clinical_vitals_ribbon.dart';
 
@@ -34,10 +36,9 @@ class ExaminationForm extends StatelessWidget {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+        side: BorderSide(color: AppColors.borderSubtle(context)),
       ),
-      color: Theme.of(context).colorScheme.surface,
+      color: AppColors.surface(context),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: LayoutBuilder(
@@ -49,16 +50,16 @@ class ExaminationForm extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.edit_document,
+                    const Icon(Icons.edit_document,
                         size: 20,
-                        color: Theme.of(context).colorScheme.primary),
+                        color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
                       'تقرير الجلسة والفحص الطبي',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.titleLarge?.color,
+                      style: GoogleFonts.cairo(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary(context),
                       ),
                     ),
                   ],
@@ -109,16 +110,16 @@ class ExaminationForm extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.medical_services_outlined,
+                    const Icon(Icons.medical_services_outlined,
                         size: 18,
-                        color: Theme.of(context).colorScheme.secondary),
+                        color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
                       'الخدمات المقدمة',
-                      style: TextStyle(
+                      style: GoogleFonts.cairo(
                         fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: Theme.of(context).textTheme.titleMedium?.color,
+                        fontSize: 14,
+                        color: AppColors.textPrimary(context),
                       ),
                     ),
                   ],
@@ -129,8 +130,10 @@ class ExaminationForm extends StatelessWidget {
                     if (services.isEmpty) {
                       return Text(
                         'لا توجد خدمات مضافة بعد.',
-                        style: TextStyle(
-                            fontSize: 13, color: Theme.of(context).hintColor),
+                        style: GoogleFonts.cairo(
+                          fontSize: 13,
+                          color: AppColors.textSecondary(context),
+                        ),
                       );
                     }
                     return Wrap(
@@ -141,41 +144,55 @@ class ExaminationForm extends StatelessWidget {
                             selectedServices.any((s) => s.id == service.id);
                         return FilterChip(
                           selected: isSelected,
-                          backgroundColor:
-                              Theme.of(context).scaffoldBackgroundColor,
-                          selectedColor: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.12),
-                          checkmarkColor:
-                              Theme.of(context).colorScheme.primary,
+                          backgroundColor: AppColors.subtle(context),
+                          selectedColor: AppColors.primarySubtle,
+                          checkmarkColor: AppColors.primary,
                           side: BorderSide(
                             color: isSelected
-                                ? Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withValues(alpha: 0.5)
-                                : Theme.of(context)
-                                    .dividerColor
-                                    .withValues(alpha: 0.1),
-                            width: 1.5,
+                                ? AppColors.primary
+                                : AppColors.borderSubtle(context),
+                            width: isSelected ? 1.5 : 1.0,
                           ),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          label: Text(
-                            '${service.name} — ${service.price.toStringAsFixed(0)} ج.م',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.color,
-                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                service.name,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 13,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.textPrimary(context),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.primary.withValues(alpha: 0.12)
+                                      : AppColors.borderSubtle(context),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '${service.price.toStringAsFixed(0)} ج.م',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.textSecondary(context),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           onSelected: isDoctor
                               ? (selected) =>
@@ -189,9 +206,10 @@ class ExaminationForm extends StatelessWidget {
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Text(
                     'خطأ في تحميل الخدمات: $e',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: Theme.of(context).colorScheme.error),
+                    style: GoogleFonts.cairo(
+                      fontSize: 13,
+                      color: AppColors.danger,
+                    ),
                   ),
                 ),
               ],
@@ -203,7 +221,7 @@ class ExaminationForm extends StatelessWidget {
                 children: [
                   reportSection,
                   const SizedBox(height: 32),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: AppColors.borderSubtle(context)),
                   const SizedBox(height: 24),
                   servicesSection,
                 ],
@@ -214,7 +232,7 @@ class ExaminationForm extends StatelessWidget {
                 children: [
                   reportSection,
                   const SizedBox(height: 24),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: AppColors.borderSubtle(context)),
                   const SizedBox(height: 20),
                   servicesSection,
                 ],
@@ -241,17 +259,14 @@ class ExaminationForm extends StatelessWidget {
           children: [
             Icon(icon,
                 size: 16,
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.8)),
+                color: AppColors.primary),
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13.5,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
+              style: GoogleFonts.cairo(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
               ),
             ),
           ],
@@ -262,31 +277,37 @@ class ExaminationForm extends StatelessWidget {
           readOnly: readOnly,
           maxLines: null,
           minLines: 3,
-          style: const TextStyle(fontSize: 14, height: 1.5),
+          style: GoogleFonts.cairo(
+            fontSize: 14,
+            height: 1.45,
+            color: AppColors.textPrimary(context),
+          ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(
-                fontSize: 13.5, color: Theme.of(context).hintColor),
+            hintStyle: GoogleFonts.cairo(
+              fontSize: 13.5,
+              color: AppColors.textMuted(context),
+            ),
             filled: true,
-            fillColor: Theme.of(context).scaffoldBackgroundColor,
+            fillColor: AppColors.subtle(context),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                  color: Theme.of(context)
-                      .dividerColor
-                      .withValues(alpha: 0.15)),
+                color: AppColors.borderSubtle(context),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                  color: Theme.of(context)
-                      .dividerColor
-                      .withValues(alpha: 0.15)),
+                color: AppColors.borderSubtle(context),
+              ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
               borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.primary, width: 1.5),
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
             contentPadding: const EdgeInsets.all(16),
           ),

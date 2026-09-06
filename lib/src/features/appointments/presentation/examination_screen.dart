@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../core/ui/tokens/colors.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
 import '../data/visit_note_repository.dart';
@@ -92,6 +94,67 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     return parts.join(_fieldSeparator);
   }
 
+  /// فحص وجود تعديلات غير محفوظة
+  bool get _hasUnsavedChanges {
+    return _complaintController.text.trim().isNotEmpty ||
+        _diagnosisController.text.trim().isNotEmpty ||
+        _instructionsController.text.trim().isNotEmpty ||
+        _vitals.bloodPressure.isNotEmpty ||
+        _vitals.temperature.isNotEmpty ||
+        _selectedServices.isNotEmpty;
+  }
+
+  /// حوار تأكيد الخروج عند وجود تعديلات غير محفوظة
+  Future<bool> _confirmDiscardChanges() async {
+    if (!_hasUnsavedChanges) return true;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          backgroundColor: AppColors.surface(ctx),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: AppColors.borderSubtle(ctx)),
+          ),
+          title: Text(
+            'تراجع عن التعديلات؟',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          content: Text(
+            'يوجد بيانات مدخلة في الفحص الطبي لم يتم حفظها. هل أنت متأكد من رغبتك في الخروج وتجاهلها؟',
+            style: GoogleFonts.cairo(fontSize: 13.5, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(
+                'البقاء في الفحص',
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary(ctx),
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text(
+                'الخروج وتجاهل التعديلات',
+                style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    return result ?? false;
+  }
+
   /// تبديل المريض النشط في قمرة القيادة
   void _switchAppointment(AppointmentModel appt) {
     if (appt.id == _currentAppointmentId) return;
@@ -113,22 +176,25 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
   /// استدعاء المريض التالي في الطابور
   Future<void> _callNextPatient() async {
     final appointments = ref.read(todayAppointmentsProvider).value ?? [];
-    final nextWaiting = appointments.firstWhere(
-      (a) => a.status == 'confirmed' && a.id != _currentAppointmentId,
-      orElse: () => appointments.firstWhere(
-        (a) => a.id == _currentAppointmentId,
-      ),
-    );
+    final waitingAppointments = appointments
+        .where((a) => a.status == 'confirmed' && a.id != _currentAppointmentId)
+        .toList();
 
-    if (nextWaiting.id.isEmpty || nextWaiting.id == _currentAppointmentId) {
+    if (waitingAppointments.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('لا يوجد مرضى آخرين في طابور الانتظار حالياً'),
+        SnackBar(
+          content: Text(
+            'لا يوجد مرضى آخرين في طابور الانتظار حالياً',
+            style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
+          ),
+          backgroundColor: AppColors.warning,
           behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
+
+    final nextWaiting = waitingAppointments.first;
 
     try {
       await ref
@@ -157,10 +223,13 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
                 const Icon(Icons.record_voice_over_rounded,
                     color: Colors.white, size: 20),
                 const SizedBox(width: 8),
-                Text('تم استدعاء: ${nextWaiting.patient.fullName}'),
+                Text(
+                  'تم استدعاء: ${nextWaiting.patient.fullName}',
+                  style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
+                ),
               ],
             ),
-            backgroundColor: const Color(0xFF10B981),
+            backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -169,8 +238,11 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطأ في استدعاء المريض: $e'),
-            backgroundColor: Colors.red,
+            content: Text(
+              'خطأ في استدعاء المريض: $e',
+              style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
+            ),
+            backgroundColor: AppColors.danger,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -192,10 +264,13 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
         ..showSnackBar(
-          const SnackBar(
-            duration: Duration(seconds: 2),
-            content: Text('يرجى كتابة محتوى أو علامات حيوية أو اختيار خدمة'),
-            backgroundColor: Color(0xFFD97706),
+          SnackBar(
+            duration: const Duration(seconds: 2),
+            content: Text(
+              'يرجى كتابة محتوى أو علامات حيوية أو اختيار خدمة',
+              style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
+            ),
+            backgroundColor: AppColors.warning,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -256,10 +331,13 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
           ..showSnackBar(
             SnackBar(
               duration: const Duration(seconds: 2),
-              content: Text(andComplete
-                  ? 'تم إنهاء الكشف وحفظ التقرير بنجاح'
-                  : 'تم حفظ التقرير بنجاح'),
-              backgroundColor: const Color(0xFF10B981),
+              content: Text(
+                andComplete
+                    ? 'تم إنهاء الكشف وحفظ التقرير بنجاح'
+                    : 'تم حفظ التقرير بنجاح',
+                style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
+              ),
+              backgroundColor: AppColors.success,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -274,8 +352,11 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
           ..showSnackBar(
             SnackBar(
               duration: const Duration(seconds: 2),
-              content: Text('خطأ في الحفظ: $e'),
-              backgroundColor: Theme.of(context).colorScheme.error,
+              content: Text(
+                'خطأ في الحفظ: $e',
+                style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
+              ),
+              backgroundColor: AppColors.danger,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -291,18 +372,41 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       builder: (ctx) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          title: const Text('حذف الجلسة؟'),
-          content: const Text(
-              'سيتم حذف التقرير الطبي وجميع الخدمات المسجلة لهذه الجلسة.'),
+          backgroundColor: AppColors.surface(ctx),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Text(
+            'حذف الجلسة؟',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 16),
+          ),
+          content: Text(
+            'سيتم حذف التقرير الطبي وجميع الخدمات المسجلة لهذه الجلسة.',
+            style: GoogleFonts.cairo(
+              fontSize: 13,
+              color: AppColors.textSecondary(ctx),
+            ),
+          ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('إلغاء')),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.cairo(
+                  color: AppColors.textSecondary(ctx),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(ctx).colorScheme.error),
-              child: const Text('حذف'),
+                  foregroundColor: AppColors.danger),
+              child: Text(
+                'حذف',
+                style: GoogleFonts.cairo(
+                  color: AppColors.danger,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),
@@ -333,8 +437,11 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
           ..showSnackBar(
             SnackBar(
               duration: const Duration(seconds: 2),
-              content: const Text('تم حذف الجلسة'),
-              backgroundColor: Theme.of(context).colorScheme.error,
+              content: Text(
+                'تم حذف الجلسة',
+                style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
+              ),
+              backgroundColor: AppColors.danger,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -347,8 +454,11 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
           ..showSnackBar(
             SnackBar(
               duration: const Duration(seconds: 2),
-              content: Text('خطأ في الحذف: $e'),
-              backgroundColor: Theme.of(context).colorScheme.error,
+              content: Text(
+                'خطأ في الحذف: $e',
+                style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
+              ),
+              backgroundColor: AppColors.danger,
             ),
           );
       }
@@ -368,30 +478,45 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     final canEditNotes = isDoctor || (currentUser?.canEditMedicalNotes ?? false);
     final isDesktop = MediaQuery.of(context).size.width >= 1080;
 
-    // تهيئة الخدمات
-    availableServicesAsync.whenData((availableList) {
-      appServicesAsync.whenData((appServicesList) {
-        if (!_servicesInitialized) {
-          _selectedServices = availableList
-              .where((av) => appServicesList.any((as) => as.serviceId == av.id))
-              .toList();
-          _servicesInitialized = true;
-        }
-      });
-    });
+    // تهيئة الخدمات بأمان دون تعديل الـ State أثناء البناء
+    if (!_servicesInitialized &&
+        availableServicesAsync.hasValue &&
+        appServicesAsync.hasValue) {
+      final availableList = availableServicesAsync.value ?? [];
+      final appServicesList = appServicesAsync.value ?? [];
+      _selectedServices = availableList
+          .where((av) => appServicesList.any((as) => as.serviceId == av.id))
+          .toList();
+      _servicesInitialized = true;
+    }
 
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Navigator.pop(context),
-          ),
+      child: PopScope(
+        canPop: !_hasUnsavedChanges,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          final shouldPop = await _confirmDiscardChanges();
+          if (shouldPop && context.mounted) {
+            Navigator.of(context).pop();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: AppColors.canvas(context),
+          appBar: AppBar(
+            backgroundColor: AppColors.surface(context),
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back_rounded,
+                  color: AppColors.textPrimary(context)),
+              onPressed: () async {
+                final shouldPop = await _confirmDiscardChanges();
+                if (shouldPop && context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -399,10 +524,10 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
                 children: [
                   Text(
                     'قمرة الفحص الطبي — $_currentPatientName',
-                    style: TextStyle(
+                    style: GoogleFonts.cairo(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -410,15 +535,15 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      color: AppColors.successSubtle,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Clinical Cockpit',
-                      style: TextStyle(
+                      style: GoogleFonts.jetBrainsMono(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF047857),
+                        color: AppColors.success,
                       ),
                     ),
                   ),
@@ -426,15 +551,23 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
               ),
               Text(
                 'فحص سريري متزامن مع طابور الانتظار والسجل التاريخي',
-                style:
-                    TextStyle(fontSize: 11, color: Theme.of(context).hintColor),
+                style: GoogleFonts.cairo(
+                  fontSize: 11,
+                  color: AppColors.textSecondary(context),
+                ),
               ),
             ],
           ),
           actions: [
             if (isDoctor)
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded),
+                icon: Icon(Icons.more_vert_rounded,
+                    color: AppColors.textPrimary(context)),
+                color: AppColors.surface(context),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(color: AppColors.borderSubtle(context)),
+                ),
                 onSelected: (value) {
                   if (value == 'delete') _deleteSession();
                 },
@@ -443,13 +576,17 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_outline_rounded,
-                            color: Theme.of(context).colorScheme.error,
+                        const Icon(Icons.delete_outline_rounded,
+                            color: AppColors.danger,
                             size: 18),
                         const SizedBox(width: 8),
-                        Text('حذف الجلسة',
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.error)),
+                        Text(
+                          'حذف الجلسة',
+                          style: GoogleFonts.cairo(
+                            color: AppColors.danger,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -457,9 +594,9 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
               ),
             const SizedBox(width: 8),
           ],
-          bottom: const PreferredSize(
-            preferredSize: Size.fromHeight(1),
-            child: Divider(height: 1),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(height: 1, color: AppColors.borderSubtle(context)),
           ),
         ),
         body: noteAsync.when(
@@ -479,13 +616,16 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
           },
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(
-            child: Text('خطأ في تحميل التقرير: $err',
-                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            child: Text(
+              'خطأ في تحميل التقرير: $err',
+              style: GoogleFonts.cairo(color: AppColors.danger),
+            ),
           ),
         ),
         bottomNavigationBar: canEditNotes
             ? _buildBottomBar(context, isDoctor: isDoctor)
             : null,
+        ),
       ),
     );
   }
@@ -496,62 +636,71 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     bool isDoctor,
     AsyncValue<List<ServiceModel>> availableServicesAsync,
   ) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ─── الجناح الأيمن: شريط طابور الانتظار المباشر (290px) ───
-          SizedBox(
-            width: 290,
-            child: LiveQueueRail(
-              clinicId: widget.clinicId,
-              currentAppointmentId: _currentAppointmentId,
-              onSelectAppointment: _switchAppointment,
-              onCallNext: _callNextPatient,
-            ),
-          ),
-          const SizedBox(width: 16),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isUltraWide = constraints.maxWidth >= 1400;
+        final queueWidth = isUltraWide ? 280.0 : 240.0;
+        final sidebarWidth = isUltraWide ? 320.0 : 280.0;
+        final gap = isUltraWide ? 16.0 : 12.0;
 
-          // ─── الجناح الأوسط: منصة الفحص السريري والملاحظات (Expanded) ───
-          Expanded(
-            child: SingleChildScrollView(
-              child: ExaminationForm(
-                isDoctor: isDoctor,
-                vitals: _vitals,
-                onVitalsChanged: (v) => setState(() => _vitals = v),
-                complaintController: _complaintController,
-                diagnosisController: _diagnosisController,
-                instructionsController: _instructionsController,
-                availableServicesAsync: availableServicesAsync,
-                selectedServices: _selectedServices,
-                onServiceToggled: (service, selected) {
-                  setState(() {
-                    if (selected) {
-                      _selectedServices.add(service);
-                    } else {
-                      _selectedServices.removeWhere((s) => s.id == service.id);
-                    }
-                  });
-                },
+        return Padding(
+          padding: EdgeInsets.all(gap),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ─── الجناح الأيمن: شريط طابور الانتظار المباشر ───
+              SizedBox(
+                width: queueWidth,
+                child: LiveQueueRail(
+                  clinicId: widget.clinicId,
+                  currentAppointmentId: _currentAppointmentId,
+                  onSelectAppointment: _switchAppointment,
+                  onCallNext: _callNextPatient,
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 16),
+              SizedBox(width: gap),
 
-          // ─── الجناح الأيسر: شريط المريض الجانبي والسجل السابق (340px) ───
-          SizedBox(
-            width: 340,
-            child: SingleChildScrollView(
-              child: PatientMedicalSidebar(
-                patientId: _currentPatientId,
-                patientName: _currentPatientName,
-                clinicId: widget.clinicId,
+              // ─── الجناح الأوسط: منصة الفحص السريري والملاحظات (Expanded) ───
+              Expanded(
+                child: SingleChildScrollView(
+                  child: ExaminationForm(
+                    isDoctor: isDoctor,
+                    vitals: _vitals,
+                    onVitalsChanged: (v) => setState(() => _vitals = v),
+                    complaintController: _complaintController,
+                    diagnosisController: _diagnosisController,
+                    instructionsController: _instructionsController,
+                    availableServicesAsync: availableServicesAsync,
+                    selectedServices: _selectedServices,
+                    onServiceToggled: (service, selected) {
+                      setState(() {
+                        if (selected) {
+                          _selectedServices.add(service);
+                        } else {
+                          _selectedServices.removeWhere((s) => s.id == service.id);
+                        }
+                      });
+                    },
+                  ),
+                ),
               ),
-            ),
+              SizedBox(width: gap),
+
+              // ─── الجناح الأيسر: شريط المريض الجانبي والسجل السابق ───
+              SizedBox(
+                width: sidebarWidth,
+                child: SingleChildScrollView(
+                  child: PatientMedicalSidebar(
+                    patientId: _currentPatientId,
+                    patientName: _currentPatientName,
+                    clinicId: widget.clinicId,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -599,19 +748,23 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
 
   // ─── شريط الحفظ السفلي ───
   Widget _buildBottomBar(BuildContext context, {required bool isDoctor}) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     if (!isDoctor) {
       return Container(
         padding: EdgeInsets.only(
           left: 16,
           right: 16,
           top: 12,
-          bottom: 12 + MediaQuery.of(context).padding.bottom,
+          bottom: 12 + bottomInset,
         ),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: AppColors.surface(context),
+          border: Border(
+            top: BorderSide(color: AppColors.borderSubtle(context)),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -622,7 +775,7 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
           child: ElevatedButton.icon(
             onPressed: _isSaving ? null : () => _save(andComplete: false),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 13),
               elevation: 0,
@@ -639,8 +792,10 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
                 : const Icon(Icons.save_rounded, size: 18),
             label: Text(
               _isSaving ? 'جاري الحفظ...' : 'حفظ التقرير فقط',
-              style:
-                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
             ),
           ),
         ),
@@ -652,13 +807,16 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
         left: 16,
         right: 16,
         top: 12,
-        bottom: 12 + MediaQuery.of(context).padding.bottom,
+        bottom: 12 + bottomInset,
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: AppColors.surface(context),
+        border: Border(
+          top: BorderSide(color: AppColors.borderSubtle(context)),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -674,17 +832,22 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 side: BorderSide(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.4)),
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                ),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
-              icon: const Icon(Icons.save_outlined, size: 18),
-              label: const Text(
-                'حفظ مسودة الكشف',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+              icon: const Icon(Icons.save_outlined, size: 18, color: AppColors.primary),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'حفظ مسودة الكشف',
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
             ),
           ),
@@ -696,7 +859,7 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
             child: ElevatedButton.icon(
               onPressed: _isSaving ? null : () => _save(andComplete: true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
+                backgroundColor: AppColors.success,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 elevation: 0,
@@ -711,10 +874,16 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
                           strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.check_circle_rounded, size: 18),
-              label: Text(
-                _isSaving ? 'جاري الحفظ...' : 'إنهاء الكشف واعتماد التقرير',
-                style:
-                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  _isSaving ? 'جاري الحفظ...' : 'إنهاء الكشف واعتماد التقرير',
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ),

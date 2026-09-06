@@ -41,8 +41,8 @@ class ClinicalVitalsData {
 
   Color get bmiColor {
     final val = bmi;
-    if (val == null) return Colors.grey;
-    if (val < 18.5) return Colors.blue;
+    if (val == null) return AppColors.lightTextMuted;
+    if (val < 18.5) return AppColors.info;
     if (val < 25) return AppColors.success;
     if (val < 30) return AppColors.warning;
     return AppColors.danger;

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/ui/primitives/app_avatar.dart';
 import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/ui/tokens/spacing.dart';
+import '../../../../core/utils/doctor_utils.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../auth/presentation/login_controller.dart';
 import '../../domain/appointment_model.dart';
@@ -300,24 +301,42 @@ class _LiveQueueRailState extends ConsumerState<LiveQueueRail> {
                                             else
                                               Text(
                                                 waitTime,
-                                                style:
-                                                    GoogleFonts.jetBrainsMono(
+                                                style: GoogleFonts.jetBrainsMono(
                                                   fontSize: 10.5,
                                                   color: AppColors
                                                       .textSecondary(context),
                                                 ),
                                               ),
-                                            if (a.appointmentTypeName !=
-                                                null) ...[
+                                            if (a.appointmentTypeName != null) ...[
                                               Text(
                                                 ' • ',
-                                                style: TextStyle(
+                                                style: GoogleFonts.cairo(
                                                     color: AppColors.textMuted(
                                                         context),
                                                     fontSize: 10),
                                               ),
                                               Text(
                                                 a.appointmentTypeName!,
+                                                style: GoogleFonts.cairo(
+                                                  fontSize: 10,
+                                                  color: AppColors
+                                                      .textSecondary(context),
+                                                ),
+                                              ),
+                                            ],
+                                            if (!isDoctor &&
+                                                a.doctorName != null &&
+                                                a.doctorName!.isNotEmpty) ...[
+                                              Text(
+                                                ' • ',
+                                                style: GoogleFonts.cairo(
+                                                    color: AppColors.textMuted(
+                                                        context),
+                                                    fontSize: 10),
+                                              ),
+                                              Text(
+                                                DoctorUtils.formatTitle(
+                                                    a.doctorName),
                                                 style: GoogleFonts.cairo(
                                                   fontSize: 10,
                                                   color: AppColors
@@ -393,8 +412,10 @@ class _LiveQueueRailState extends ConsumerState<LiveQueueRail> {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
-        child: Text('خطأ في تحميل الطابور: $e',
-            style: const TextStyle(fontSize: 11)),
+        child: Text(
+          'خطأ في تحميل الطابور: $e',
+          style: GoogleFonts.cairo(fontSize: 11, color: AppColors.danger),
+        ),
       ),
     );
   }
