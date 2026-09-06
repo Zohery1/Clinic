@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/ui/tokens/spacing.dart';
 import '../../../../core/ui/tokens/motion.dart';
-import '../../../../core/ui/primitives/app_avatar.dart';
 import '../../../../core/ui/primitives/app_button.dart';
 import '../../../../core/ui/primitives/app_icon_button.dart';
 import '../../../../core/ui/primitives/app_badge.dart';
@@ -23,6 +22,7 @@ import 'patient_providers.dart';
 import 'patient_visit_note_section.dart';
 import '../../../../core/widgets/doctor_badge.dart';
 import '../../../../core/widgets/send_whatsapp_dialog.dart';
+import '../../../../core/utils/doctor_utils.dart';
 
 /// ويدجت العرض التفصيلي الشامل للملف الطبي للمريض (المعلومات، المؤشرات، التاريخ المرضي، والزيارات)
 class PatientMedicalProfileView extends ConsumerWidget {
@@ -133,14 +133,17 @@ class PatientMedicalProfileView extends ConsumerWidget {
             ? patient.address!.split('|').last.trim()
             : '');
 
-    return Padding(
-      padding: EdgeInsets.all(AppSpace.xxl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header Info Card
-          Container(
-            padding: EdgeInsets.all(AppSpace.xl),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 700;
+        return Padding(
+          padding: EdgeInsets.all(isCompact ? AppSpace.md : AppSpace.xl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header Info Card
+              Container(
+                padding: EdgeInsets.all(isCompact ? AppSpace.md : AppSpace.xl),
             decoration: BoxDecoration(
               color: AppColors.primarySubtle,
               borderRadius: AppRadii.brMd,
@@ -151,7 +154,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                   name: patient.fullName,
                   size: AppAvatarSize.lg,
                 ),
-                SizedBox(width: AppSpace.xl),
+                const SizedBox(width: AppSpace.xl),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,10 +173,10 @@ class PatientMedicalProfileView extends ConsumerWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          SizedBox(width: AppSpace.md),
+                          const SizedBox(width: AppSpace.md),
                           if (age != null)
                             Container(
-                              padding: EdgeInsets.symmetric(
+                              padding: const EdgeInsets.symmetric(
                                 horizontal: AppSpace.sm,
                                 vertical: 2,
                               ),
@@ -193,7 +196,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                             ),
                         ],
                       ),
-                      SizedBox(height: AppSpace.xs),
+                      const SizedBox(height: AppSpace.xs),
                       Wrap(
                         spacing: 16,
                         runSpacing: 6,
@@ -208,7 +211,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                                   size: 14,
                                   color: AppColors.textMuted(context),
                                 ),
-                                SizedBox(width: AppSpace.xs),
+                                const SizedBox(width: AppSpace.xs),
                                 Text(
                                   patient.phone!,
                                   style: GoogleFonts.cairo(
@@ -228,7 +231,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                                   size: 14,
                                   color: AppColors.textMuted(context),
                                 ),
-                                SizedBox(width: AppSpace.xs),
+                                const SizedBox(width: AppSpace.xs),
                                 Text(
                                   displayAddress,
                                   style: GoogleFonts.cairo(
@@ -244,7 +247,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                     ],
                   ),
                 ),
-                SizedBox(width: AppSpace.md),
+                const SizedBox(width: AppSpace.md),
                 // Actions buttons
                 Row(
                   children: [
@@ -256,7 +259,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                       size: AppIconButtonSize.md,
                       color: AppColors.primary,
                     ),
-                    SizedBox(width: AppSpace.xs),
+                    const SizedBox(width: AppSpace.xs),
                     if (user.role == UserRole.doctor) ...[
                       AppIconButton(
                         tooltip: 'حذف المريض',
@@ -266,7 +269,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                         size: AppIconButtonSize.md,
                         color: AppColors.danger,
                       ),
-                      SizedBox(width: AppSpace.xs),
+                      const SizedBox(width: AppSpace.xs),
                       AppButton(
                         label: 'فحص المريض',
                         icon: Icons.medical_services_outlined,
@@ -288,7 +291,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                         size: AppButtonSize.md,
                         variant: AppButtonVariant.secondary,
                       ),
-                      SizedBox(width: AppSpace.xs),
+                      const SizedBox(width: AppSpace.xs),
                     ],
                     AppButton(
                       label: 'حجز موعد جديد',
@@ -310,7 +313,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
               ],
             ),
           ),
-          SizedBox(height: AppSpace.md),
+          const SizedBox(height: AppSpace.md),
 
           // Vitals and clinical variables grid
           LayoutBuilder(
@@ -324,6 +327,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                       : 'غير مسجل',
                   icon: Icons.phone_android_rounded,
                   color: AppColors.primary,
+                  isMonospace: true,
                   onActionTap: patient.phone != null && patient.phone!.isNotEmpty
                       ? () => showSendWhatsAppDialog(
                           context,
@@ -350,6 +354,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                   value: fileNo,
                   icon: Icons.badge_rounded,
                   color: AppColors.completed,
+                  isMonospace: true,
                 ),
               ];
 
@@ -357,11 +362,11 @@ class PatientMedicalProfileView extends ConsumerWidget {
                 return Row(
                   children: [
                     Expanded(child: statItems[0]),
-                    SizedBox(width: AppSpace.md),
+                    const SizedBox(width: AppSpace.md),
                     Expanded(child: statItems[1]),
-                    SizedBox(width: AppSpace.md),
+                    const SizedBox(width: AppSpace.md),
                     Expanded(child: statItems[2]),
-                    SizedBox(width: AppSpace.md),
+                    const SizedBox(width: AppSpace.md),
                     Expanded(child: statItems[3]),
                   ],
                 );
@@ -371,15 +376,15 @@ class PatientMedicalProfileView extends ConsumerWidget {
                     Row(
                       children: [
                         Expanded(child: statItems[0]),
-                        SizedBox(width: AppSpace.md),
+                        const SizedBox(width: AppSpace.md),
                         Expanded(child: statItems[1]),
                       ],
                     ),
-                    SizedBox(height: AppSpace.md),
+                    const SizedBox(height: AppSpace.md),
                     Row(
                       children: [
                         Expanded(child: statItems[2]),
-                        SizedBox(width: AppSpace.md),
+                        const SizedBox(width: AppSpace.md),
                         Expanded(child: statItems[3]),
                       ],
                     ),
@@ -388,53 +393,47 @@ class PatientMedicalProfileView extends ConsumerWidget {
               }
             },
           ),
-          SizedBox(height: AppSpace.md),
+          const SizedBox(height: AppSpace.md),
 
-          // Medical History Card
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(AppSpace.md),
-            decoration: BoxDecoration(
-              color: AppColors.dangerSubtle,
-              borderRadius: AppRadii.brMd,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.description_outlined,
-                      color: AppColors.danger,
-                      size: 16,
-                    ),
-                    SizedBox(width: AppSpace.xs),
-                    Text(
-                      'السجل المرضي للمريض',
-                      style: GoogleFonts.cairo(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: AppColors.danger,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
+          // Medical History Alert Ribbon (Calm neutral if empty, prominent clinical alert if present)
+          if (medicalHistory.trim().isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.md,
+                vertical: AppSpace.sm,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.subtle(context),
+                borderRadius: AppRadii.brMd,
+                border: Border.all(
+                  color: AppColors.borderSubtle(context),
+                  width: 1,
                 ),
-                SizedBox(height: AppSpace.xs),
-                Text(
-                  medicalHistory.isNotEmpty
-                      ? medicalHistory
-                      : 'لا يوجد سجل مرضي مسجل.',
-                  style: GoogleFonts.cairo(
-                    fontSize: 12,
-                    color: AppColors.textSecondary(context),
-                    height: 1.4,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.verified_user_outlined,
+                    color: AppColors.textMuted(context),
+                    size: 18,
                   ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: AppSpace.xl),
+                  const SizedBox(width: AppSpace.sm),
+                  Text(
+                    'لا توجد أمراض مزمنة أو حساسيات مسجلة',
+                    style: GoogleFonts.cairo(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMuted(context),
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            _MedicalHistoryAlertCard(medicalHistory: medicalHistory),
+          const SizedBox(height: AppSpace.xl),
 
           // Title
           Text(
@@ -446,29 +445,42 @@ class PatientMedicalProfileView extends ConsumerWidget {
               height: 1.3,
             ),
           ),
-          SizedBox(height: AppSpace.md),
+          const SizedBox(height: AppSpace.md),
 
           // Appointments timeline
           Expanded(
             child: appointmentsAsync.when(
               data: (appointments) {
                 if (appointments.isEmpty) {
-                  return const AppEmptyState(
+                  return AppEmptyState(
                     icon: Icons.history_rounded,
                     title: 'لا توجد زيارات سابقة مسجلة للمريض',
+                    message:
+                        'يمكنك بدء متابعة المريض وحجز موعد جديد لإجراء الكشف وتدوين الملاحظات الطبية.',
+                    actionLabel: 'حجز موعد الآن',
+                    actionIcon: Icons.add_task_rounded,
+                    onAction: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => BookAppointmentDialog(
+                          clinicId: clinicId,
+                          preselectedPatientId: patient.id,
+                        ),
+                      );
+                    },
                   );
                 }
 
                 return ListView.builder(
                   physics: const BouncingScrollPhysics(),
                   itemCount: appointments.length,
-                  padding: EdgeInsets.only(top: AppSpace.xs),
+                  padding: const EdgeInsets.only(top: AppSpace.xs),
                   itemBuilder: (context, index) {
                     final app = appointments[index];
-                    final date =
-                        intl.DateFormat('yyyy/MM/dd', 'ar').format(app.appointmentDate.toLocal());
-                    final time =
-                        intl.DateFormat('hh:mm a', 'ar').format(app.appointmentDate.toLocal());
+                    final date = intl.DateFormat('yyyy/MM/dd')
+                        .format(app.appointmentDate.toLocal());
+                    final time = intl.DateFormat('hh:mm a')
+                        .format(app.appointmentDate.toLocal());
 
                     return Stack(
                       children: [
@@ -488,14 +500,14 @@ class PatientMedicalProfileView extends ConsumerWidget {
                           child: Container(
                             width: 12,
                             height: 12,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: AppColors.primary,
                               shape: BoxShape.circle,
                             ),
                           ),
                         ),
                         Padding(
-                          padding: EdgeInsetsDirectional.only(
+                          padding: const EdgeInsetsDirectional.only(
                             start: 28,
                             bottom: AppSpace.md,
                           ),
@@ -537,6 +549,8 @@ class PatientMedicalProfileView extends ConsumerWidget {
         ],
       ),
     );
+      },
+    );
   }
 }
 
@@ -546,6 +560,7 @@ class _ClinicalMetaStat extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
+  final bool isMonospace;
   final VoidCallback? onActionTap;
   final String? actionTooltip;
 
@@ -554,6 +569,7 @@ class _ClinicalMetaStat extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.color,
+    this.isMonospace = false,
     this.onActionTap,
     this.actionTooltip,
   });
@@ -563,7 +579,7 @@ class _ClinicalMetaStat extends StatelessWidget {
     final isDark = AppColors.isDark(context);
 
     return Container(
-      padding: EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: AppSpace.md,
         vertical: AppSpace.sm,
       ),
@@ -575,14 +591,14 @@ class _ClinicalMetaStat extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(AppSpace.xs),
+            padding: const EdgeInsets.all(AppSpace.xs),
             decoration: BoxDecoration(
               color: color.withValues(alpha: isDark ? 0.18 : 0.10),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 16),
           ),
-          SizedBox(width: AppSpace.sm),
+          const SizedBox(width: AppSpace.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -595,23 +611,30 @@ class _ClinicalMetaStat extends StatelessWidget {
                     height: 1.3,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Row(
                   children: [
                     Flexible(
                       child: Text(
                         value,
-                        style: GoogleFonts.cairo(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary(context),
-                          height: 1.3,
-                        ),
+                        style: isMonospace
+                            ? GoogleFonts.jetBrainsMono(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary(context),
+                                height: 1.3,
+                              )
+                            : GoogleFonts.cairo(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary(context),
+                                height: 1.3,
+                              ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (onActionTap != null) ...[
-                      SizedBox(width: AppSpace.xs),
+                      const SizedBox(width: AppSpace.xs),
                       Tooltip(
                         message: actionTooltip ?? '',
                         child: AppIconButton(
@@ -626,6 +649,140 @@ class _ClinicalMetaStat extends StatelessWidget {
                   ],
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Clinical Alert Card for patient medical history & allergies
+class _MedicalHistoryAlertCard extends StatefulWidget {
+  final String medicalHistory;
+
+  const _MedicalHistoryAlertCard({required this.medicalHistory});
+
+  @override
+  State<_MedicalHistoryAlertCard> createState() =>
+      _MedicalHistoryAlertCardState();
+}
+
+class _MedicalHistoryAlertCardState extends State<_MedicalHistoryAlertCard> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
+    final history = widget.medicalHistory.trim();
+    final isLong = history.length > 90 || history.contains('\n');
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpace.md),
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.warning.withValues(alpha: 0.12)
+            : AppColors.warningSubtle,
+        borderRadius: AppRadii.brMd,
+        border: Border.all(
+          color: AppColors.warning.withValues(alpha: isDark ? 0.35 : 0.4),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.health_and_safety_rounded,
+                    color: isDark ? AppColors.warningBright : AppColors.warning,
+                    size: 18,
+                  ),
+                  const SizedBox(width: AppSpace.xs),
+                  Text(
+                    'تنبيه طبي: التاريخ المرضي والحساسيات',
+                    style: GoogleFonts.cairo(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: isDark
+                          ? AppColors.warningBright
+                          : AppColors.warning,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+              if (isLong)
+                InkWell(
+                  onTap: () => setState(() => _isExpanded = !_isExpanded),
+                  borderRadius: AppRadii.brSm,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _isExpanded ? 'طي التفاصيل' : 'عرض التفاصيل كاملة',
+                          style: GoogleFonts.cairo(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? AppColors.warningBright
+                                : AppColors.warning,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(
+                          _isExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 16,
+                          color: isDark
+                              ? AppColors.warningBright
+                              : AppColors.warning,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpace.xs),
+          AnimatedSize(
+            duration: AppMotion.normal,
+            curve: AppMotion.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: _isExpanded ? 180 : 44,
+              ),
+              child: SingleChildScrollView(
+                physics: _isExpanded
+                    ? const BouncingScrollPhysics()
+                    : const NeverScrollableScrollPhysics(),
+                child: Text(
+                  history,
+                  style: GoogleFonts.cairo(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary(context),
+                    height: 1.45,
+                  ),
+                  maxLines: _isExpanded ? null : 2,
+                  overflow:
+                      _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                ),
+              ),
             ),
           ),
         ],
@@ -670,7 +827,7 @@ class _PatientTimelineAppointmentCardState
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(bottom: AppSpace.xs),
+      margin: const EdgeInsets.only(bottom: AppSpace.xs),
       decoration: BoxDecoration(
         color: AppColors.surface(context),
         borderRadius: AppRadii.brMd,
@@ -686,7 +843,7 @@ class _PatientTimelineAppointmentCardState
             onTap: () => setState(() => _isExpanded = !_isExpanded),
             borderRadius: AppRadii.brMd,
             child: Padding(
-              padding: EdgeInsets.all(AppSpace.md),
+              padding: const EdgeInsets.all(AppSpace.md),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -697,21 +854,22 @@ class _PatientTimelineAppointmentCardState
                         size: 12,
                         color: AppColors.textMuted(context),
                       ),
-                      SizedBox(width: AppSpace.xs),
+                      const SizedBox(width: AppSpace.xs),
                       Text(
                         widget.date,
-                        style: GoogleFonts.cairo(
+                        style: GoogleFonts.jetBrainsMono(
                           fontWeight: FontWeight.bold,
-                          fontSize: 11,
+                          fontSize: 12,
                           color: AppColors.textPrimary(context),
                           height: 1.3,
                         ),
                       ),
-                      SizedBox(width: AppSpace.sm),
+                      const SizedBox(width: AppSpace.sm),
                       Text(
                         widget.time,
-                        style: GoogleFonts.cairo(
-                          fontSize: 12,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
                           color: AppColors.textSecondary(context),
                           height: 1.3,
                         ),
@@ -724,16 +882,18 @@ class _PatientTimelineAppointmentCardState
                       children: [
                         DoctorBadge(
                           doctorId: widget.app.doctorId,
-                          doctorName: widget.app.doctorName,
+                          doctorName: widget.app.doctorName != null
+                              ? DoctorUtils.formatTitle(widget.app.doctorName)
+                              : null,
                           compact: true,
                         ),
-                        SizedBox(width: AppSpace.sm),
+                        const SizedBox(width: AppSpace.sm),
                         AppBadge(
                           label: widget.translateStatus(widget.app.status),
                           variant: widget.getStatusBadgeVariant(widget.app.status),
                           size: AppBadgeSize.sm,
                         ),
-                        SizedBox(width: AppSpace.xs),
+                        const SizedBox(width: AppSpace.xs),
                         Icon(
                           _isExpanded
                               ? Icons.keyboard_arrow_up_rounded
@@ -780,7 +940,7 @@ class _PatientTimelineAppointmentCardState
                             child: AppButton(
                               label: 'فتح شاشة الكشف والفحص الطبي',
                               icon: Icons.open_in_new_rounded,
-                              variant: AppButtonVariant.subtle,
+                              variant: AppButtonVariant.secondary,
                               size: AppButtonSize.sm,
                               onPressed: () {
                                 Navigator.of(context).push(

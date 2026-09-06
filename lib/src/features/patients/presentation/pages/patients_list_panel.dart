@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -257,16 +257,16 @@ class _LoadingList extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpace.md),
       itemCount: 5,
       itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppSpace.sm),
+        return const Padding(
+          padding: EdgeInsets.only(bottom: AppSpace.sm),
           child: Row(
             children: [
-              const AppSkeletonCircle(size: 44),
-              const SizedBox(width: AppSpace.md),
+              AppSkeletonCircle(size: 44),
+              SizedBox(width: AppSpace.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     AppSkeletonText(width: 160, fontSize: 14),
                     SizedBox(height: 6),
                     AppSkeletonText(width: 110, fontSize: 12),

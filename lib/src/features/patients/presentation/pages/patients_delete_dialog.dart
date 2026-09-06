@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/ui/primitives/app_button.dart';
@@ -48,7 +48,7 @@ Future<void> showPatientsDeleteDialog({
                       width: 1.5,
                     ),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.warning_amber_rounded,
                     color: AppColors.danger,
                     size: 32,

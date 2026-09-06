@@ -4,10 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 import '../../../core/ui/tokens/colors.dart';
 import '../../../core/ui/tokens/spacing.dart';
-import '../../../core/ui/primitives/app_badge.dart';
 import '../../../core/ui/feedback/app_empty_state.dart';
 import '../../../core/ui/feedback/app_error_state.dart';
-import '../../../core/ui/feedback/app_skeleton.dart';
 import '../../../core/widgets/send_whatsapp_dialog.dart';
 import '../../appointments/presentation/book_appointment_dialog.dart';
 import '../../auth/presentation/login_controller.dart';
@@ -33,19 +31,6 @@ class PatientDetailsDialog extends ConsumerWidget {
     required this.clinicId,
     required this.patient,
   });
-
-  AppBadgeVariant _getStatusBadgeVariant(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return AppBadgeVariant.info;
-      case 'confirmed':
-        return AppBadgeVariant.warning;
-      case 'completed':
-        return AppBadgeVariant.success;
-      default:
-        return AppBadgeVariant.danger;
-    }
-  }
 
   int? _calculateAge(DateTime? birthDate) {
     if (birthDate == null) return null;
@@ -228,7 +213,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.edit_outlined,
                             size: 15,
                             color: AppColors.primary,
@@ -365,7 +350,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                             color: AppColors.primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(AppRadii.radiusMd),
                           ),
-                          child: Icon(Icons.assignment_ind_outlined,
+                          child: const Icon(Icons.assignment_ind_outlined,
                               color: AppColors.primary, size: 22),
                         ),
                         const SizedBox(width: AppSpace.lg),
@@ -427,7 +412,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
                                 ),
                                 const SizedBox(height: 4),
-                                Text('??? ??? $fileNo', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                Text('??? ??? $fileNo', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
@@ -512,10 +497,10 @@ class PatientDetailsDialog extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(Icons.description_outlined, color: AppColors.danger, size: 16),
-              const SizedBox(width: AppSpace.xs),
+              SizedBox(width: AppSpace.xs),
               Text(
                 '????? ?????? ??????',
                 style: TextStyle(

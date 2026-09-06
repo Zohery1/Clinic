@@ -96,7 +96,7 @@ class PatientRepository {
     try {
       final trimmedName = fullName.trim();
       final trimmedPhone = (phone != null && phone.trim().isNotEmpty) ? phone.trim() : null;
-      final cleanPhone = trimmedPhone != null ? trimmedPhone.replaceAll(RegExp(r'\D'), '') : null;
+      final cleanPhone = trimmedPhone?.replaceAll(RegExp(r'\D'), '');
 
       // 1) Duplicate check: Reject ONLY if BOTH full_name AND phone match an existing patient in the same clinic
       if (cleanPhone?.isNotEmpty == true && trimmedPhone != null) {

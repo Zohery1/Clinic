@@ -294,11 +294,11 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
             builder: (ctx) => Directionality(
               textDirection: TextDirection.rtl,
               child: AlertDialog(
-                title: Row(
+                title: const Row(
                   children: [
                     Icon(Icons.warning_amber_rounded, color: AppTheme.warning),
-                    const SizedBox(width: 8),
-                    const Text('تنبيه: مريض مشابه مسجل مسبقاً'),
+                    SizedBox(width: 8),
+                    Text('تنبيه: مريض مشابه مسجل مسبقاً'),
                   ],
                 ),
                 content: Text(

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/theme/app_motion.dart';
 import '../../../../core/widgets/doctor_badge.dart';
 import '../../../../core/widgets/status_pill.dart';
 import '../../../appointments/domain/appointment_model.dart';
