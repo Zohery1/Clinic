@@ -282,20 +282,20 @@ class _HomeTab extends ConsumerWidget {
   }
 
   Widget _stackedContent() {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DashboardWeeklyChart(),
-        SizedBox(height: AppSpace.xl),
-        DashboardTodayList(),
-        SizedBox(height: AppSpace.xl),
-        DashboardRecentTransactions(),
+        const DashboardWeeklyChart(),
+        const SizedBox(height: AppSpace.xl),
+        DashboardTodayList(onNavigateToTab: onNavigateToTab),
+        const SizedBox(height: AppSpace.xl),
+        const DashboardRecentTransactions(),
       ],
     );
   }
 
   Widget _twoColumnContent() {
-    return const Row(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
@@ -303,14 +303,14 @@ class _HomeTab extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DashboardWeeklyChart(),
-              SizedBox(height: AppSpace.xl),
-              DashboardTodayList(),
+              const DashboardWeeklyChart(),
+              const SizedBox(height: AppSpace.xl),
+              DashboardTodayList(onNavigateToTab: onNavigateToTab),
             ],
           ),
         ),
-        SizedBox(width: AppSpace.xl),
-        Expanded(
+        const SizedBox(width: AppSpace.xl),
+        const Expanded(
           flex: 2,
           child: DashboardRecentTransactions(),
         ),

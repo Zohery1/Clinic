@@ -8,8 +8,12 @@ import '../../../../core/ui/tokens/spacing.dart';
 import '../../../appointments/presentation/appointments_controller.dart';
 import '../../../reports/presentation/reports_controller.dart';
 
-/// 4 KPI cards in a responsive grid (4 cols >=1280, 2 cols otherwise).
-/// Loading renders 4 skeletons in the same shape — no spinners.
+/// 4 KPI cards in a responsive layout:
+/// - >= 1100px: 4 columns in a row
+/// - 480px - 1099px (including 600-1099px): 2x2 grid
+/// - < 480px: single column for small phone viewports
+///
+/// Skeletons share the exact same responsive layout function to prevent layout shifts.
 class DashboardStatsRow extends ConsumerWidget {
   final void Function(int tabIndex)? onNavigateToTab;
 
@@ -36,10 +40,10 @@ class DashboardStatsRow extends ConsumerWidget {
         .length;
 
     if (loading && appointments.isEmpty && revenueAsync.value == null) {
-      return _skeletonGrid();
+      return _skeletonGrid(context);
     }
 
-    final cards = <AppStatCard>[
+    final cards = <Widget>[
       AppStatCard(
         title: 'إيراد اليوم',
         value: revenueValue,
@@ -75,66 +79,91 @@ class DashboardStatsRow extends ConsumerWidget {
     ];
 
     return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 1280;
-        return Flex(
-          direction: wide ? Axis.horizontal : Axis.vertical,
-          children: [
-            for (int i = 0; i < cards.length; i++) ...[
-              if (i > 0)
-                SizedBox(
-                  width: wide ? AppSpace.md : 0,
-                  height: wide ? 0 : AppSpace.md,
-                ),
-              if (wide) Expanded(child: cards[i]) else cards[i],
-            ],
-          ],
-        );
-      },
+      builder: (context, constraints) =>
+          _buildResponsiveGrid(context, constraints, cards),
     );
   }
 
-  Widget _skeletonGrid() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 1280;
-        final children = <Widget>[
-          for (int i = 0; i < 4; i++)
-            Container(
-              padding: const EdgeInsets.all(AppSpace.lg),
-              decoration: BoxDecoration(
-                color: AppColors.surface(context),
-                borderRadius: AppRadii.brMd,
-                border: Border.all(
-                    color: AppColors.borderSubtle(context), width: 1),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppSkeleton(width: 96, height: 12),
-                  SizedBox(height: AppSpace.md),
-                  AppSkeleton(width: 80, height: 24),
-                  SizedBox(height: AppSpace.sm),
-                  AppSkeleton(width: 120, height: 10),
-                ],
-              ),
+  Widget _skeletonGrid(BuildContext context) {
+    final skeletons = <Widget>[
+      for (int i = 0; i < 4; i++)
+        Container(
+          padding: const EdgeInsets.all(AppSpace.lg),
+          decoration: BoxDecoration(
+            color: AppColors.surface(context),
+            borderRadius: AppRadii.brMd,
+            border: Border.all(
+              color: AppColors.borderSubtle(context),
+              width: 1,
             ),
-        ];
-        return Flex(
-          direction: wide ? Axis.horizontal : Axis.vertical,
-          children: [
-            for (int i = 0; i < children.length; i++) ...[
-              if (i > 0)
-                SizedBox(
-                  width: wide ? AppSpace.md : 0,
-                  height: wide ? 0 : AppSpace.md,
-                ),
-              if (wide) Expanded(child: children[i]) else children[i],
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppSkeleton(width: 96, height: 12),
+              SizedBox(height: AppSpace.md),
+              AppSkeleton(width: 80, height: 24),
+              SizedBox(height: AppSpace.sm),
+              AppSkeleton(width: 120, height: 10),
             ],
-          ],
-        );
-      },
+          ),
+        ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          _buildResponsiveGrid(context, constraints, skeletons),
     );
+  }
+
+  Widget _buildResponsiveGrid(
+    BuildContext context,
+    BoxConstraints constraints,
+    List<Widget> items,
+  ) {
+    final width = constraints.maxWidth;
+
+    if (width >= 1100) {
+      return Row(
+        children: [
+          for (int i = 0; i < items.length; i++) ...[
+            if (i > 0) const SizedBox(width: AppSpace.md),
+            Expanded(child: items[i]),
+          ],
+        ],
+      );
+    } else if (width >= 480) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(child: items[0]),
+              const SizedBox(width: AppSpace.md),
+              Expanded(child: items[1]),
+            ],
+          ),
+          const SizedBox(height: AppSpace.md),
+          Row(
+            children: [
+              Expanded(child: items[2]),
+              const SizedBox(width: AppSpace.md),
+              Expanded(child: items[3]),
+            ],
+          ),
+        ],
+      );
+    } else {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < items.length; i++) ...[
+            if (i > 0) const SizedBox(height: AppSpace.md),
+            items[i],
+          ],
+        ],
+      );
+    }
   }
 
   String _formatCurrency(double v) {

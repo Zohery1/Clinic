@@ -10,8 +10,10 @@ import '../../../appointments/presentation/book_appointment_dialog.dart';
 import '../../../auth/presentation/login_controller.dart';
 import '../../../patients/presentation/widgets/add_patient_dialog.dart';
 
-/// 4 quick action cards in a responsive 2x2 grid (desktop) or
-/// horizontal scroll (mobile).
+/// 4 quick action cards in an adaptive responsive layout:
+/// - >= 950px: 4 columns
+/// - 500px - 949px: 2x2 grid (crossAxisCount: 2, childAspectRatio: 3.2)
+/// - < 500px: smooth horizontal scroll list with comfortable touch targets
 class DashboardQuickActions extends ConsumerWidget {
   final void Function(int tabIndex)? onNavigateToTab;
 
@@ -65,9 +67,9 @@ class DashboardQuickActions extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 720;
+        final width = constraints.maxWidth;
 
-        if (wide) {
+        if (width >= 950) {
           return GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -77,12 +79,23 @@ class DashboardQuickActions extends ConsumerWidget {
             childAspectRatio: 3.4,
             children: [for (final a in actions) _ActionTile(action: a)],
           );
+        } else if (width >= 500) {
+          return GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: AppSpace.md,
+            mainAxisSpacing: AppSpace.md,
+            childAspectRatio: 3.2,
+            children: [for (final a in actions) _ActionTile(action: a)],
+          );
         }
 
         return SizedBox(
-          height: 96,
+          height: 88,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             itemCount: actions.length,
             separatorBuilder: (_, __) => const SizedBox(width: AppSpace.md),
             itemBuilder: (_, i) => SizedBox(
@@ -155,7 +168,10 @@ class _ActionTileState extends State<_ActionTile> {
             splashColor: action.color.withValues(alpha: 0.08),
             highlightColor: action.color.withValues(alpha: 0.04),
             child: Padding(
-              padding: const EdgeInsets.all(AppSpace.lg),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.lg,
+                vertical: AppSpace.md,
+              ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -174,6 +190,7 @@ class _ActionTileState extends State<_ActionTile> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
@@ -184,7 +201,7 @@ class _ActionTileState extends State<_ActionTile> {
                             fontSize: 13.5,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary(context),
-                            height: 1.3,
+                            height: 1.35,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -196,12 +213,13 @@ class _ActionTileState extends State<_ActionTile> {
                             fontSize: 11.5,
                             fontWeight: FontWeight.w500,
                             color: AppColors.textSecondary(context),
-                            height: 1.3,
+                            height: 1.35,
                           ),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: AppSpace.xs),
                   Icon(
                     Icons.arrow_back_rounded,
                     size: 16,

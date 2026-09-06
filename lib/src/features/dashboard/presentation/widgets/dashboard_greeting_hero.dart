@@ -5,6 +5,7 @@ import 'package:intl/intl.dart' as intl;
 
 import '../../../../core/ui/primitives/app_button.dart';
 import '../../../../core/ui/tokens/colors.dart';
+import '../../../../core/ui/tokens/spacing.dart';
 import '../../../../core/utils/doctor_utils.dart';
 import '../../../appointments/presentation/appointments_controller.dart';
 import '../../../appointments/presentation/book_appointment_dialog.dart';
@@ -12,8 +13,9 @@ import '../../../auth/domain/user_model.dart';
 import '../../../auth/presentation/login_controller.dart';
 
 /// Full-width hero panel above the dashboard stats.
-/// Subtle indigo gradient, greeting in `displayMd`, contextual subtitle
-/// with today's appointment counts, primary CTA + secondary link.
+/// Subtle primary gradient, calm clinical status pill, greeting in Cairo with safe
+/// line heights, contextual subtitle with today's appointment counts,
+/// primary CTA + secondary link.
 class DashboardGreetingHero extends ConsumerWidget {
   final void Function(int tabIndex)? onNavigateToTab;
 
@@ -42,7 +44,8 @@ class DashboardGreetingHero extends ConsumerWidget {
 
     final displayName = user?.fullName ?? 'دكتور';
     final isDoctor = user?.role == UserRole.doctor;
-    final greetingName = isDoctor ? DoctorUtils.formatTitle(displayName) : displayName;
+    final greetingName =
+        isDoctor ? DoctorUtils.formatTitle(displayName) : displayName;
 
     final total = appointmentsAsync.value?.length ?? 0;
     final completed = appointmentsAsync.value
@@ -58,8 +61,8 @@ class DashboardGreetingHero extends ConsumerWidget {
     final subtitle = appointmentsAsync.isLoading
         ? 'جارٍ تحميل جدول اليوم…'
         : (total == 0
-            ? 'لا توجد مواعيد اليوم. ابدأ يومك بإضافة مريض جديد.'
-            : 'لديك $total مواعيد اليوم، $completed منها مكتمل و $waiting في الانتظار.');
+            ? 'لا توجد مواعيد اليوم. ابدأ يومك بإضافة مريض جديد أو حجز كشف.'
+            : 'إجمالي المواعيد اليوم: $total (المكتمل: $completed • في الانتظار: $waiting)');
 
     final effectiveClinicId = user?.clinicId ?? '';
 
@@ -105,17 +108,70 @@ class DashboardGreetingHero extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    '${_greeting()} · ${_formatDate()}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.cairo(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
-                      color: AppColors.primary,
-                      height: 1.3,
-                    ),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: AppSpace.sm,
+                    runSpacing: AppSpace.xs,
+                    children: [
+                      Text(
+                        '${_greeting()} · ${_formatDate()}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                          color: AppColors.primary,
+                          height: 1.4,
+                        ),
+                      ),
+                      // Calm clinical status pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpace.sm + 2,
+                          vertical: AppSpace.xs - 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: (waiting > 0 ? AppColors.primary : AppColors.success)
+                              .withValues(alpha: isDark ? 0.22 : 0.10),
+                          borderRadius: AppRadii.brFull,
+                          border: Border.all(
+                            color: (waiting > 0 ? AppColors.primary : AppColors.success)
+                                .withValues(alpha: isDark ? 0.45 : 0.25),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: waiting > 0
+                                    ? AppColors.primary
+                                    : AppColors.success,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              waiting > 0
+                                  ? 'العيادة نشطة • $waiting في الانتظار'
+                                  : 'جاهز للاستقبال',
+                              style: GoogleFonts.cairo(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: waiting > 0
+                                    ? AppColors.primary
+                                    : AppColors.success,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: AppSpace.sm),
                   Text(
@@ -126,12 +182,12 @@ class DashboardGreetingHero extends ConsumerWidget {
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary(context),
-                      height: 1.2,
+                      height: 1.35,
                     ),
                   ),
                   const SizedBox(height: AppSpace.xs),
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
+                    constraints: const BoxConstraints(maxWidth: 540),
                     child: Text(
                       subtitle,
                       maxLines: 3,
@@ -140,7 +196,7 @@ class DashboardGreetingHero extends ConsumerWidget {
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: AppColors.textSecondary(context),
-                        height: 1.55,
+                        height: 1.6,
                       ),
                     ),
                   ),
