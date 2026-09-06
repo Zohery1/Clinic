@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/doctor_utils.dart';
 import '../../../clinics/presentation/clinics_controller.dart';
 import '../../data/appointment_repository.dart';
 
@@ -118,7 +119,7 @@ class DoctorPillSelector extends ConsumerWidget {
                       child: _buildDoctorPill(
                         context: context,
                         isSelected: isSelected,
-                        label: 'د. ${doctor.fullName}',
+                        label: DoctorUtils.formatTitle(doctor.fullName),
                         initials: doctor.fullName.isNotEmpty
                             ? doctor.fullName.trim().substring(0, 1)
                             : 'ط',

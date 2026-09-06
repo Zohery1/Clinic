@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
@@ -6,6 +6,7 @@ import 'package:intl/intl.dart' as intl;
 import '../../../../../../core/ui/tokens/colors.dart';
 import '../../../../../../core/ui/tokens/spacing.dart';
 import '../../../../../../core/ui/tokens/typography.dart';
+import '../../../../../../core/utils/doctor_utils.dart';
 import '../../../../domain/appointment_type_model.dart';
 import '../../../../domain/service_model.dart';
 import '../../appointment_time_picker.dart';
@@ -90,7 +91,7 @@ class StepSummary extends ConsumerWidget {
                   _SummaryRow(
                     icon: Icons.person_pin_outlined,
                     label: 'الطبيب',
-                    value: 'د. $doctorName',
+                    value: DoctorUtils.formatTitle(doctorName),
                   ),
                 ],
                 if (branchName != null) ...[

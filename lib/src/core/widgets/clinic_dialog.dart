@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // ══════════════════════════════════════════════════════════
@@ -90,14 +91,20 @@ class ClinicDialog extends StatelessWidget {
     final iconBg = (iconColor ?? Theme.of(context).colorScheme.primary).withValues(alpha: 0.12);
     final isMobile = MediaQuery.of(context).size.width < 650;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : 24,
-        vertical: isMobile ? 12 : 24,
-      ),
-      child: ConstrainedBox(
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).maybePop(),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 24,
+            vertical: isMobile ? 12 : 24,
+          ),
+          child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -220,6 +227,8 @@ class ClinicDialog extends StatelessWidget {
           ],
         ),
       ),
+        ),
+      ),
     );
   }
 }
@@ -265,11 +274,17 @@ class _ConfirmDialogState extends State<_ConfirmDialog> {
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
-        child: ConstrainedBox(
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).maybePop(false),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+            child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 380),
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -380,6 +395,8 @@ class _ConfirmDialogState extends State<_ConfirmDialog> {
                 ),
               ],
             ),
+          ),
+        ),
           ),
         ),
       ),

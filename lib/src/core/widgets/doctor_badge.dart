@@ -1,8 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../ui/primitives/app_avatar.dart';
 import '../ui/tokens/colors.dart';
 import '../ui/tokens/spacing.dart';
+import '../utils/doctor_utils.dart';
 
 export '../ui/primitives/app_avatar.dart';
 
@@ -53,7 +54,7 @@ class DoctorBadge extends StatelessWidget {
           SizedBox(width: compact ? 4 : 6),
           Flexible(
             child: Text(
-              'د. $name',
+              DoctorUtils.formatTitle(name),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.cairo(

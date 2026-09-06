@@ -5,7 +5,7 @@ import 'package:intl/intl.dart' as intl;
 
 import '../../../../core/ui/primitives/app_button.dart';
 import '../../../../core/ui/tokens/colors.dart';
-import '../../../../core/ui/tokens/spacing.dart';
+import '../../../../core/utils/doctor_utils.dart';
 import '../../../appointments/presentation/appointments_controller.dart';
 import '../../../appointments/presentation/book_appointment_dialog.dart';
 import '../../../auth/domain/user_model.dart';
@@ -42,7 +42,7 @@ class DashboardGreetingHero extends ConsumerWidget {
 
     final displayName = user?.fullName ?? 'دكتور';
     final isDoctor = user?.role == UserRole.doctor;
-    final greetingName = isDoctor ? 'د. $displayName' : displayName;
+    final greetingName = isDoctor ? DoctorUtils.formatTitle(displayName) : displayName;
 
     final total = appointmentsAsync.value?.length ?? 0;
     final completed = appointmentsAsync.value

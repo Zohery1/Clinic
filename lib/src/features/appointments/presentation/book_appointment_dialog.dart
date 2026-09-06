@@ -246,6 +246,7 @@ class _BookAppointmentDialogState
       bindings: {
         const SingleActivator(LogicalKeyboardKey.enter, control: true): _submit,
         const SingleActivator(LogicalKeyboardKey.enter, meta: true): _submit,
+        const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).maybePop(),
       },
       child: Focus(
         autofocus: true,

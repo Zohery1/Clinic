@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:google_fonts/google_fonts.dart';
@@ -14,7 +14,9 @@ import '../../../../core/ui/feedback/app_error_state.dart';
 import '../../../../core/ui/feedback/app_skeleton.dart';
 import '../../../appointments/domain/appointment_model.dart';
 import '../../../appointments/presentation/book_appointment_dialog.dart';
+import '../../../appointments/presentation/examination_screen.dart';
 import '../../../auth/domain/user_model.dart';
+import '../../data/patient_repository.dart';
 import '../../domain/patient_model.dart';
 import 'appointment_services_section.dart';
 import 'patient_providers.dart';
@@ -110,7 +112,17 @@ class PatientMedicalProfileView extends ConsumerWidget {
     final age = calculateAge(patient.birthDate);
     final appointmentsAsync = ref.watch(patientAppointmentsProvider(patient.id));
 
-    final fileNo = '#';
+    int? resolvedFileNum = fileNumbers[patient.id];
+    if (resolvedFileNum == null) {
+      final allPatients = ref.watch(patientsListProvider(clinicId)).value ?? <PatientModel>[];
+      final sortedFull = List<PatientModel>.from(allPatients)
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final idx = sortedFull.indexWhere((p) => p.id == patient.id);
+      if (idx != -1) {
+        resolvedFileNum = idx + 1;
+      }
+    }
+    final fileNo = resolvedFileNum != null ? '#$resolvedFileNum' : '#';
     final displayAddress = patient.address != null
         ? (patient.address!.contains('|')
             ? patient.address!.split('|').first.trim()
@@ -170,7 +182,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                                 borderRadius: AppRadii.brSm,
                               ),
                               child: Text(
-                                ' سنة',
+                                '$age سنة',
                                 style: GoogleFonts.cairo(
                                   color: AppColors.primary,
                                   fontSize: 12,
@@ -254,7 +266,29 @@ class PatientMedicalProfileView extends ConsumerWidget {
                         size: AppIconButtonSize.md,
                         color: AppColors.danger,
                       ),
-                      SizedBox(width: AppSpace.md),
+                      SizedBox(width: AppSpace.xs),
+                      AppButton(
+                        label: 'فحص المريض',
+                        icon: Icons.medical_services_outlined,
+                        onPressed: () {
+                          final latestAppt = appointmentsAsync.value?.isNotEmpty == true
+                              ? appointmentsAsync.value!.first
+                              : null;
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => ExaminationScreen(
+                                clinicId: clinicId,
+                                appointmentId: latestAppt?.id ?? '',
+                                patientId: patient.id,
+                                patientName: patient.fullName,
+                              ),
+                            ),
+                          );
+                        },
+                        size: AppButtonSize.md,
+                        variant: AppButtonVariant.secondary,
+                      ),
+                      SizedBox(width: AppSpace.xs),
                     ],
                     AppButton(
                       label: 'حجز موعد جديد',
@@ -280,18 +314,17 @@ class PatientMedicalProfileView extends ConsumerWidget {
 
           // Vitals and clinical variables grid
           LayoutBuilder(
-            builder: (context, profileConstraints) {
-              final isWide = profileConstraints.maxWidth >= 700;
-
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth > 650;
               final statItems = [
                 _ClinicalMetaStat(
                   title: 'رقم الهاتف',
                   value: patient.phone != null && patient.phone!.isNotEmpty
                       ? patient.phone!
                       : 'غير مسجل',
-                  icon: Icons.phone_rounded,
+                  icon: Icons.phone_android_rounded,
                   color: AppColors.primary,
-                  onActionTap: (patient.phone != null && patient.phone!.isNotEmpty)
+                  onActionTap: patient.phone != null && patient.phone!.isNotEmpty
                       ? () => showSendWhatsAppDialog(
                           context,
                           ref,
@@ -308,7 +341,7 @@ class PatientMedicalProfileView extends ConsumerWidget {
                 ),
                 _ClinicalMetaStat(
                   title: 'العمر',
-                  value: age != null ? ' سنة' : 'غير مسجل',
+                  value: age != null ? '$age سنة' : 'غير مسجل',
                   icon: Icons.cake_outlined,
                   color: AppColors.warning,
                 ),
@@ -735,6 +768,35 @@ class _PatientTimelineAppointmentCardState
                         patientName: widget.patient.fullName,
                         isDoctor: widget.isDoctor,
                       ),
+                      if (widget.isDoctor)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            right: AppSpace.md,
+                            left: AppSpace.md,
+                            bottom: AppSpace.md,
+                          ),
+                          child: Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: AppButton(
+                              label: 'فتح شاشة الكشف والفحص الطبي',
+                              icon: Icons.open_in_new_rounded,
+                              variant: AppButtonVariant.subtle,
+                              size: AppButtonSize.sm,
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => ExaminationScreen(
+                                      clinicId: widget.clinicId,
+                                      appointmentId: widget.app.id,
+                                      patientId: widget.patient.id,
+                                      patientName: widget.patient.fullName,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
                     ],
                   )
                 : const SizedBox.shrink(),

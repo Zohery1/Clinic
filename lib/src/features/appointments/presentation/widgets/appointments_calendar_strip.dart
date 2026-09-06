@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/doctor_utils.dart';
 import '../../../../core/widgets/double_bezel_card.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../clinics/domain/branch_model.dart';
@@ -108,7 +109,7 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
                     return _buildModalPill(
                       context: context,
                       isSelected: isSelected,
-                      label: 'د. ${doc.fullName}',
+                      label: DoctorUtils.formatTitle(doc.fullName),
                       initials: doc.fullName.isNotEmpty
                           ? doc.fullName.trim().substring(0, 1)
                           : 'ط',
@@ -338,7 +339,7 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
         if (!canSeeAll) return const SizedBox.shrink();
 
         final selectedDoctor = doctors.where((d) => d.id == selectedDoctorId).firstOrNull;
-        final label = selectedDoctor != null ? 'د. ${selectedDoctor.fullName}' : 'جميع الأطباء';
+        final label = selectedDoctor != null ? DoctorUtils.formatTitle(selectedDoctor.fullName) : 'جميع الأطباء';
         final isFiltered = selectedDoctorId != null;
 
         return InkWell(

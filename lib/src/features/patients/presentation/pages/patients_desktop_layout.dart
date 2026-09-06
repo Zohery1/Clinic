@@ -5,6 +5,7 @@ import '../../../../core/ui/feedback/app_empty_state.dart';
 import '../../../../core/ui/tokens/colors.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../domain/patient_model.dart';
+import '../../data/patient_repository.dart';
 import '../widgets/add_patient_dialog.dart';
 import '../widgets/edit_patient_dialog.dart';
 import '../widgets/patient_medical_profile_view.dart';
@@ -33,6 +34,15 @@ class _PatientsDesktopLayoutState
   @override
   Widget build(BuildContext context) {
     final selected = _selectedPatient;
+
+    final patientsAsync = ref.watch(patientsListProvider(widget.clinicId));
+    final full = patientsAsync.value ?? <PatientModel>[];
+    final sortedFull = List<PatientModel>.from(full)
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final fileNumbers = <String, int>{};
+    for (int i = 0; i < sortedFull.length; i++) {
+      fileNumbers[sortedFull[i].id] = i + 1;
+    }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -75,7 +85,7 @@ class _PatientsDesktopLayoutState
                       clinicId: widget.clinicId,
                       user: widget.user,
                       patient: selected,
-                      fileNumbers: const {},
+                      fileNumbers: fileNumbers,
                       onEdit: () => _openEditDialog(selected),
                       onDelete: () => _openDeleteDialog(selected),
                     ),
