@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
 import '../../../../core/widgets/clinic_toast.dart';
-import '../../../auth/domain/user_model.dart';
 import '../../../auth/presentation/login_controller.dart';
 import '../../../dashboard/presentation/notifications_controller.dart';
 import '../../data/appointment_repository.dart';

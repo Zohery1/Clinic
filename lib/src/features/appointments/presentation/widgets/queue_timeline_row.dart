@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/clinic_toast.dart';
 import '../../../../core/widgets/double_bezel_card.dart';
 import '../../../../core/widgets/send_whatsapp_dialog.dart';
