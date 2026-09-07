@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' hide TextDirection;
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/tokens/colors.dart';
+import '../../../../core/ui/tokens/spacing.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../auth/presentation/top_up_subscription_screen.dart';
 import '../settings_providers.dart';
@@ -37,20 +38,20 @@ class ClinicSubscriptionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final subAsync = ref.watch(clinicSubscriptionProvider);
-    final theme = Theme.of(context);
+    final isDark = AppColors.isDark(context);
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpace.xl),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.surface(context),
+        borderRadius: AppRadii.brLg,
         border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.15),
-          width: 1.2,
+          color: AppColors.borderSubtle(context),
+          width: 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.025),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.025),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -66,16 +67,18 @@ class ClinicSubscriptionCard extends ConsumerWidget {
               (info.endDate != null && info.endDate!.isBefore(DateTime.now()));
 
           final badgeColor = isExpired
-              ? AppTheme.error
+              ? AppColors.danger
               : isExpiringSoon
-                  ? const Color(0xFFEA580C)
-                  : const Color(0xFF16A34A);
+                  ? AppColors.warning
+                  : AppColors.success;
 
-          final badgeBg = isExpired
-              ? const Color(0xFFFEE2E2)
-              : isExpiringSoon
-                  ? const Color(0xFFFFF7ED)
-                  : const Color(0xFFDCFCE7);
+          final badgeBg = isDark
+              ? badgeColor.withValues(alpha: 0.15)
+              : (isExpired
+                  ? AppColors.dangerSubtle
+                  : isExpiringSoon
+                      ? AppColors.warningSubtle
+                      : AppColors.successSubtle);
 
           final badgeText = isExpired
               ? 'منتهي'
@@ -96,24 +99,26 @@ class ClinicSubscriptionCard extends ConsumerWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(AppSpace.sm),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          color: isDark
+                              ? AppColors.primary.withValues(alpha: 0.15)
+                              : AppColors.primarySubtle,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.verified_user_outlined,
-                          color: theme.colorScheme.primary,
+                          color: AppColors.primary,
                           size: 20,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: AppSpace.md),
                       Text(
                         'اشتراك العيادة',
                         style: GoogleFonts.cairo(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: theme.textTheme.titleMedium?.color,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ],
@@ -150,9 +155,9 @@ class ClinicSubscriptionCard extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              const Divider(height: 1),
-              const SizedBox(height: 14),
+              const SizedBox(height: AppSpace.md),
+              Divider(height: 1, color: AppColors.borderSubtle(context)),
+              const SizedBox(height: AppSpace.md),
               Row(
                 children: [
                   Expanded(
@@ -163,18 +168,18 @@ class ClinicSubscriptionCard extends ConsumerWidget {
                           'الوقت المتبقي:',
                           style: GoogleFonts.cairo(
                             fontSize: 11,
-                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                            color: AppColors.textSecondary(context),
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
                           remainingStr,
-                          style: GoogleFonts.cairo(
-                            fontSize: 15,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 14,
                             fontWeight: FontWeight.w800,
                             color: isExpired || isExpiringSoon
-                                ? const Color(0xFFEA580C)
-                                : theme.textTheme.bodyLarge?.color,
+                                ? AppColors.warning
+                                : AppColors.textPrimary(context),
                           ),
                         ),
                       ],
@@ -182,11 +187,11 @@ class ClinicSubscriptionCard extends ConsumerWidget {
                   ),
                   if (info.endDate != null) ...[
                     Container(
-                      height: 30,
+                      height: 32,
                       width: 1,
-                      color: theme.dividerColor.withValues(alpha: 0.3),
+                      color: AppColors.borderSubtle(context),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: AppSpace.lg),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,16 +200,16 @@ class ClinicSubscriptionCard extends ConsumerWidget {
                             'تاريخ الانتهاء:',
                             style: GoogleFonts.cairo(
                               fontSize: 11,
-                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                              color: AppColors.textSecondary(context),
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 3),
                           Text(
                             formattedDate,
-                            style: GoogleFonts.cairo(
+                            style: GoogleFonts.jetBrainsMono(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: theme.textTheme.bodyLarge?.color,
+                              color: AppColors.textPrimary(context),
                             ),
                           ),
                         ],
@@ -213,7 +218,7 @@ class ClinicSubscriptionCard extends ConsumerWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpace.lg),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -243,10 +248,11 @@ class ClinicSubscriptionCard extends ConsumerWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
                   ),
                   icon: const Icon(Icons.flash_on_rounded, size: 16),
                   label: Text(
@@ -263,11 +269,19 @@ class ClinicSubscriptionCard extends ConsumerWidget {
         },
         loading: () => const Center(
           child: Padding(
-            padding: EdgeInsets.all(16),
-            child: CircularProgressIndicator(strokeWidth: 2),
+            padding: EdgeInsets.all(AppSpace.lg),
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
           ),
         ),
-        error: (_, __) => const Text('تعذر تحميل بيانات الاشتراك'),
+        error: (_, __) => Center(
+          child: Text(
+            'تعذر تحميل بيانات الاشتراك',
+            style: GoogleFonts.cairo(
+              fontSize: 13,
+              color: AppColors.danger,
+            ),
+          ),
+        ),
       ),
     );
   }

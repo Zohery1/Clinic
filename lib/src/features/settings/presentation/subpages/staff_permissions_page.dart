@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/ui/tokens/colors.dart';
+import '../../../../core/ui/tokens/spacing.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../auth/domain/user_model.dart';
 import '../settings_providers.dart';
@@ -9,7 +11,8 @@ import '../settings_providers.dart';
 class StaffPermissionsPage extends ConsumerWidget {
   const StaffPermissionsPage({super.key});
 
-  Widget _buildPermissionTile({
+  Widget _buildPermissionTile(
+    BuildContext context, {
     required String title,
     required String subtitle,
     required IconData icon,
@@ -18,15 +21,36 @@ class StaffPermissionsPage extends ConsumerWidget {
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.black.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.subtle(context),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: AppColors.borderSubtle(context).withValues(alpha: 0.6),
+            width: 1.0,
+          ),
+        ),
         clipBehavior: Clip.antiAlias,
         child: SwitchListTile(
           dense: true,
-          secondary: Icon(icon, size: 20),
-          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
+          activeTrackColor: AppColors.primary,
+          activeThumbColor: Colors.white,
+          secondary: Icon(icon, size: 20, color: AppColors.primary),
+          title: Text(
+            title,
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: AppColors.textPrimary(context),
+            ),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: GoogleFonts.cairo(
+              fontSize: 11,
+              color: AppColors.textSecondary(context),
+            ),
+          ),
           value: value,
           onChanged: onChanged,
         ),
@@ -38,43 +62,68 @@ class StaffPermissionsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final inviteCodeAsync = ref.watch(inviteCodeProvider);
     final staffAsync = ref.watch(staffListProvider);
+    final isDark = AppColors.isDark(context);
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(title: const Text('كود الدعوة والصلاحيات')),
+        backgroundColor: AppColors.canvas(context),
+        appBar: AppBar(
+          title: Text(
+            'كود الدعوة والصلاحيات',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 16),
+          ),
+        ),
         body: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpace.xl),
           children: [
             // كود دعوة السكرتارية
             Container(
-              padding: const EdgeInsets.all(20),
-              decoration: AppTheme.cardDecoration(context),
+              padding: const EdgeInsets.all(AppSpace.xl),
+              decoration: BoxDecoration(
+                color: AppColors.surface(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.borderSubtle(context),
+                  width: 1.0,
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'رابط دعوة السكرتارية والمساعدين',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                    style: GoogleFonts.cairo(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: AppColors.textPrimary(context),
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'انسخ الرابط وأرسله للسكرتيرة لتسجيل حسابها والدخول للعيادة تلقائياً',
-                    style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+                    style: GoogleFonts.cairo(
+                      fontSize: 11,
+                      color: AppColors.textSecondary(context),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface == Colors.white ? AppTheme.surfaceDim : const Color(0xFF0F172A),
-                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.subtle(context),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.borderSubtle(context),
+                        width: 1.0,
+                      ),
                     ),
                     child: inviteCodeAsync.when(
                       data: (code) {
                         String origin = 'https://myclinic-app.web.app';
                         try {
-                          if (Uri.base.hasScheme && (Uri.base.scheme == 'http' || Uri.base.scheme == 'https')) {
+                          if (Uri.base.hasScheme &&
+                              (Uri.base.scheme == 'http' || Uri.base.scheme == 'https')) {
                             origin = Uri.base.origin;
                           }
                         } catch (_) {}
@@ -88,48 +137,65 @@ class StaffPermissionsPage extends ConsumerWidget {
                           children: [
                             Text(
                               code,
-                              style: const TextStyle(
-                                color: AppTheme.primary,
-                                fontSize: 22,
+                              style: GoogleFonts.jetBrainsMono(
+                                color: AppColors.primary,
+                                fontSize: 20,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: 4,
+                                letterSpacing: 2,
                               ),
                             ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.primary,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    minimumSize: Size.zero,
-                                  ),
-                                  icon: const Icon(Icons.copy_rounded, size: 14),
-                                  label: const Text('نسخ الرابط', style: TextStyle(fontSize: 12)),
-                                  onPressed: () {
-                                    Clipboard.setData(ClipboardData(text: inviteLink));
-                                    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                                      const SnackBar(duration: Duration(seconds: 2), 
-                                        content: Text('تم نسخ رابط التسجيل المباشر للسكرتيرة!'),
-                                        backgroundColor: AppTheme.success,
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: AppColors.onPrimary,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                minimumSize: Size.zero,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                elevation: 0,
+                              ),
+                              icon: const Icon(Icons.copy_rounded, size: 14),
+                              label: Text(
+                                'نسخ الرابط',
+                                style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.w700),
+                              ),
+                              onPressed: () {
+                                Clipboard.setData(ClipboardData(text: inviteLink));
+                                ScaffoldMessenger.of(context)
+                                  ..clearSnackBars()
+                                  ..showSnackBar(
+                                    SnackBar(
+                                      duration: const Duration(seconds: 2),
+                                      content: Text(
+                                        'تم نسخ رابط التسجيل المباشر للسكرتيرة!',
+                                        style: GoogleFonts.cairo(),
                                       ),
-                                    );
-                                  },
-                                ),
-                              ],
+                                      backgroundColor: AppColors.success,
+                                    ),
+                                  );
+                              },
                             ),
                           ],
                         );
                       },
-                      loading: () => const Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-                      error: (_, __) => const Text('خطأ في تحميل الكود'),
+                      loading: () => const Center(
+                        child: SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                        ),
+                      ),
+                      error: (_, __) => Center(
+                        child: Text(
+                          'خطأ في تحميل الكود',
+                          style: GoogleFonts.cairo(color: AppColors.danger),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpace.xxl),
 
             staffAsync.when(
               data: (staffList) {
@@ -145,7 +211,11 @@ class StaffPermissionsPage extends ConsumerWidget {
                       children: [
                         Text(
                           'أطباء العيادة (${doctors.length})',
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+                          style: GoogleFonts.cairo(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: AppColors.textSecondary(context),
+                          ),
                         ),
                       ],
                     ),
@@ -154,9 +224,16 @@ class StaffPermissionsPage extends ConsumerWidget {
                     if (doctors.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(16),
-                        decoration: AppTheme.cardDecorationFlat(context),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface(context),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.borderSubtle(context), width: 1.0),
+                        ),
                         child: Center(
-                          child: Text('لا يوجد أطباء منضمين للعيادة.', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                          child: Text(
+                            'لا يوجد أطباء منضمين للعيادة.',
+                            style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textMuted(context)),
+                          ),
                         ),
                       )
                     else
@@ -164,7 +241,11 @@ class StaffPermissionsPage extends ConsumerWidget {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
-                          decoration: AppTheme.cardDecorationFlat(context),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface(context),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.borderSubtle(context), width: 1.0),
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -175,8 +256,14 @@ class StaffPermissionsPage extends ConsumerWidget {
                                     children: [
                                       CircleAvatar(
                                         radius: 18,
-                                        backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                                        child: Icon(Icons.person_pin_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
+                                        backgroundColor: isDark
+                                            ? AppColors.primary.withValues(alpha: 0.15)
+                                            : AppColors.primarySubtle,
+                                        child: const Icon(
+                                          Icons.person_pin_rounded,
+                                          color: AppColors.primary,
+                                          size: 20,
+                                        ),
                                       ),
                                       const SizedBox(width: 12),
                                       Column(
@@ -186,23 +273,31 @@ class StaffPermissionsPage extends ConsumerWidget {
                                             children: [
                                               Text(
                                                 'د. ${doc.fullName}',
-                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                                style: GoogleFonts.cairo(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                  color: AppColors.textPrimary(context),
+                                                ),
                                               ),
                                               const SizedBox(width: 6),
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                 decoration: BoxDecoration(
-                                                  color: doc.isOwner 
-                                                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
-                                                      : Colors.grey.withValues(alpha: 0.15),
+                                                  color: doc.isOwner
+                                                      ? (isDark
+                                                          ? AppColors.primary.withValues(alpha: 0.15)
+                                                          : AppColors.primarySubtle)
+                                                      : AppColors.subtle(context),
                                                   borderRadius: BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
                                                   doc.isOwner ? 'مدير العيادة (المالك)' : 'طبيب ممارس',
-                                                  style: TextStyle(
+                                                  style: GoogleFonts.cairo(
                                                     fontSize: 10,
                                                     fontWeight: FontWeight.bold,
-                                                    color: doc.isOwner ? Theme.of(context).colorScheme.primary : Theme.of(context).hintColor,
+                                                    color: doc.isOwner
+                                                        ? AppColors.primary
+                                                        : AppColors.textSecondary(context),
                                                   ),
                                                 ),
                                               ),
@@ -210,7 +305,10 @@ class StaffPermissionsPage extends ConsumerWidget {
                                           ),
                                           Text(
                                             doc.isActive ? 'الحساب نشط' : 'الحساب محظور',
-                                            style: TextStyle(fontSize: 11, color: doc.isActive ? AppTheme.success : AppTheme.error),
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 11,
+                                              color: doc.isActive ? AppColors.success : AppColors.danger,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -219,6 +317,8 @@ class StaffPermissionsPage extends ConsumerWidget {
                                   if (!doc.isOwner)
                                     Switch(
                                       value: doc.isActive,
+                                      activeTrackColor: AppColors.primary,
+                                      activeThumbColor: Colors.white,
                                       onChanged: (val) async {
                                         await ref.read(authRepositoryProvider).updateUserPermissions(
                                               userId: doc.id,
@@ -236,9 +336,10 @@ class StaffPermissionsPage extends ConsumerWidget {
                               ),
                               if (!doc.isOwner) ...[
                                 const SizedBox(height: 12),
-                                const Divider(height: 1),
+                                Divider(height: 1, color: AppColors.borderSubtle(context)),
                                 const SizedBox(height: 8),
                                 _buildPermissionTile(
+                                  context,
                                   title: 'صلاحية رؤية إيرادات وتقارير العيادة العامة',
                                   subtitle: 'تتيح للطبيب الاطلاع على الدخل الإجمالي للعيادة بجانب إيراداته الشخصية',
                                   icon: Icons.insights_rounded,
@@ -265,236 +366,293 @@ class StaffPermissionsPage extends ConsumerWidget {
                         );
                       }),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpace.xxl),
 
                     // ─── 2. المساعدين والسكرتارية ───
                     Text(
                       'صلاحيات المساعدين والسكرتارية (${secretaries.length})',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+                      style: GoogleFonts.cairo(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: AppColors.textSecondary(context),
+                      ),
                     ),
                     const SizedBox(height: 8),
 
                     if (secretaries.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(24),
-                        decoration: AppTheme.cardDecorationFlat(context),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface(context),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.borderSubtle(context), width: 1.0),
+                        ),
                         child: Center(
-                          child: Text('لا يوجد سكرتارية منضمين لعيادتك حالياً.', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                          child: Text(
+                            'لا يوجد سكرتارية منضمين لعيادتك حالياً.',
+                            style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textMuted(context)),
+                          ),
                         ),
                       )
                     else
                       ...secretaries.map((staff) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(16),
-                      decoration: AppTheme.cardDecorationFlat(context),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface(context),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.borderSubtle(context), width: 1.0),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  CircleAvatar(
-                                    radius: 18,
-                                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                                    child: Text(
-                                      staff.fullName.isNotEmpty ? staff.fullName[0] : '?',
-                                      style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                  Row(
                                     children: [
-                                      Text(
-                                        staff.fullName,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                      CircleAvatar(
+                                        radius: 18,
+                                        backgroundColor: isDark
+                                            ? AppColors.primary.withValues(alpha: 0.15)
+                                            : AppColors.primarySubtle,
+                                        child: Text(
+                                          staff.fullName.isNotEmpty ? staff.fullName[0] : '?',
+                                          style: GoogleFonts.cairo(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
                                       ),
-                                      Text(
-                                        staff.isActive ? 'الحساب نشط' : 'الحساب محظور',
-                                        style: TextStyle(fontSize: 11, color: staff.isActive ? AppTheme.success : AppTheme.error),
+                                      const SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            staff.fullName,
+                                            style: GoogleFonts.cairo(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                              color: AppColors.textPrimary(context),
+                                            ),
+                                          ),
+                                          Text(
+                                            staff.isActive ? 'الحساب نشط' : 'الحساب محظور',
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 11,
+                                              color: staff.isActive ? AppColors.success : AppColors.danger,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
+                                  Switch(
+                                    value: staff.isActive,
+                                    activeTrackColor: AppColors.primary,
+                                    activeThumbColor: Colors.white,
+                                    onChanged: (val) async {
+                                      await ref.read(authRepositoryProvider).updateUserPermissions(
+                                            userId: staff.id,
+                                            isActive: val,
+                                            canDeleteAppointments: staff.canDeleteAppointments,
+                                            canViewReports: staff.canViewReports,
+                                            canEditServices: staff.canEditServices,
+                                            canViewMedicalHistory: staff.canViewMedicalHistory,
+                                            canCancelAppointments: staff.canCancelAppointments,
+                                          );
+                                      ref.invalidate(staffListProvider);
+                                    },
+                                  ),
                                 ],
                               ),
-                              Switch(
-                                value: staff.isActive,
-                                onChanged: (val) async {
-                                  await ref.read(authRepositoryProvider).updateUserPermissions(
-                                        userId: staff.id,
-                                        isActive: val,
-                                        canDeleteAppointments: staff.canDeleteAppointments,
-                                        canViewReports: staff.canViewReports,
-                                        canEditServices: staff.canEditServices,
-                                        canViewMedicalHistory: staff.canViewMedicalHistory,
-                                        canCancelAppointments: staff.canCancelAppointments,
-                                      );
-                                  ref.invalidate(staffListProvider);
-                                },
+                              const SizedBox(height: 16),
+                              Divider(height: 1, color: AppColors.borderSubtle(context)),
+                              const SizedBox(height: 12),
+
+                              // Category 1: المواعيد والحجوزات
+                              Text(
+                                '🗓️ إدارة المواعيد والحجوزات',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              _buildPermissionTile(
+                                context,
+                                title: 'إلغاء المواعيد والاعتذار للمرضى',
+                                subtitle: 'تغيير حالة الموعد إلى ملغي وإرسال رسالة الاعتذار',
+                                icon: Icons.event_busy_rounded,
+                                value: staff.canCancelAppointments,
+                                onChanged: !staff.isActive
+                                    ? null
+                                    : (val) async {
+                                        await ref.read(authRepositoryProvider).updateUserPermissions(
+                                              userId: staff.id,
+                                              isActive: staff.isActive,
+                                              canDeleteAppointments: staff.canDeleteAppointments,
+                                              canViewReports: staff.canViewReports,
+                                              canEditServices: staff.canEditServices,
+                                              canViewMedicalHistory: staff.canViewMedicalHistory,
+                                              canCancelAppointments: val,
+                                            );
+                                        ref.invalidate(staffListProvider);
+                                      },
+                              ),
+                              _buildPermissionTile(
+                                context,
+                                title: 'حذف المواعيد نهائياً من النظام',
+                                subtitle: 'حذف سجل الحجز تماماً من قاعدة البيانات',
+                                icon: Icons.delete_forever_rounded,
+                                value: staff.canDeleteAppointments,
+                                onChanged: !staff.isActive
+                                    ? null
+                                    : (val) async {
+                                        await ref.read(authRepositoryProvider).updateUserPermissions(
+                                              userId: staff.id,
+                                              isActive: staff.isActive,
+                                              canDeleteAppointments: val,
+                                              canViewReports: staff.canViewReports,
+                                              canEditServices: staff.canEditServices,
+                                              canViewMedicalHistory: staff.canViewMedicalHistory,
+                                              canCancelAppointments: staff.canCancelAppointments,
+                                            );
+                                        ref.invalidate(staffListProvider);
+                                      },
+                              ),
+
+                              const SizedBox(height: 12),
+                              // Category 2: الخدمات والملفات الطبية
+                              Text(
+                                '🩺 الخدمات والملفات الطبية',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              _buildPermissionTile(
+                                context,
+                                title: 'إضافة وتعديل الخدمات والأسعار',
+                                subtitle: 'إنشاء خدمات جديدة وتغيير تسعيرة الكشوفات والخدمات',
+                                icon: Icons.medical_services_outlined,
+                                value: staff.canEditServices,
+                                onChanged: !staff.isActive
+                                    ? null
+                                    : (val) async {
+                                        await ref.read(authRepositoryProvider).updateUserPermissions(
+                                              userId: staff.id,
+                                              isActive: staff.isActive,
+                                              canDeleteAppointments: staff.canDeleteAppointments,
+                                              canViewReports: staff.canViewReports,
+                                              canEditServices: val,
+                                              canViewMedicalHistory: staff.canViewMedicalHistory,
+                                              canCancelAppointments: staff.canCancelAppointments,
+                                            );
+                                        ref.invalidate(staffListProvider);
+                                      },
+                              ),
+                              _buildPermissionTile(
+                                context,
+                                title: 'الاطلاع على الروشتات والتاريخ الطبي',
+                                subtitle: 'عرض التقرير الطبي والتشخيص والروشتات السابقة للمريض',
+                                icon: Icons.description_outlined,
+                                value: staff.canViewMedicalHistory,
+                                onChanged: !staff.isActive
+                                    ? null
+                                    : (val) async {
+                                        await ref.read(authRepositoryProvider).updateUserPermissions(
+                                              userId: staff.id,
+                                              isActive: staff.isActive,
+                                              canDeleteAppointments: staff.canDeleteAppointments,
+                                              canViewReports: staff.canViewReports,
+                                              canEditServices: staff.canEditServices,
+                                              canViewMedicalHistory: val,
+                                              canEditMedicalNotes: staff.canEditMedicalNotes,
+                                              canCancelAppointments: staff.canCancelAppointments,
+                                            );
+                                        ref.invalidate(staffListProvider);
+                                      },
+                              ),
+                              _buildPermissionTile(
+                                context,
+                                title: 'كتابة وتعديل التقرير والتشخيص الطبي',
+                                subtitle: 'إدخال وتعديل التقرير والتشخيص والتعليمات الخاصة بالزيارات',
+                                icon: Icons.edit_note_rounded,
+                                value: staff.canEditMedicalNotes,
+                                onChanged: !staff.isActive
+                                    ? null
+                                    : (val) async {
+                                        await ref.read(authRepositoryProvider).updateUserPermissions(
+                                              userId: staff.id,
+                                              isActive: staff.isActive,
+                                              canDeleteAppointments: staff.canDeleteAppointments,
+                                              canViewReports: staff.canViewReports,
+                                              canEditServices: staff.canEditServices,
+                                              canViewMedicalHistory: staff.canViewMedicalHistory,
+                                              canEditMedicalNotes: val,
+                                              canCancelAppointments: staff.canCancelAppointments,
+                                            );
+                                        ref.invalidate(staffListProvider);
+                                      },
+                              ),
+
+                              const SizedBox(height: 12),
+                              // Category 3: المالية والتقارير
+                              Text(
+                                '📊 المالية والتقارير',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              _buildPermissionTile(
+                                context,
+                                title: 'رؤية التقارير المالية والإيرادات',
+                                subtitle: 'الاطلاع على إجمالي دخل العيادة اليومي والشهري',
+                                icon: Icons.insights_rounded,
+                                value: staff.canViewReports,
+                                onChanged: !staff.isActive
+                                    ? null
+                                    : (val) async {
+                                        await ref.read(authRepositoryProvider).updateUserPermissions(
+                                              userId: staff.id,
+                                              isActive: staff.isActive,
+                                              canDeleteAppointments: staff.canDeleteAppointments,
+                                              canViewReports: val,
+                                              canEditServices: staff.canEditServices,
+                                              canViewMedicalHistory: staff.canViewMedicalHistory,
+                                              canEditMedicalNotes: staff.canEditMedicalNotes,
+                                              canCancelAppointments: staff.canCancelAppointments,
+                                            );
+                                        ref.invalidate(staffListProvider);
+                                      },
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
-                          const Divider(height: 1),
-                          const SizedBox(height: 12),
-
-                          // Category 1: المواعيد والحجوزات
-                          Text(
-                            '🗓️ إدارة المواعيد والحجوزات',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
-                          ),
-                          const SizedBox(height: 6),
-                          _buildPermissionTile(
-                            title: 'إلغاء المواعيد والاعتذار للمرضى',
-                            subtitle: 'تغيير حالة الموعد إلى ملغي وإرسال رسالة الاعتذار',
-                            icon: Icons.event_busy_rounded,
-                            value: staff.canCancelAppointments,
-                            onChanged: !staff.isActive
-                                ? null
-                                : (val) async {
-                                      await ref.read(authRepositoryProvider).updateUserPermissions(
-                                            userId: staff.id,
-                                            isActive: staff.isActive,
-                                            canDeleteAppointments: staff.canDeleteAppointments,
-                                            canViewReports: staff.canViewReports,
-                                            canEditServices: staff.canEditServices,
-                                            canViewMedicalHistory: staff.canViewMedicalHistory,
-                                            canCancelAppointments: val,
-                                          );
-                                      ref.invalidate(staffListProvider);
-                                  },
-                          ),
-                          _buildPermissionTile(
-                            title: 'حذف المواعيد نهائياً من النظام',
-                            subtitle: 'حذف سجل الحجز تماماً من قاعدة البيانات',
-                            icon: Icons.delete_forever_rounded,
-                            value: staff.canDeleteAppointments,
-                            onChanged: !staff.isActive
-                                ? null
-                                : (val) async {
-                                      await ref.read(authRepositoryProvider).updateUserPermissions(
-                                            userId: staff.id,
-                                            isActive: staff.isActive,
-                                            canDeleteAppointments: val,
-                                            canViewReports: staff.canViewReports,
-                                            canEditServices: staff.canEditServices,
-                                            canViewMedicalHistory: staff.canViewMedicalHistory,
-                                            canCancelAppointments: staff.canCancelAppointments,
-                                          );
-                                      ref.invalidate(staffListProvider);
-                                  },
-                          ),
-
-                          const SizedBox(height: 12),
-                          // Category 2: الخدمات والملفات الطبية
-                          Text(
-                            '🩺 الخدمات والملفات الطبية',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
-                          ),
-                          const SizedBox(height: 6),
-                          _buildPermissionTile(
-                            title: 'إضافة وتعديل الخدمات والأسعار',
-                            subtitle: 'إنشاء خدمات جديدة وتغيير تسعيرة الكشوفات والخدمات',
-                            icon: Icons.medical_services_outlined,
-                            value: staff.canEditServices,
-                            onChanged: !staff.isActive
-                                ? null
-                                : (val) async {
-                                      await ref.read(authRepositoryProvider).updateUserPermissions(
-                                            userId: staff.id,
-                                            isActive: staff.isActive,
-                                            canDeleteAppointments: staff.canDeleteAppointments,
-                                            canViewReports: staff.canViewReports,
-                                            canEditServices: val,
-                                            canViewMedicalHistory: staff.canViewMedicalHistory,
-                                            canCancelAppointments: staff.canCancelAppointments,
-                                          );
-                                      ref.invalidate(staffListProvider);
-                                  },
-                          ),
-                          _buildPermissionTile(
-                            title: 'الاطلاع على الروشتات والتاريخ الطبي',
-                            subtitle: 'عرض التقرير الطبي والتشخيص والروشتات السابقة للمريض',
-                            icon: Icons.description_outlined,
-                            value: staff.canViewMedicalHistory,
-                            onChanged: !staff.isActive
-                                ? null
-                                : (val) async {
-                                      await ref.read(authRepositoryProvider).updateUserPermissions(
-                                            userId: staff.id,
-                                            isActive: staff.isActive,
-                                            canDeleteAppointments: staff.canDeleteAppointments,
-                                            canViewReports: staff.canViewReports,
-                                            canEditServices: staff.canEditServices,
-                                            canViewMedicalHistory: val,
-                                            canEditMedicalNotes: staff.canEditMedicalNotes,
-                                            canCancelAppointments: staff.canCancelAppointments,
-                                          );
-                                      ref.invalidate(staffListProvider);
-                                  },
-                          ),
-                          _buildPermissionTile(
-                            title: 'كتابة وتعديل التقرير والتشخيص الطبي',
-                            subtitle: 'إدخال وتعديل التقرير والتشخيص والتعليمات الخاصة بالزيارات',
-                            icon: Icons.edit_note_rounded,
-                            value: staff.canEditMedicalNotes,
-                            onChanged: !staff.isActive
-                                ? null
-                                : (val) async {
-                                      await ref.read(authRepositoryProvider).updateUserPermissions(
-                                            userId: staff.id,
-                                            isActive: staff.isActive,
-                                            canDeleteAppointments: staff.canDeleteAppointments,
-                                            canViewReports: staff.canViewReports,
-                                            canEditServices: staff.canEditServices,
-                                            canViewMedicalHistory: staff.canViewMedicalHistory,
-                                            canEditMedicalNotes: val,
-                                            canCancelAppointments: staff.canCancelAppointments,
-                                          );
-                                      ref.invalidate(staffListProvider);
-                                  },
-                          ),
-
-                          const SizedBox(height: 12),
-                          // Category 3: المالية والتقارير
-                          Text(
-                            '📊 المالية والتقارير',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
-                          ),
-                          const SizedBox(height: 6),
-                          _buildPermissionTile(
-                            title: 'رؤية التقارير المالية والإيرادات',
-                            subtitle: 'الاطلاع على إجمالي دخل العيادة اليومي والشهري',
-                            icon: Icons.insights_rounded,
-                            value: staff.canViewReports,
-                            onChanged: !staff.isActive
-                                ? null
-                                : (val) async {
-                                      await ref.read(authRepositoryProvider).updateUserPermissions(
-                                            userId: staff.id,
-                                            isActive: staff.isActive,
-                                            canDeleteAppointments: staff.canDeleteAppointments,
-                                            canViewReports: val,
-                                            canEditServices: staff.canEditServices,
-                                            canViewMedicalHistory: staff.canViewMedicalHistory,
-                                            canEditMedicalNotes: staff.canEditMedicalNotes,
-                                            canCancelAppointments: staff.canCancelAppointments,
-                                          );
-                                      ref.invalidate(staffListProvider);
-                                  },
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ],
-              );
+                        );
+                      }),
+                  ],
+                );
               },
-              loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
-              error: (err, _) => Text('خطأ: $err', style: const TextStyle(color: AppTheme.error)),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(AppSpace.xl),
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              ),
+              error: (err, _) => Center(
+                child: Text(
+                  'خطأ: $err',
+                  style: GoogleFonts.cairo(color: AppColors.danger),
+                ),
+              ),
             ),
           ],
         ),

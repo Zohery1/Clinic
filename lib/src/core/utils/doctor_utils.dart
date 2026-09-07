@@ -1,4 +1,4 @@
-﻿/// مساعد لتنسيق أسماء وألقاب الأطباء بشكل موحد وبدون تكرار
+/// مساعد لتنسيق أسماء وألقاب الأطباء بشكل موحد وبدون تكرار
 class DoctorUtils {
   /// يقوم بتنسيق اسم الطبيب بإضافة بادئة "د." فقط إذا لم يكن الاسم يبدأ بالفعل
   /// بلقب مثل "د."، "د/"، "دكتور"، "الدكتور"، أو "Dr."
@@ -7,15 +7,15 @@ class DoctorUtils {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return '';
 
-    final lower = trimmed.toLowerCase();
-    if (trimmed.startsWith('د.') ||
-        trimmed.startsWith('د/') ||
-        trimmed.startsWith('د ') ||
-        trimmed.startsWith('دكتور') ||
-        trimmed.startsWith('الدكتور') ||
-        lower.startsWith('dr.') ||
-        lower.startsWith('dr ')) {
-      return trimmed;
+    // تنظيف وتوحيد البادئة لتجنب التكرار مثل "د. د. " أو الأشكال المختلفة
+    final regex = RegExp(
+      r'^(د\.\s*|د\/\s*|د\s+|دكتور\s+|الدكتور\s+|dr\.\s*|dr\s+)',
+      caseSensitive: false,
+    );
+
+    if (regex.hasMatch(trimmed)) {
+      final cleanName = trimmed.replaceFirst(regex, '').trim();
+      return 'د. $cleanName';
     }
 
     return 'د. $trimmed';

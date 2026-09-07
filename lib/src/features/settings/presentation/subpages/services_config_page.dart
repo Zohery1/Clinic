@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
 import '../../../../core/widgets/clinic_toast.dart';
 import '../../../auth/domain/user_model.dart';
@@ -33,10 +34,64 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
     super.dispose();
   }
 
+  Widget _buildPriceWidget(BuildContext context, double price) {
+    if (price <= 0) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppColors.isDark(context)
+              ? AppColors.success.withValues(alpha: 0.15)
+              : AppColors.successSubtle,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: AppColors.success.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Text(
+          'مجانًا',
+          style: GoogleFonts.cairo(
+            color: AppColors.success,
+            fontWeight: FontWeight.w700,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          price.toStringAsFixed(0),
+          style: GoogleFonts.jetBrainsMono(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          'ج.م',
+          style: GoogleFonts.cairo(
+            color: AppColors.textSecondary(context),
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
-    if (user == null) return const Scaffold(body: Center(child: Text('يرجى تسجيل الدخول')));
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: AppColors.canvas(context),
+        body: Center(
+          child: Text('يرجى تسجيل الدخول', style: GoogleFonts.cairo()),
+        ),
+      );
+    }
 
     final isDoctor = user.role == UserRole.doctor;
     final canManageServices = isDoctor || user.canEditServices;
@@ -46,11 +101,17 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: AppColors.canvas(context),
         appBar: AppBar(
-          title: const Text('أسعار الكشوفات والخدمات'),
+          title: Text(
+            'أسعار الكشوفات والخدمات',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 16),
+          ),
           bottom: TabBar(
             controller: _tabController,
+            labelStyle: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 13),
+            unselectedLabelStyle: GoogleFonts.cairo(fontWeight: FontWeight.w600, fontSize: 13),
+            indicatorColor: AppColors.primary,
             tabs: const [
               Tab(text: 'أسعار الكشوفات'),
               Tab(text: 'الخدمات الطبية الإضافية'),
@@ -66,8 +127,8 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
         ),
         floatingActionButton: canManageServices
             ? FloatingActionButton(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
                 child: const Icon(Icons.add_rounded),
                 onPressed: () {
                   if (_tabController.index == 0) {
@@ -83,11 +144,20 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
   }
 
   // الكشوفات
-  Widget _buildAppointmentTypesTab(AsyncValue<List<AppointmentTypeModel>> asyncData, bool canManageServices) {
+  Widget _buildAppointmentTypesTab(
+      AsyncValue<List<AppointmentTypeModel>> asyncData, bool canManageServices) {
     return asyncData.when(
       data: (list) {
         if (list.isEmpty) {
-          return const Center(child: Text('لا توجد أسعار كشوفات مضافة بعد.'));
+          return Center(
+            child: Text(
+              'لا توجد أسعار كشوفات مضافة بعد.',
+              style: GoogleFonts.cairo(
+                fontSize: 13,
+                color: AppColors.textSecondary(context),
+              ),
+            ),
+          );
         }
         return ListView.builder(
           padding: const EdgeInsets.all(20),
@@ -97,27 +167,49 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.cardDecorationFlat(context),
+              decoration: BoxDecoration(
+                color: AppColors.surface(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.borderSubtle(context),
+                  width: 1.0,
+                ),
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(type.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                      Text(
+                        type.name,
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: AppColors.textPrimary(context),
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text('${type.price.toStringAsFixed(0)} ج.م', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                      _buildPriceWidget(context, type.price),
                     ],
                   ),
                   if (canManageServices)
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 20),
+                          icon: Icon(
+                            Icons.edit_outlined,
+                            size: 20,
+                            color: AppColors.textSecondary(context),
+                          ),
                           onPressed: () => _showEditAppointmentTypeDialog(context, type),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 20),
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: AppColors.danger,
+                            size: 20,
+                          ),
                           onPressed: () => _showDeleteAppointmentTypeConfirm(context, type),
                         ),
                       ],
@@ -128,17 +220,33 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(child: Text('خطأ: $err')),
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+      error: (err, _) => Center(
+        child: Text(
+          'خطأ: $err',
+          style: GoogleFonts.cairo(color: AppColors.danger),
+        ),
+      ),
     );
   }
 
   // الخدمات
-  Widget _buildServicesTab(AsyncValue<List<ServiceModel>> asyncData, bool canManageServices) {
+  Widget _buildServicesTab(
+      AsyncValue<List<ServiceModel>> asyncData, bool canManageServices) {
     return asyncData.when(
       data: (list) {
         if (list.isEmpty) {
-          return const Center(child: Text('لا توجد خدمات مضافة بعد.'));
+          return Center(
+            child: Text(
+              'لا توجد خدمات مضافة بعد.',
+              style: GoogleFonts.cairo(
+                fontSize: 13,
+                color: AppColors.textSecondary(context),
+              ),
+            ),
+          );
         }
         return ListView.builder(
           padding: const EdgeInsets.all(20),
@@ -148,27 +256,49 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
-              decoration: AppTheme.cardDecorationFlat(context),
+              decoration: BoxDecoration(
+                color: AppColors.surface(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.borderSubtle(context),
+                  width: 1.0,
+                ),
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(service.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                      Text(
+                        service.name,
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: AppColors.textPrimary(context),
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text('${service.price.toStringAsFixed(0)} ج.م', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                      _buildPriceWidget(context, service.price),
                     ],
                   ),
                   if (canManageServices)
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 20),
+                          icon: Icon(
+                            Icons.edit_outlined,
+                            size: 20,
+                            color: AppColors.textSecondary(context),
+                          ),
                           onPressed: () => _showEditServiceDialog(context, service),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 20),
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: AppColors.danger,
+                            size: 20,
+                          ),
                           onPressed: () => _showDeleteServiceConfirm(context, service),
                         ),
                       ],
@@ -179,8 +309,15 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(child: Text('خطأ: $err')),
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+      error: (err, _) => Center(
+        child: Text(
+          'خطأ: $err',
+          style: GoogleFonts.cairo(color: AppColors.danger),
+        ),
+      ),
     );
   }
 
@@ -227,7 +364,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('إلغاء'),
+          child: Text('إلغاء', style: GoogleFonts.cairo(color: AppColors.textSecondary(context))),
         ),
         SettingsSaveButton(
           label: 'حفظ',
@@ -282,7 +419,10 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('إلغاء', style: GoogleFonts.cairo(color: AppColors.textSecondary(context))),
+        ),
         SettingsSaveButton(
           label: 'تعديل',
           onPressed: () async {
@@ -318,9 +458,12 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
     final currentUser = ref.read(currentUserProvider);
     if (currentUser != null && currentUser.role == UserRole.secretary && !currentUser.canEditServices) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ليس لديك صلاحية لإضافة أو تعديل الخدمات والأسعار. يرجى مراجعة الطبيب.'),
-          backgroundColor: AppTheme.error,
+        SnackBar(
+          content: Text(
+            'ليس لديك صلاحية لإضافة أو تعديل الخدمات والأسعار. يرجى مراجعة الطبيب.',
+            style: GoogleFonts.cairo(),
+          ),
+          backgroundColor: AppColors.danger,
         ),
       );
       return;
@@ -364,7 +507,10 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('إلغاء', style: GoogleFonts.cairo(color: AppColors.textSecondary(context))),
+        ),
         SettingsSaveButton(
           label: 'حفظ',
           onPressed: () async {
@@ -418,7 +564,10 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('إلغاء', style: GoogleFonts.cairo(color: AppColors.textSecondary(context))),
+        ),
         SettingsSaveButton(
           label: 'تعديل',
           onPressed: () async {
@@ -486,6 +635,11 @@ class _SettingsSaveButtonState extends State<SettingsSaveButton> {
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
       onPressed: _loading
           ? null
           : () async {
@@ -506,7 +660,7 @@ class _SettingsSaveButtonState extends State<SettingsSaveButton> {
               width: 16,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             )
-          : Text(widget.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          : Text(widget.label, style: GoogleFonts.cairo(fontWeight: FontWeight.w700)),
     );
   }
 }

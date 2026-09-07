@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../core/ui/tokens/colors.dart';
+import '../../../core/ui/tokens/spacing.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
@@ -25,8 +27,17 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text('يرجى تسجيل الدخول أولاً')),
+      return Scaffold(
+        backgroundColor: AppColors.canvas(context),
+        body: Center(
+          child: Text(
+            'يرجى تسجيل الدخول أولاً',
+            style: GoogleFonts.cairo(
+              fontSize: 14,
+              color: AppColors.textSecondary(context),
+            ),
+          ),
+        ),
       );
     }
 
@@ -36,18 +47,21 @@ class SettingsScreen extends ConsumerWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: AppColors.canvas(context),
         appBar: null,
         body: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.xl,
+            vertical: AppSpace.lg,
+          ),
           children: [
             // ─── بطاقة الملف الشخصي المختصر ───
             UserProfileHeader(user: user),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpace.lg),
 
             // ─── بطاقة حالة اشتراك العيادة ───
             ClinicSubscriptionCard(user: user),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpace.xxl),
 
             // ─── القسم الأول: البيانات والملفات ───
             const SettingsSectionHeader(title: 'البيانات الشخصية والعيادة'),
@@ -91,7 +105,7 @@ class SettingsScreen extends ConsumerWidget {
                 ClinicSwitcherButton.showSwitcherModal(context, ref);
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpace.lg),
 
             // ─── القسم الثاني: إدارة الأسعار والخدمات ───
             const SettingsSectionHeader(title: 'الخدمات الطبية والأسعار'),
@@ -105,7 +119,7 @@ class SettingsScreen extends ConsumerWidget {
                 );
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpace.lg),
 
             // ─── القسم الثالث: الربط والأتمتة ───
             const SettingsSectionHeader(title: 'الربط والأتمتة'),
@@ -119,7 +133,7 @@ class SettingsScreen extends ConsumerWidget {
                 );
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpace.lg),
 
             // ─── القسم الرابع: المظهر والنظام ───
             const SettingsSectionHeader(title: 'تخصيص النظام'),
@@ -137,32 +151,33 @@ class SettingsScreen extends ConsumerWidget {
                 );
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpace.lg),
 
             // ─── أزرار الحساب والخروج ───
             SettingsActionCard(
               title: 'تسجيل الخروج',
               icon: Icons.logout_rounded,
-              color: AppTheme.error,
+              color: AppColors.danger,
               onTap: () => SettingsDialogs.showLogoutDialog(context, ref),
             ),
             if (!user.isOwner) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpace.md),
               SettingsActionCard(
                 title: 'الخروج من العيادة',
                 icon: Icons.no_accounts_outlined,
-                color: AppTheme.error,
+                color: AppColors.danger,
                 onTap: () => SettingsDialogs.showLeaveClinicDialog(context, ref),
               ),
             ],
 
-            const SizedBox(height: 40),
+            const SizedBox(height: AppSpace.xxxxl),
             Center(
               child: Text(
                 'عيادتي — الإصدار 1.1.0',
-                style: TextStyle(
+                style: GoogleFonts.cairo(
                   fontSize: 12,
-                  color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textMuted(context),
                 ),
               ),
             ),

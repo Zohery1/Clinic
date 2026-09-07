@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/ui/tokens/colors.dart';
+import '../../../../core/ui/tokens/spacing.dart';
 
 /// عنوان قسم الإعدادات
 class SettingsSectionHeader extends StatelessWidget {
@@ -13,13 +15,13 @@ class SettingsSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8, right: 4),
+      padding: const EdgeInsets.only(bottom: AppSpace.sm, right: AppSpace.xs),
       child: Text(
         title,
-        style: TextStyle(
-          fontSize: 12,
+        style: GoogleFonts.cairo(
+          fontSize: 12.5,
           fontWeight: FontWeight.w700,
-          color: Theme.of(context).colorScheme.primary,
+          color: AppColors.primary,
         ),
       ),
     );
@@ -43,38 +45,55 @@ class SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
+    final iconBg = isDark
+        ? AppColors.primary.withValues(alpha: 0.15)
+        : AppColors.primarySubtle;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface(context),
+          borderRadius: AppRadii.brMd,
+          border: Border.all(
+            color: AppColors.borderSubtle(context),
+            width: 1.0,
+          ),
+        ),
         clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          onTap: onTap,
-          leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
+        child: Material(
+          color: Colors.transparent,
+          child: ListTile(
+            onTap: onTap,
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 18, color: AppColors.primary),
             ),
-            child: Icon(icon, size: 18, color: AppTheme.primary),
-          ),
-          title: Text(
-            title,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-              color: Theme.of(context).textTheme.titleMedium?.color,
+            title: Text(
+              title,
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+            subtitle: Text(
+              subtitle,
+              style: GoogleFonts.cairo(
+                fontSize: 11,
+                color: AppColors.textSecondary(context),
+              ),
+            ),
+            trailing: Icon(
+              Icons.chevron_left_rounded,
+              color: AppColors.textMuted(context),
             ),
           ),
-          subtitle: Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 11,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-            ),
-          ),
-          trailing: Icon(Icons.chevron_left_rounded, color: Theme.of(context).hintColor),
         ),
       ),
     );
@@ -98,29 +117,41 @@ class SettingsActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(12),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
+        borderRadius: AppRadii.brMd,
+        border: Border.all(
+          color: AppColors.borderSubtle(context),
+          width: 1.0,
+        ),
+      ),
       clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        onTap: onTap,
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          onTap: onTap,
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 18, color: color),
           ),
-          child: Icon(icon, size: 18, color: color),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
+          title: Text(
+            title,
+            style: GoogleFonts.cairo(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
+          trailing: Icon(
+            Icons.chevron_left_rounded,
+            color: AppColors.textMuted(context),
           ),
         ),
-        trailing: Icon(Icons.chevron_left_rounded, color: Theme.of(context).hintColor),
       ),
     );
   }
