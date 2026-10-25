@@ -43,7 +43,7 @@ class AppDataTable extends StatefulWidget {
     required this.rows,
     this.onRowTap,
     this.isLoading = false,
-    this.emptyMessage = '?? ???? ?????? ?????',
+    this.emptyMessage = 'لا توجد بيانات متاحة حالياً',
     this.emptyActionLabel,
     this.onEmptyAction,
     this.emptyIcon = Icons.inbox_rounded,
@@ -111,24 +111,42 @@ class _AppDataTableState extends State<AppDataTable> {
             child: Row(
               children: [
                 for (var i = 0; i < columns.length; i++)
-                  Expanded(
-                    flex: columns[i].width != null ? 0 : 1,
-                    child: _HeaderCell(
-                      column: columns[i],
-                      isActive: _sortColIndex == i,
-                      isAsc: _sortAsc,
-                      onTap: widget.sortable
-                          ? () => setState(() {
-                                if (_sortColIndex == i) {
-                                  _sortAsc = !_sortAsc;
-                                } else {
-                                  _sortColIndex = i;
-                                  _sortAsc = true;
-                                }
-                              })
-                          : null,
-                    ),
-                  ),
+                  columns[i].width != null
+                      ? SizedBox(
+                          width: columns[i].width,
+                          child: _HeaderCell(
+                            column: columns[i],
+                            isActive: _sortColIndex == i,
+                            isAsc: _sortAsc,
+                            onTap: widget.sortable
+                                ? () => setState(() {
+                                      if (_sortColIndex == i) {
+                                        _sortAsc = !_sortAsc;
+                                      } else {
+                                        _sortColIndex = i;
+                                        _sortAsc = true;
+                                      }
+                                    })
+                                : null,
+                          ),
+                        )
+                      : Expanded(
+                          child: _HeaderCell(
+                            column: columns[i],
+                            isActive: _sortColIndex == i,
+                            isAsc: _sortAsc,
+                            onTap: widget.sortable
+                                ? () => setState(() {
+                                      if (_sortColIndex == i) {
+                                        _sortAsc = !_sortAsc;
+                                      } else {
+                                        _sortColIndex = i;
+                                        _sortAsc = true;
+                                      }
+                                    })
+                                : null,
+                          ),
+                        ),
               ],
             ),
           ),
@@ -170,17 +188,24 @@ class _AppDataTableState extends State<AppDataTable> {
               child: Row(
                 children: [
                   for (final col in widget.columns)
-                    Expanded(
-                      flex: col.width != null ? 0 : 1,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: AppSkeleton(
-                          height: 14,
-                          radius: AppRadii.radiusXs,
-                          width: col.width ?? double.infinity,
-                        ),
-                      ),
-                    ),
+                    col.width != null
+                        ? SizedBox(
+                            width: col.width,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: AppSkeleton(
+                                height: 14,
+                                radius: AppRadii.radiusXs,
+                                width: col.width ?? double.infinity,
+                              ),
+                            ),
+                          )
+                        : const Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: AppSkeleton(height: 14, radius: AppRadii.radiusXs),
+                            ),
+                          ),
                 ],
               ),
             ),
@@ -336,13 +361,20 @@ class _RowState extends State<_Row> {
           child: Row(
             children: [
               for (final col in widget.columns)
-                Expanded(
-                  flex: col.width != null ? 0 : 1,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: _BodyCell(column: col, value: row[col.key]),
-                  ),
-                ),
+                col.width != null
+                    ? SizedBox(
+                        width: col.width,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: _BodyCell(column: col, value: row[col.key]),
+                        ),
+                      )
+                    : Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: _BodyCell(column: col, value: row[col.key]),
+                        ),
+                      ),
             ],
           ),
         ),
@@ -394,7 +426,7 @@ class _BodyCell extends StatelessWidget {
     switch (format) {
       case 'currency':
         final n = (v as num).toDouble();
-        return '${n.toStringAsFixed(0)} ?.?';
+        return '${n.toStringAsFixed(0)} ج.م';
       case 'number':
         final n = v as num;
         if (n is double && n == n.truncateToDouble()) {

@@ -44,7 +44,7 @@ class AppTopBar extends StatelessWidget {
     final borderColor = AppColors.borderSubtle(context);
 
     return Container(
-      height: 64,
+      constraints: const BoxConstraints(minHeight: 64),
       decoration: BoxDecoration(
         color: bg,
         border: Border(
@@ -56,6 +56,7 @@ class AppTopBar extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: compact ? AppSpace.lg : AppSpace.xxl,
+            vertical: AppSpace.xs,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,

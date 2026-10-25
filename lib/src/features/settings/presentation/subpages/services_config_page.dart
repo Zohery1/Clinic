@@ -178,21 +178,26 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        type.name,
-                        style: GoogleFonts.cairo(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: AppColors.textPrimary(context),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          type.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.cairo(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: AppColors.textPrimary(context),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      _buildPriceWidget(context, type.price),
-                    ],
+                        const SizedBox(height: 4),
+                        _buildPriceWidget(context, type.price),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   if (canManageServices)
                     Row(
                       children: [

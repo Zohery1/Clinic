@@ -58,7 +58,7 @@ class _AppStatCardState extends State<AppStatCard> {
 
     final bg = AppColors.surface(context);
     final borderColor = _hovered && isInteractive
-        ? widget.color.withValues(alpha: isDark ? 0.55 : 0.4)
+        ? widget.color.withValues(alpha: isDark ? 0.60 : 0.45)
         : AppColors.borderSubtle(context);
 
     return MouseRegion(
@@ -71,9 +71,18 @@ class _AppStatCardState extends State<AppStatCard> {
         decoration: BoxDecoration(
           color: bg,
           borderRadius: AppRadii.brMd,
-          border: Border.all(color: borderColor, width: 1),
+          border: Border.all(
+            color: borderColor,
+            width: _hovered && isInteractive ? 1.2 : 1.0,
+          ),
           boxShadow: _hovered && isInteractive
-              ? AppShadows.md(context)
+              ? [
+                  BoxShadow(
+                    color: widget.color.withValues(alpha: isDark ? 0.12 : 0.07),
+                    blurRadius: 12,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
               : AppShadows.sm(context),
         ),
         child: Material(
@@ -86,39 +95,50 @@ class _AppStatCardState extends State<AppStatCard> {
             splashColor: widget.color.withValues(alpha: 0.08),
             highlightColor: widget.color.withValues(alpha: 0.04),
             child: Padding(
-              padding: const EdgeInsets.all(AppSpace.lg),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.lg,
+                vertical: AppSpace.lg - 2,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: widget.color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpace.sm),
                       Expanded(
                         child: Text(
-                          widget.title.toUpperCase(),
+                          widget.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.cairo(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                            color: AppColors.textMuted(context),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textSecondary(context),
                             height: 1.3,
                           ),
                         ),
                       ),
                       const SizedBox(width: AppSpace.sm),
                       Container(
-                        width: 36,
-                        height: 36,
+                        width: 32,
+                        height: 32,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: widget.color
-                              .withValues(alpha: isDark ? 0.18 : 0.10),
-                          borderRadius: AppRadii.brSm,
+                              .withValues(alpha: isDark ? 0.16 : 0.08),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(widget.icon, size: 18, color: widget.color),
+                        child: Icon(widget.icon, size: 16, color: widget.color),
                       ),
                     ],
                   ),
@@ -136,8 +156,9 @@ class _AppStatCardState extends State<AppStatCard> {
                     Text(
                       widget.value,
                       style: GoogleFonts.jetBrainsMono(
-                        fontSize: 26,
+                        fontSize: 27,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
                         color: AppColors.textPrimary(context),
                         height: 1.1,
                       ),
@@ -154,13 +175,25 @@ class _AppStatCardState extends State<AppStatCard> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.cairo(
-                              fontSize: 12,
+                              fontSize: 11.5,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.textSecondary(context),
+                              color: AppColors.textMuted(context),
                               height: 1.3,
                             ),
                           ),
                         ),
+                        if (isInteractive) ...[
+                          const SizedBox(width: AppSpace.xs),
+                          AnimatedOpacity(
+                            duration: AppMotion.fast,
+                            opacity: _hovered ? 1.0 : 0.0,
+                            child: Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              size: 11,
+                              color: widget.color,
+                            ),
+                          ),
+                        ],
                         if (widget.trend != null) ...[
                           const SizedBox(width: AppSpace.sm),
                           _TrendBadge(trend: widget.trend!),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/appointment_model.dart';
 
@@ -283,7 +282,7 @@ class AppointmentTimePicker extends StatelessWidget {
                       ),
                       if (isBooked && !isSelected) ...[
                         const SizedBox(width: 3),
-                        Icon(
+                        const Icon(
                           Icons.block_rounded,
                           size: 9,
                           color: AppColors.error,

@@ -36,7 +36,7 @@ class AuthShell extends StatelessWidget {
             textDirection: TextDirection.rtl,
             child: Scaffold(
               backgroundColor: canvas,
-              body: SafeArea(child: _FormContainer(child: child, footer: footer)),
+              body: SafeArea(child: _FormContainer(footer: footer, child: child)),
             ),
           );
         }
@@ -48,7 +48,7 @@ class AuthShell extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(flex: 5, child: _HeroPanel(title: heroTitle, subtitle: heroSubtitle, bullets: heroBullets)),
-                Expanded(flex: 4, child: SafeArea(child: _FormContainer(child: child, footer: footer))),
+                Expanded(flex: 4, child: SafeArea(child: _FormContainer(footer: footer, child: child))),
               ],
             ),
           ),
@@ -197,7 +197,7 @@ class _HeroMeshBlobs extends StatelessWidget {
   const _HeroMeshBlobs();
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return const Stack(
       fit: StackFit.expand,
       children: [
         Positioned(top: -80, right: -60, child: _Blob(size: 320)),

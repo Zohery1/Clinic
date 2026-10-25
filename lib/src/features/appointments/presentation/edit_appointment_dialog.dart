@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
-import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/double_bezel_card.dart';
-import '../../../core/widgets/magnetic_nested_button.dart';
+import '../../../core/ui/primitives/app_button.dart';
 import '../../reports/presentation/reports_controller.dart';
 import '../../dashboard/presentation/notifications_controller.dart';
 import '../data/appointment_repository.dart';
@@ -803,12 +802,11 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
                             ),
                           ),
 
-                          // Primary Magnetic Nested CTA
-                          MagneticNestedButton(
+                          AppButton(
                             label: 'حفظ التعديلات',
-                            loadingLabel: 'جاري الحفظ...',
                             icon: Icons.check_rounded,
-                            isLoading: _isSaving,
+                            loading: _isSaving,
+                            variant: AppButtonVariant.primary,
                             onPressed: _isSaving ? null : _submit,
                           ),
                         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/theme/theme_provider.dart';
 
 class ThemeSettingsPage extends ConsumerWidget {
@@ -13,8 +14,13 @@ class ThemeSettingsPage extends ConsumerWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(title: const Text('مظهر التطبيق')),
+        backgroundColor: AppColors.canvas(context),
+        appBar: AppBar(
+          title: Text(
+            'مظهر التطبيق',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 16),
+          ),
+        ),
         body: ListView(
           padding: const EdgeInsets.all(20),
           children: [
@@ -56,27 +62,50 @@ class ThemeSettingsPage extends ConsumerWidget {
     required IconData icon,
     required bool isSelected,
   }) {
+    final isDark = AppColors.isDark(context);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          onTap: () {
-            ref.read(themeModeProvider.notifier).setThemeMode(mode);
-          },
-          leading: Icon(icon, color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).iconTheme.color),
-          title: Text(
-            title,
-            style: TextStyle(
-              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-              color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).textTheme.bodyLarge?.color,
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.08)
+              : AppColors.surface(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.borderSubtle(context),
+            width: isSelected ? 1.5 : 1.0,
           ),
-          trailing: isSelected
-              ? const Icon(Icons.check_circle_rounded, color: AppTheme.primary)
-              : null,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Material(
+          color: Colors.transparent,
+          child: ListTile(
+            onTap: () {
+              ref.read(themeModeProvider.notifier).setThemeMode(mode);
+            },
+            leading: Icon(
+              icon,
+              color: isSelected
+                  ? AppColors.primary
+                  : AppColors.textSecondary(context),
+            ),
+            title: Text(
+              title,
+              style: GoogleFonts.cairo(
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                fontSize: 14,
+                color: isSelected
+                    ? AppColors.primary
+                    : AppColors.textPrimary(context),
+              ),
+            ),
+            trailing: isSelected
+                ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+                : null,
+          ),
         ),
       ),
     );

@@ -465,7 +465,7 @@ class WhatsAppService {
           await Future.delayed(const Duration(seconds: 5));
 
           // Retry sending message
-          return _sendMessageToEvo(
+          return await _sendMessageToEvo(
             instanceName: instanceName,
             phone: phone,
             message: message,

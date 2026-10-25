@@ -44,11 +44,11 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _currentIndex = 0;
 
-  static const _routes = <String>[
+  List<String> _getRoutes(bool isOwner) => [
     '/home',
     '/appointments',
     '/patients',
-    '/reports',
+    if (isOwner) '/reports',
     '/settings',
   ];
 
@@ -60,7 +60,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _onNavigate(String route) {
-    final idx = _routes.indexOf(route);
+    final user = ref.read(currentUserProvider);
+    final isOwner = user?.isOwner ?? false;
+    final routes = _getRoutes(isOwner);
+    final idx = routes.indexOf(route);
     if (idx >= 0) {
       setState(() => _currentIndex = idx);
     }
@@ -189,11 +192,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Focus(
           autofocus: true,
           child: AppShell(
-            currentRoute: _routes[_effectiveIndex],
+            currentRoute: _getRoutes(isOwner)[_effectiveIndex],
             onNavigate: _onNavigate,
             user: user,
-            title: _resolveTitle(_effectiveIndex, widget.clinicName),
-            subtitle: _resolveSubtitle(_effectiveIndex),
+            title: _resolveTitle(_getRoutes(isOwner)[_effectiveIndex], widget.clinicName),
+            subtitle: _resolveSubtitle(_getRoutes(isOwner)[_effectiveIndex]),
             unreadCount: unreadCount,
             onNotificationsTap: () =>
                 DashboardNotificationsDialog.show(context),
@@ -210,34 +213,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  String _resolveTitle(int idx, String? clinicName) {
-    switch (idx) {
-      case 0:
+  String _resolveTitle(String route, String? clinicName) {
+    switch (route) {
+      case '/home':
         return clinicName ?? 'لوحة الإدارة';
-      case 1:
+      case '/appointments':
         return 'المواعيد';
-      case 2:
+      case '/patients':
         return 'المرضى';
-      case 3:
+      case '/reports':
         return 'التقارير';
-      case 4:
+      case '/settings':
         return 'الإعدادات';
       default:
-        return '';
+        return clinicName ?? 'لوحة الإدارة';
     }
   }
 
-  String? _resolveSubtitle(int idx) {
-    switch (idx) {
-      case 0:
+  String? _resolveSubtitle(String route) {
+    switch (route) {
+      case '/home':
         return 'نظرة عامة على عيادتك اليوم';
-      case 1:
+      case '/appointments':
         return 'كل حجوزاتك في مكان واحد';
-      case 2:
+      case '/patients':
         return 'سجل المرضى والمتابعة';
-      case 3:
+      case '/reports':
         return 'أداء العيادة والمؤشرات المالية';
-      case 4:
+      case '/settings':
         return 'إعدادات الحساب والعيادة';
       default:
         return null;

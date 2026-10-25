@@ -155,8 +155,8 @@ class _DesktopListPaneState extends ConsumerState<DesktopListPane> {
               loading: () => Column(
                 children: List.generate(
                   3,
-                  (i) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpace.md),
+                  (i) => const Padding(
+                    padding: EdgeInsets.only(bottom: AppSpace.md),
                     child: AppSkeleton(
                       height: 120,
                       radius: AppRadii.radiusMd,

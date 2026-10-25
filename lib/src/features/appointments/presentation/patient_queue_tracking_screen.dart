@@ -313,20 +313,29 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'مرحباً بك: $patientName',
-                      style: GoogleFonts.cairo(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Theme.of(context).textTheme.titleMedium?.color,
+                    Flexible(
+                      child: Text(
+                        'مرحباً بك: $patientName',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).textTheme.titleMedium?.color,
+                        ),
                       ),
                     ),
-                    Text(
-                      doctorName,
-                      style: GoogleFonts.cairo(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        doctorName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.cairo(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
                   ],

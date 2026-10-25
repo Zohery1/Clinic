@@ -30,7 +30,7 @@ class AppEmptyState extends StatelessWidget {
     final iconBgColor = isDark
         ? AppColors.primary.withValues(alpha: 0.15)
         : AppColors.primaryLight;
-    final iconColor = AppColors.primary;
+    const iconColor = AppColors.primary;
     final titleColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
     final messageColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 

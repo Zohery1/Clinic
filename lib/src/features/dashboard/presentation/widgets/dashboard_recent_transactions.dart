@@ -39,8 +39,8 @@ class DashboardRecentTransactions extends ConsumerWidget {
       final list = List.from(async.value ?? const [])
         ..sort((a, b) => b.appointmentDate.compareTo(a.appointmentDate));
       if (list.isEmpty) {
-        body = Padding(
-          padding: const EdgeInsets.all(AppSpace.lg),
+        body = const Padding(
+          padding: EdgeInsets.all(AppSpace.lg),
           child: AppEmptyState(
             icon: Icons.receipt_long_rounded,
             title: 'لا توجد معاملات اليوم',

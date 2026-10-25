@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../reports/presentation/reports_controller.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
 import '../../domain/service_model.dart';
@@ -96,7 +97,7 @@ class AppointmentServicesPicker extends ConsumerWidget {
           children: [
             Text(
               'الخدمات الطبية الإضافية',
-              style: TextStyle(
+              style: GoogleFonts.cairo(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: theme.textTheme.bodySmall?.color,
@@ -105,7 +106,10 @@ class AppointmentServicesPicker extends ConsumerWidget {
             TextButton.icon(
               onPressed: () => _showAddCustomServiceDialog(context, ref),
               icon: const Icon(Icons.add_rounded, size: 14),
-              label: const Text('خدمة مخصصة', style: TextStyle(fontSize: 11)),
+              label: Text(
+                'خدمة مخصصة',
+                style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.w600),
+              ),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 minimumSize: Size.zero,
@@ -126,7 +130,10 @@ class AppointmentServicesPicker extends ConsumerWidget {
             }
 
             if (allOptions.isEmpty) {
-              return const Text('لا توجد خدمات متاحة', style: TextStyle(fontSize: 12));
+              return Text(
+                'لا توجد خدمات متاحة',
+                style: GoogleFonts.cairo(fontSize: 12, color: theme.hintColor),
+              );
             }
 
             return Wrap(
@@ -147,7 +154,7 @@ class AppointmentServicesPicker extends ConsumerWidget {
                     onServicesChanged(updated);
                   },
                   selectedColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-                  labelStyle: TextStyle(
+                  labelStyle: GoogleFonts.cairo(
                     fontSize: 11.5,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     color: isSelected ? theme.colorScheme.primary : theme.textTheme.bodyMedium?.color,
@@ -157,7 +164,10 @@ class AppointmentServicesPicker extends ConsumerWidget {
             );
           },
           loading: () => const LinearProgressIndicator(),
-          error: (_, __) => const Text('تعذر تحميل الخدمات', style: TextStyle(fontSize: 11)),
+          error: (_, __) => Text(
+            'تعذر تحميل الخدمات',
+            style: GoogleFonts.cairo(fontSize: 11, color: theme.colorScheme.error),
+          ),
         ),
       ],
     );

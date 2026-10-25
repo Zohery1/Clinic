@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/ui/tokens/colors.dart';
 import '../../../../../core/ui/tokens/spacing.dart';
@@ -178,8 +178,8 @@ class _CalendarGrid extends ConsumerWidget {
     }
     return Column(
       children: [
-        Row(
-          children: const [
+        const Row(
+          children: [
             _Weekday('أحد'),
             _Weekday('إثن'),
             _Weekday('ثلا'),
@@ -283,13 +283,13 @@ class _DayCell extends ConsumerWidget {
 class _Legend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _LegendRow(color: AppColors.primary, label: 'اليوم'),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         _LegendRow(color: AppColors.success, label: 'مؤكد'),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         _LegendRow(color: AppColors.warning, label: 'في الانتظار'),
       ],
     );

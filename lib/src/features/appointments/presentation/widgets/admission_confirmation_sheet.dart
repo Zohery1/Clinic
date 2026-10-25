@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../domain/appointment_model.dart';
 
 /// نافذة تأكيد سفلية قبل تغيير حالة المريض
@@ -116,8 +117,8 @@ class AdmissionConfirmationSheet extends StatelessWidget {
                     children: [
                       Text(
                         _actionTitle,
-                        style: TextStyle(
-                          fontSize: 16,
+                        style: GoogleFonts.cairo(
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: Theme.of(context).textTheme.titleMedium?.color,
                         ),
@@ -125,7 +126,7 @@ class AdmissionConfirmationSheet extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         'المريض: ${appointment.patient.fullName}',
-                        style: TextStyle(
+                        style: GoogleFonts.cairo(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: Theme.of(context).colorScheme.primary,
@@ -145,12 +146,11 @@ class AdmissionConfirmationSheet extends StatelessWidget {
                     ? Theme.of(context).colorScheme.error.withValues(alpha: 0.05)
                     : Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(10),
-                // removed border
               ),
               child: Text(
                 _actionDescription,
-                style: TextStyle(
-                  fontSize: 13,
+                style: GoogleFonts.cairo(
+                  fontSize: 12.5,
                   color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                   height: 1.5,
                 ),
@@ -168,7 +168,10 @@ class AdmissionConfirmationSheet extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       foregroundColor: Theme.of(context).textTheme.bodyMedium?.color,
                     ),
-                    child: const Text('إلغاء', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      'إلغاء',
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 13),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -194,7 +197,7 @@ class AdmissionConfirmationSheet extends StatelessWidget {
                     ),
                     child: Text(
                       _confirmLabel,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      style: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 13.5),
                     ),
                   ),
                 ),

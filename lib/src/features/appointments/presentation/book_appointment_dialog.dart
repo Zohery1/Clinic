@@ -731,6 +731,69 @@ class _BookAppointmentDialogState
   }
 
   Widget _buildFooter(BuildContext context, bool isMobile) {
+    if (isMobile) {
+      return Container(
+        padding: const EdgeInsets.all(AppSpace.md),
+        decoration: BoxDecoration(
+          color: AppColors.subtle(context).withValues(alpha: 0.3),
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(AppRadii.radiusXl),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'المطلوب تحصيله: ',
+                  style: GoogleFonts.cairo(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary(context),
+                  ),
+                ),
+                Text(
+                  '${_totalPrice.toStringAsFixed(0)} ج.م',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpace.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: AppButton(
+                    label: 'إلغاء',
+                    variant: AppButtonVariant.ghost,
+                    expand: true,
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
+                  ),
+                ),
+                const SizedBox(width: AppSpace.sm),
+                Expanded(
+                  child: AppButton(
+                    label: 'تأكيد الحجز',
+                    icon: Icons.check_rounded,
+                    variant: AppButtonVariant.primary,
+                    expand: true,
+                    loading: _isSaving,
+                    onPressed: _isSaving ? null : _submit,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? AppSpace.md : AppSpace.xl,

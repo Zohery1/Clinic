@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
-import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/doctor_utils.dart';
-import '../../../../core/widgets/double_bezel_card.dart';
+import '../../../../core/widgets/app_card.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../clinics/domain/branch_model.dart';
 import '../../../clinics/presentation/clinics_controller.dart';
@@ -474,124 +473,172 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
     final dayName = intl.DateFormat('EEEE', 'ar').format(selectedDate);
     final todayFormatted = intl.DateFormat('d MMMM، yyyy', 'ar').format(selectedDate);
 
-    return DoubleBezelCard(
-      outerRadius: 20.0,
-      innerRadius: 17.5,
-      outerPadding: const EdgeInsets.all(2.5),
-      innerPadding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          // أيقونة اختيار التاريخ من التقويم
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1E293B)
-                  : const Color(0xFFF1F3F5),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              onPressed: () async {
-                final DateTime? picked = await showDatePicker(
-                  context: context,
-                  initialDate: selectedDate,
-                  firstDate: DateTime(2024, 1, 1),
-                  lastDate: DateTime(2028, 12, 31),
-                );
-                if (picked != null) {
-                  ref.read(selectedDateProvider.notifier).state =
-                      DateTime(picked.year, picked.month, picked.day);
-                }
-              },
-              icon: Icon(
-                Icons.calendar_month_rounded,
-                color: Theme.of(context).colorScheme.primary,
-                size: 22,
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
+    final datePickerButton = Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1E293B)
+            : const Color(0xFFF1F3F5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: IconButton(
+        onPressed: () async {
+          final DateTime? picked = await showDatePicker(
+            context: context,
+            initialDate: selectedDate,
+            firstDate: DateTime(2024, 1, 1),
+            lastDate: DateTime(2028, 12, 31),
+          );
+          if (picked != null) {
+            ref.read(selectedDateProvider.notifier).state =
+                DateTime(picked.year, picked.month, picked.day);
+          }
+        },
+        icon: Icon(
+          Icons.calendar_month_rounded,
+          color: Theme.of(context).colorScheme.primary,
+          size: 22,
+        ),
+      ),
+    );
+
+    final daysRow = Row(
+      children: days.map((day) {
+        final isSelected = DateUtils.isSameDay(selectedDate, day);
+        final isToday = DateUtils.isSameDay(now, day);
+        final dayLabel = intl.DateFormat('E', 'ar').format(day);
+        final dayNum = intl.DateFormat('d').format(day);
+
+        return Expanded(
+          child: GestureDetector(
+            onTap: () {
+              ref.read(selectedDateProvider.notifier).state =
+                  DateTime(day.year, day.month, day.day);
+            },
+            child: AnimatedContainer(
+              duration: AppMotion.fast,
+              curve: AppMotion.curve,
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : (isToday
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
+                        : Colors.transparent),
+                borderRadius: BorderRadius.circular(10),
+                border: isToday && !isSelected
+                    ? Border.all(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+                        width: 1,
+                      )
+                    : null,
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        )
+                      ]
+                    : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _getShortDayName(dayLabel),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.cairo(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : (isToday
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.color
+                                  ?.withValues(alpha: 0.7)),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    dayNum,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: isSelected
+                          ? Colors.white
+                          : (isToday
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).textTheme.titleMedium?.color),
+                    ),
+                  ),
+                  if (isToday && !isSelected)
+                    Container(
+                      margin: const EdgeInsets.only(top: 2),
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
-          const SizedBox(width: 12),
+        );
+      }).toList(),
+    );
 
-          // قائمة الأيام السبعة
-          Expanded(
-            child: Row(
-              children: days.map((day) {
-                final isSelected = DateUtils.isSameDay(selectedDate, day);
-                final dayLabel = intl.DateFormat('E', 'ar').format(day);
-                final dayNum = intl.DateFormat('d').format(day);
-
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      ref.read(selectedDateProvider.notifier).state =
-                          DateTime(day.year, day.month, day.day);
-                    },
-                    child: AnimatedContainer(
-                      duration: AppMotion.fast,
-                      curve: AppMotion.curve,
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            _getShortDayName(dayLabel),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.cairo(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: isSelected
-                                  ? Colors.white.withValues(alpha: 0.9)
-                                  : Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.color
-                                      ?.withValues(alpha: 0.7),
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            dayNum,
-                            style: GoogleFonts.cairo(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: isSelected
-                                  ? Colors.white
-                                  : Theme.of(context).textTheme.titleMedium?.color,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+    if (isMobile) {
+      return AppCard(
+        padding: const EdgeInsets.all(12),
+        radius: AppRadii.radiusLg,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                datePickerButton,
+                const SizedBox(width: 8),
+                Expanded(child: daysRow),
+              ],
             ),
-          ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: _buildDoctorFilterChip(context, ref)),
+                const SizedBox(width: 8),
+                Expanded(child: _buildBranchFilterChip(context, ref)),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
 
+    return AppCard(
+      padding: const EdgeInsets.all(12),
+      radius: AppRadii.radiusLg,
+      child: Row(
+        children: [
+          datePickerButton,
+          const SizedBox(width: 12),
+          Expanded(child: daysRow),
           const SizedBox(width: 8),
           _buildDoctorFilterChip(context, ref),
           const SizedBox(width: 8),
           _buildBranchFilterChip(context, ref),
-
           if (MediaQuery.of(context).size.width >= 1150) ...[
             const SizedBox(width: 16),
             Column(

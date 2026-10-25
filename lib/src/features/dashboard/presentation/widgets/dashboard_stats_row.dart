@@ -167,13 +167,15 @@ class DashboardStatsRow extends ConsumerWidget {
   }
 
   String _formatCurrency(double v) {
-    final str = v.toStringAsFixed(0);
+    final isNegative = v < 0;
+    final absInt = v.abs().round();
+    final str = absInt.toString();
     final buffer = StringBuffer();
     for (var i = 0; i < str.length; i++) {
       final fromRight = str.length - i;
       buffer.write(str[i]);
       if (fromRight > 1 && fromRight % 3 == 1) buffer.write(',');
     }
-    return '$buffer ج.م';
+    return '${isNegative ? "-" : ""}$buffer ج.م';
   }
 }

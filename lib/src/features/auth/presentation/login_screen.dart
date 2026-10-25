@@ -66,7 +66,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             duration: const Duration(seconds: 2),
             content: Text(
               next.errorMessage!,
-              style: TextStyle(color: AppColors.onPrimary),
+              style: const TextStyle(color: AppColors.onPrimary),
             ),
             backgroundColor: AppColors.danger,
           ),

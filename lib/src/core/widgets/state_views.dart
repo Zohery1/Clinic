@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../constants/app_spacing.dart';
 import '../theme/app_theme.dart';
 
 /// حالة فراغ موحدة: أيقونة + عنوان + وصف + إجراء اختياري

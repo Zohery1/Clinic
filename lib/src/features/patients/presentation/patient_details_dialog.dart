@@ -21,7 +21,7 @@ export 'widgets/patient_providers.dart';
 export 'widgets/appointment_services_section.dart';
 export 'widgets/patient_visit_note_section.dart';
 
-/// ???? ????? ??? ?????? ?????? (??????? ?? ?????? ???? ??????)
+/// حوار وشاشة عرض تفاصيل المريض (متوافقة مع الهاتف وسطح المكتب)
 class PatientDetailsDialog extends ConsumerWidget {
   final String clinicId;
   final PatientModel patient;
@@ -53,15 +53,15 @@ class PatientDetailsDialog extends ConsumerWidget {
   String _translateStatus(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
-        return '?? ??????';
+        return 'مع الطبيب';
       case 'confirmed':
-        return '?? ????????';
+        return 'في الانتظار';
       case 'completed':
-        return '?????';
+        return 'منتهي';
       case 'cancelled':
-        return '????';
+        return 'ملغي';
       default:
-        return '?? ????????';
+        return 'في الانتظار';
     }
   }
 
@@ -136,7 +136,7 @@ class PatientDetailsDialog extends ConsumerWidget {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            '????? ????? ??????',
+            'تفاصيل الملف الطبي', 
             style: GoogleFonts.cairo(
               fontWeight: FontWeight.w700,
               fontSize: 16,
@@ -179,7 +179,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '??? ??? $fileNo',
+                          'رقم ملف $fileNo',
                           style: GoogleFonts.cairo(
                             fontSize: 12,
                             color: AppColors.primary,
@@ -220,7 +220,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '?????',
+                            'تعديل', 
                             style: GoogleFonts.cairo(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -242,8 +242,8 @@ class PatientDetailsDialog extends ConsumerWidget {
                   Row(
                     children: [
                       PatientClinicalMetaItem(
-                        title: '??? ??????',
-                        value: patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : '??? ????',
+                        title: 'رقم الهاتف', 
+                        value: patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير متوفر', 
                         icon: Icons.phone_rounded,
                         color: AppColors.primary,
                         onActionTap: (patient.phone != null && patient.phone!.isNotEmpty)
@@ -251,12 +251,12 @@ class PatientDetailsDialog extends ConsumerWidget {
                             : null,
                         actionIcon: Icons.chat_bubble_outline_rounded,
                         actionColor: AppColors.success,
-                        actionTooltip: '????? ????? ?????? ??????',
+                        actionTooltip: 'إرسال رسالة واتساب للمريض', 
                       ),
                       const SizedBox(width: AppSpace.sm),
                       PatientClinicalMetaItem(
-                        title: '???????',
-                        value: displayAddress.isNotEmpty ? displayAddress : '??? ????',
+                        title: 'العنوان', 
+                        value: displayAddress.isNotEmpty ? displayAddress : 'غير متوفر', 
                         icon: Icons.location_on_outlined,
                         color: AppColors.success,
                       ),
@@ -266,17 +266,17 @@ class PatientDetailsDialog extends ConsumerWidget {
                   Row(
                     children: [
                       PatientClinicalMetaItem(
-                        title: '?????',
-                        value: age != null ? '$age ???' : '??? ????',
+                        title: 'العمر', 
+                        value: age != null ? '$age سنة' : 'غير متوفر', 
                         icon: Icons.cake_outlined,
-                        color: AppColors.warning,
+                        color: AppColors.info,
                       ),
                       const SizedBox(width: AppSpace.sm),
                       PatientClinicalMetaItem(
-                        title: '??? ?????',
+                        title: 'رقم الملف', 
                         value: fileNo,
                         icon: Icons.badge_rounded,
-                        color: AppColors.completed,
+                        color: AppColors.primary,
                       ),
                     ],
                   ),
@@ -307,7 +307,7 @@ class PatientDetailsDialog extends ConsumerWidget {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.onPrimary,
           icon: const Icon(Icons.add_task_rounded, size: 20),
-          label: const Text('??? ????', style: TextStyle(fontWeight: FontWeight.w700)),
+          label: const Text('حجز موعد', style: TextStyle(fontWeight: FontWeight.w700)),
         ),
       ),
     );
@@ -358,7 +358,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '????? ?????',
+                              'تفاصيل المريض', 
                               style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 18,
@@ -367,7 +367,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '?????? ?????? ???? ???????',
+                              'البيانات الطبية وسجل الزيارات', 
                               style: TextStyle(
                                 fontSize: 13,
                                 color: AppColors.textSecondary(context).withValues(alpha: 0.7),
@@ -412,10 +412,43 @@ class PatientDetailsDialog extends ConsumerWidget {
                                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
                                 ),
                                 const SizedBox(height: 4),
-                                Text('??? ??? $fileNo', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                Text('رقم ملف $fileNo', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => EditPatientDialog(
+                                  clinicId: clinicId,
+                                  patient: patient,
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.edit_outlined, size: 16),
+                            label: Text(
+                              'تعديل البيانات',
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: BorderSide(
+                                color: AppColors.primary.withValues(alpha: 0.35),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpace.sm),
                           ElevatedButton.icon(
                             onPressed: () {
                               showDialog(
@@ -427,7 +460,24 @@ class PatientDetailsDialog extends ConsumerWidget {
                               );
                             },
                             icon: const Icon(Icons.add_task_rounded, size: 16),
-                            label: const Text('??? ????'),
+                            label: Text(
+                              'حجز موعد',
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -435,8 +485,8 @@ class PatientDetailsDialog extends ConsumerWidget {
                       Row(
                         children: [
                           PatientClinicalMetaItem(
-                            title: '??? ??????',
-                            value: patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : '??? ????',
+                            title: 'رقم الهاتف', 
+                            value: patient.phone != null && patient.phone!.isNotEmpty ? patient.phone! : 'غير متوفر', 
                             icon: Icons.phone_rounded,
                             color: AppColors.primary,
                             onActionTap: (patient.phone != null && patient.phone!.isNotEmpty)
@@ -444,35 +494,35 @@ class PatientDetailsDialog extends ConsumerWidget {
                                 : null,
                             actionIcon: Icons.chat_bubble_outline_rounded,
                             actionColor: AppColors.success,
-                            actionTooltip: '????? ????? ?????? ??????',
+                            actionTooltip: 'إرسال رسالة واتساب للمريض', 
                           ),
                           const SizedBox(width: AppSpace.md),
                           PatientClinicalMetaItem(
-                            title: '???????',
-                            value: displayAddress.isNotEmpty ? displayAddress : '??? ????',
+                            title: 'العنوان', 
+                            value: displayAddress.isNotEmpty ? displayAddress : 'غير متوفر', 
                             icon: Icons.location_on_outlined,
                             color: AppColors.success,
                           ),
                           const SizedBox(width: AppSpace.md),
                           PatientClinicalMetaItem(
-                            title: '?????',
-                            value: age != null ? '$age ???' : '??? ????',
+                            title: 'العمر', 
+                            value: age != null ? '$age سنة' : 'غير متوفر', 
                             icon: Icons.cake_outlined,
-                            color: AppColors.warning,
+                            color: AppColors.info,
                           ),
                           const SizedBox(width: AppSpace.md),
                           PatientClinicalMetaItem(
-                            title: '??? ?????',
+                            title: 'رقم الملف', 
                             value: fileNo,
                             icon: Icons.badge_rounded,
-                            color: AppColors.completed,
+                            color: AppColors.primary,
                           ),
                         ],
                       ),
                       const SizedBox(height: AppSpace.lg),
                       _buildMedicalHistoryCard(context, medicalHistory),
                       const SizedBox(height: AppSpace.xxl),
-                      const Text('??? ???????? ????????', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      const Text('سجل الزيارات والتشخيص', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                       const SizedBox(height: AppSpace.md),
                       _buildAppointmentsTimeline(context, ref, isDoctor),
                     ],
@@ -487,33 +537,48 @@ class PatientDetailsDialog extends ConsumerWidget {
   }
 
   Widget _buildMedicalHistoryCard(BuildContext context, String medicalHistory) {
+    final hasAllergyAlert = medicalHistory.contains('حساسية') || medicalHistory.toLowerCase().contains('allergy');
+    final accentColor = hasAllergyAlert ? AppColors.danger : AppColors.primary;
+    final bgColor = hasAllergyAlert
+        ? AppColors.dangerSubtle.withValues(alpha: 0.08)
+        : AppColors.subtle(context);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpace.md),
       decoration: BoxDecoration(
-        color: AppColors.dangerSubtle.withValues(alpha: 0.08),
+        color: bgColor,
         borderRadius: BorderRadius.circular(AppRadii.radiusMd),
+        border: Border.all(
+          color: hasAllergyAlert
+              ? AppColors.danger.withValues(alpha: 0.3)
+              : AppColors.borderSubtle(context),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.description_outlined, color: AppColors.danger, size: 16),
-              SizedBox(width: AppSpace.xs),
+              Icon(
+                hasAllergyAlert ? Icons.warning_amber_rounded : Icons.description_outlined,
+                color: accentColor,
+                size: 16,
+              ),
+              const SizedBox(width: AppSpace.xs),
               Text(
-                '????? ?????? ??????',
+                'السجل المرضي والملاحظات السريرية',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
-                  color: AppColors.danger,
+                  color: accentColor,
                 ),
               ),
             ],
           ),
           const SizedBox(height: AppSpace.sm),
           Text(
-            medicalHistory.isNotEmpty ? medicalHistory : '?? ???? ??? ???? ????.',
+            medicalHistory.isNotEmpty ? medicalHistory : 'لا يوجد سجل مرضي مسجل.',
             style: TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary(context),
@@ -536,7 +601,7 @@ class PatientDetailsDialog extends ConsumerWidget {
             child: Center(
               child: AppEmptyState(
                 icon: Icons.history_rounded,
-                title: '?? ???? ?????? ????? ????? ??????',
+                title: 'لا توجد زيارات سابقة مسجلة للمريض',
               ),
             ),
           );
@@ -596,8 +661,8 @@ class PatientDetailsDialog extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
       error: (err, _) => AppErrorState(
-        title: '???',
-        message: '???: $err',
+        title: 'خطأ',
+        message: 'خطأ: $err',
         onRetry: () => ref.invalidate(patientAppointmentsProvider(patient.id)),
       ),
     );

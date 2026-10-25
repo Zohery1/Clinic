@@ -37,7 +37,7 @@ class _ClinicBranchesPageState extends ConsumerState<ClinicBranchesPage> {
             child: Dialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               child: Container(
-                width: 440,
+                constraints: const BoxConstraints(maxWidth: 440),
                 padding: const EdgeInsets.all(24),
                 child: Form(
                   key: formKey,

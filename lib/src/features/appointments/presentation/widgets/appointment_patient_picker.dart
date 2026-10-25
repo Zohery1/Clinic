@@ -324,6 +324,7 @@ class AppointmentPatientPicker extends ConsumerWidget {
                 return TextFormField(
                   controller: controller,
                   focusNode: focusNode,
+                  autofocus: true,
                   decoration: InputDecoration(
                     hintText: 'ابحث بالاسم أو رقم الهاتف...',
                     prefixIcon: const Icon(Icons.person_search_outlined, size: 20),
@@ -336,7 +337,15 @@ class AppointmentPatientPicker extends ConsumerWidget {
                     fillColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.4)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
                     ),
                   ),
                   validator: (val) {

@@ -227,30 +227,31 @@ class _CashDrawerReconciliationTabState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Banner
+          // Manager Header Banner
           Container(
             padding: const EdgeInsets.all(AppSpace.lg),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.08),
-                  AppColors.primarySubtle,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border:
-                  Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+              color: AppColors.surface(context),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.borderSubtle(context)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.point_of_sale_rounded,
-                      color: Colors.white, size: 28),
+                      color: AppColors.primary, size: 26),
                 ),
                 const SizedBox(width: AppSpace.md),
                 Expanded(
@@ -262,7 +263,7 @@ class _CashDrawerReconciliationTabState
                           Text(
                             'إدارة الخزينة ومطابقة الدرج اليومي',
                             style: GoogleFonts.cairo(
-                              fontSize: 16.5,
+                              fontSize: 16,
                               fontWeight: FontWeight.w800,
                               color: AppColors.textPrimary(context),
                             ),
@@ -272,13 +273,13 @@ class _CashDrawerReconciliationTabState
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
+                              color: AppColors.primarySubtle,
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Manager Tool',
-                              style: TextStyle(
-                                  color: Colors.white,
+                              style: GoogleFonts.jetBrainsMono(
+                                  color: AppColors.primary,
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold),
                             ),

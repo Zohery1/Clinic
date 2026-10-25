@@ -52,24 +52,11 @@ class _DashboardWeeklyChartState extends ConsumerState<DashboardWeeklyChart> {
     final async = ref.watch(weeklyRevenueProvider);
     final isDark = AppColors.isDark(context);
 
-    final actions = Wrap(
-      spacing: AppSpace.xs,
-      children: const [
-        AppChip(
-          label: 'الأسبوع',
-          icon: Icons.calendar_view_week_rounded,
-          selected: true,
-          variant: AppChipVariant.filter,
-        ),
-        AppChip(
-          label: 'الشهر',
-          variant: AppChipVariant.filter,
-        ),
-        AppChip(
-          label: 'السنة',
-          variant: AppChipVariant.filter,
-        ),
-      ],
+    const actions = AppChip(
+      label: 'آخر 7 أيام',
+      icon: Icons.calendar_view_week_rounded,
+      selected: true,
+      variant: AppChipVariant.filter,
     );
 
     Widget chart;
@@ -94,8 +81,8 @@ class _DashboardWeeklyChartState extends ConsumerState<DashboardWeeklyChart> {
     } else {
       final data = async.value ?? const [];
       if (data.isEmpty) {
-        chart = Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpace.lg),
+        chart = const Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpace.lg),
           child: AppEmptyState(
             icon: Icons.bar_chart_outlined,
             title: 'لا توجد بيانات بعد',

@@ -410,44 +410,51 @@ class StaffPermissionsPage extends ConsumerWidget {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 18,
-                                        backgroundColor: isDark
-                                            ? AppColors.primary.withValues(alpha: 0.15)
-                                            : AppColors.primarySubtle,
-                                        child: Text(
-                                          staff.fullName.isNotEmpty ? staff.fullName[0] : '?',
-                                          style: GoogleFonts.cairo(
-                                            color: AppColors.primary,
-                                            fontWeight: FontWeight.w700,
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 18,
+                                          backgroundColor: isDark
+                                              ? AppColors.primary.withValues(alpha: 0.15)
+                                              : AppColors.primarySubtle,
+                                          child: Text(
+                                            staff.fullName.isNotEmpty ? staff.fullName[0] : '?',
+                                            style: GoogleFonts.cairo(
+                                              color: AppColors.primary,
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            staff.fullName,
-                                            style: GoogleFonts.cairo(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                              color: AppColors.textPrimary(context),
-                                            ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                staff.fullName,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.cairo(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                  color: AppColors.textPrimary(context),
+                                                ),
+                                              ),
+                                              Text(
+                                                staff.isActive ? 'الحساب نشط' : 'الحساب محظور',
+                                                style: GoogleFonts.cairo(
+                                                  fontSize: 11,
+                                                  color: staff.isActive ? AppColors.success : AppColors.danger,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          Text(
-                                            staff.isActive ? 'الحساب نشط' : 'الحساب محظور',
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 11,
-                                              color: staff.isActive ? AppColors.success : AppColors.danger,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Switch(
                                     value: staff.isActive,
                                     activeTrackColor: AppColors.primary,

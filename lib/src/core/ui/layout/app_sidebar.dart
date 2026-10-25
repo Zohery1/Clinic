@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../features/auth/domain/user_model.dart';
@@ -278,15 +278,18 @@ class _NavTileState extends State<_NavTile> {
         color: bg,
         borderRadius: AppRadii.brSm,
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpace.sm,
-        vertical: AppSpace.sm + 2,
+      padding: const EdgeInsetsDirectional.only(
+        start: AppSpace.md,
+        end: AppSpace.sm,
+        top: AppSpace.sm + 2,
+        bottom: AppSpace.sm + 2,
       ),
       child: Stack(
+        alignment: AlignmentDirectional.centerStart,
         children: [
           if (active)
-            Positioned(
-              right: 0,
+            PositionedDirectional(
+              start: -AppSpace.md + 2,
               top: 6,
               bottom: 6,
               child: Container(

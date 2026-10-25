@@ -197,7 +197,7 @@ final detailedReportProvider = FutureProvider.family<Map<String, dynamic>, Strin
 });
 
 // مزود لحالات المواعيد اليوم (لوحة todayStatusCounts)
-// Returned in todayAppointmentsProvider ???? ??????? ?? ????? ?????.
+// Returned in todayAppointmentsProvider لعرض المواعيد في اليوم الحالي.
 final todayStatusCountsProvider = FutureProvider<Map<String, double>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) {

@@ -19,10 +19,12 @@ class MonthlyLogsTab extends ConsumerWidget {
       orElse: () => const <Map<String, dynamic>>[],
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpace.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -87,6 +89,7 @@ class MonthlyLogsTab extends ConsumerWidget {
           },
         ),
       ],
+      ),
     );
   }
 

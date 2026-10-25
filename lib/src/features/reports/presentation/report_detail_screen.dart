@@ -55,10 +55,8 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0.5,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_rounded,
-                size: 18,
-                color: Theme.of(context).textTheme.bodyLarge?.color),
+          leading: BackButton(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             onPressed: () => Navigator.pop(context),
           ),
           title: Column(

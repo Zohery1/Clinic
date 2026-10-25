@@ -224,23 +224,48 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                               return Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
-                                children: historyItems.map((mh) => Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.dangerSubtle,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
-                                      ),
-                                      child: Text(
-                                        mh,
-                                        style: GoogleFonts.cairo(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.danger,
-                                          height: 1.4,
+                                children: historyItems.map((mh) {
+                                  final isAllergy = mh.contains('حساسية') ||
+                                      mh.toLowerCase().contains('allergy');
+                                  final itemColor = isAllergy ? AppColors.danger : AppColors.textPrimary(context);
+                                  final itemBg = isAllergy
+                                      ? AppColors.dangerSubtle
+                                      : AppColors.subtle(context);
+                                  final itemBorder = isAllergy
+                                      ? AppColors.danger.withValues(alpha: 0.4)
+                                      : AppColors.borderSubtle(context);
+
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: itemBg,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: itemBorder),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (isAllergy) ...[
+                                          const Icon(
+                                            Icons.warning_amber_rounded,
+                                            size: 14,
+                                            color: AppColors.danger,
+                                          ),
+                                          const SizedBox(width: 4),
+                                        ],
+                                        Text(
+                                          mh,
+                                          style: GoogleFonts.cairo(
+                                            fontSize: 12,
+                                            fontWeight: isAllergy ? FontWeight.w700 : FontWeight.w600,
+                                            color: itemColor,
+                                            height: 1.4,
+                                          ),
                                         ),
-                                      ),
-                                    )).toList(),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
                               );
                             } else {
                               return Container(

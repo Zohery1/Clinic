@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../reports/presentation/reports_controller.dart';
 import '../../domain/appointment_type_model.dart';
@@ -188,7 +187,7 @@ class AppointmentTypePicker extends ConsumerWidget {
               ),
               child: Text(
                 '${type.price.toStringAsFixed(0)} ج.م',
-                style: GoogleFonts.cairo(
+                style: GoogleFonts.jetBrainsMono(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: isSelected

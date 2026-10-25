@@ -109,7 +109,7 @@ class _SubTabsInline extends StatelessWidget {
       'نظرة عامة',
       'السجلات اليومية',
       'السجلات الشهرية',
-      'تقفيل الخزينة والدرج 💰',
+      'تقفيل الخزينة والدرج',
     ];
 
     return Container(

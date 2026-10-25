@@ -507,9 +507,8 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
             backgroundColor: AppColors.surface(context),
             elevation: 0,
             surfaceTintColor: Colors.transparent,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back_rounded,
-                  color: AppColors.textPrimary(context)),
+            leading: BackButton(
+              color: AppColors.textPrimary(context),
               onPressed: () async {
                 final shouldPop = await _confirmDiscardChanges();
                 if (shouldPop && context.mounted) {

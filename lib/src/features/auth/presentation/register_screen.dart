@@ -206,7 +206,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     final state = ref.watch(registerControllerProvider);
-    final showMobileLogo = MediaQuery.of(context).size.width < 900;
 
     return Directionality(
       textDirection: TextDirection.rtl,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../ui/tokens/spacing.dart';
 
 /// Standardized calm medical card container for the clinic design system.
 /// Supports hover animations on desktop/web, selection states, custom headers/footers,

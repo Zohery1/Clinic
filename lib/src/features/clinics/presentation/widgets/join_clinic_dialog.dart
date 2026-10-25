@@ -68,7 +68,7 @@ class _JoinClinicDialogState extends ConsumerState<JoinClinicDialog> {
       child: Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
-          width: 420,
+          constraints: const BoxConstraints(maxWidth: 420),
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,

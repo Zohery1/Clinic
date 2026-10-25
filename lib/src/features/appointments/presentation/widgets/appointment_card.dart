@@ -234,59 +234,59 @@ class AppointmentCard extends ConsumerWidget {
                   : (isCancelled ? 0.70 : 1.0),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                child: Row(
-                  children: [
-                    // ─── 1. المؤشر اللوني للحالة + رقم الطابور ───
-                    Container(
-                      width: 3,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: isPending ? AppColors.info : color,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 460;
 
-                    // شارة رقم الطابور أو الأيقونة
-                    Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: isPending
-                            ? AppColors.infoSubtle
-                            : (isSelected
-                                ? AppColors.primary.withValues(alpha: 0.15)
-                                : color.withValues(alpha: 0.12)),
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        queueIndex != null
-                            ? '$queueIndex'
-                            : (appointment.patient.fullName.isNotEmpty
-                                ? appointment.patient.fullName[0]
-                                : '#'),
-                        style: queueIndex != null
-                            ? GoogleFonts.jetBrainsMono(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: isPending
-                                    ? AppColors.info
-                                    : (isSelected ? AppColors.primary : color),
-                              )
-                            : GoogleFonts.cairo(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: isPending
-                                    ? AppColors.info
-                                    : (isSelected ? AppColors.primary : color),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
+                    // 1. المؤشر اللوني
+                    Widget buildColorBar([double height = 38]) => Container(
+                          width: 3,
+                          height: height,
+                          decoration: BoxDecoration(
+                            color: isPending ? AppColors.info : color,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        );
 
-                    // ─── 2. الوقت في شريحة مدمجة ───
-                    Container(
+                    // 2. شارة رقم الطابور أو الأيقونة
+                    Widget buildQueueBadge([double size = 30]) => Container(
+                          width: size,
+                          height: size,
+                          decoration: BoxDecoration(
+                            color: isPending
+                                ? AppColors.infoSubtle
+                                : (isSelected
+                                    ? AppColors.primary.withValues(alpha: 0.15)
+                                    : color.withValues(alpha: 0.12)),
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            queueIndex != null
+                                ? '$queueIndex'
+                                : (appointment.patient.fullName.isNotEmpty
+                                    ? appointment.patient.fullName[0]
+                                    : '#'),
+                            style: queueIndex != null
+                                ? GoogleFonts.jetBrainsMono(
+                                    fontSize: size * 0.4,
+                                    fontWeight: FontWeight.w800,
+                                    color: isPending
+                                        ? AppColors.info
+                                        : (isSelected ? AppColors.primary : color),
+                                  )
+                                : GoogleFonts.cairo(
+                                    fontSize: size * 0.4,
+                                    fontWeight: FontWeight.w800,
+                                    color: isPending
+                                        ? AppColors.info
+                                        : (isSelected ? AppColors.primary : color),
+                                  ),
+                          ),
+                        );
+
+                    // 3. الوقت في شريحة مدمجة
+                    final timeWidget = Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 7, vertical: 3),
                       decoration: BoxDecoration(
@@ -324,184 +324,134 @@ class AppointmentCard extends ConsumerWidget {
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
+                    );
 
-                    // ─── 3. بيانات المريض والكشف (وسط مرن) ───
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // السطر الأول: الاسم + الهاتف واتساب + نوع الكشف
-                          Row(
+                    // 4. نوع الكشف
+                    Widget? appointmentTypeWidget;
+                    if (appointment.appointmentTypeName != null &&
+                        appointment.appointmentTypeName!.isNotEmpty) {
+                      appointmentTypeWidget = Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: AppColors.subtle(context),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: AppColors.borderSubtle(context),
+                          ),
+                        ),
+                        child: Text(
+                          appointment.appointmentTypeName!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.cairo(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary(context),
+                            height: 1.35,
+                          ),
+                        ),
+                      );
+                    }
+
+                    // 5. زر الواتساب
+                    Widget? whatsappWidget;
+                    if (appointment.patient.phone != null &&
+                        appointment.patient.phone!.isNotEmpty) {
+                      whatsappWidget = InkWell(
+                        onTap: () => showSendWhatsAppDialog(
+                          context,
+                          ref,
+                          phone: appointment.patient.phone!,
+                          patientName: appointment.patient.fullName,
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 2),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  appointment.patient.fullName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary(context),
-                                    height: 1.35,
-                                  ),
+                              const Icon(
+                                Icons.chat_bubble_rounded,
+                                size: 11,
+                                color: AppColors.success,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                appointment.patient.phone!,
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.success,
                                 ),
                               ),
-                              if (appointment.patient.phone != null &&
-                                  appointment.patient.phone!.isNotEmpty) ...[
-                                const SizedBox(width: 8),
-                                InkWell(
-                                  onTap: () => showSendWhatsAppDialog(
-                                    context,
-                                    ref,
-                                    phone: appointment.patient.phone!,
-                                    patientName: appointment.patient.fullName,
-                                  ),
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 4, vertical: 2),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.chat_bubble_rounded,
-                                          size: 11,
-                                          color: AppColors.success,
-                                        ),
-                                        const SizedBox(width: 3),
-                                        Text(
-                                          appointment.patient.phone!,
-                                          style: GoogleFonts.jetBrainsMono(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.success,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              if (appointment.appointmentTypeName != null &&
-                                  appointment
-                                      .appointmentTypeName!.isNotEmpty) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 1.5),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.subtle(context),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                      color: AppColors.borderSubtle(context),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    appointment.appointmentTypeName!,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textSecondary(context),
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ],
                           ),
-                          const SizedBox(height: 3),
+                        ),
+                      );
+                    }
 
-                          // السطر الثاني: شارة الحالة + اسم الطبيب + الرصيد المالي
-                          Row(
-                            children: [
-                              AppBadge(
-                                label: label,
-                                icon: icon,
-                                variant: _badgeVariant(status),
-                              ),
-                              if (appointment.doctorName != null &&
-                                  appointment.doctorName!.isNotEmpty) ...[
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Text(
-                                    DoctorUtils.formatTitle(appointment.doctorName),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.cairo(
-                                      fontSize: 11,
-                                      color: AppColors.textMuted(context),
-                                      fontWeight: FontWeight.w600,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              if (totalPaid > 0) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 5, vertical: 1),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.success
-                                        .withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    'مدفوع ${totalPaid.toStringAsFixed(0)} ج.م',
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 10,
-                                      color: AppColors.success,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              if (hasBalance) ...[
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 5, vertical: 1),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.danger
-                                        .withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    'متبقي ${remaining.toStringAsFixed(0)} ج.م',
-                                    style: GoogleFonts.jetBrainsMono(
-                                      fontSize: 10,
-                                      color: AppColors.danger,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
+                    // 6. اسم الطبيب
+                    Widget? doctorWidget;
+                    if (appointment.doctorName != null &&
+                        appointment.doctorName!.isNotEmpty) {
+                      doctorWidget = Text(
+                        DoctorUtils.formatTitle(appointment.doctorName),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.cairo(
+                          fontSize: 11,
+                          color: AppColors.textMuted(context),
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                      );
+                    }
+
+                    // 7. الشارة المالية
+                    final financialBadges = [
+                      if (totalPaid > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
+                          child: Text(
+                            'مدفوع ${totalPaid.toStringAsFixed(0)} ج.م',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 10,
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      if (hasBalance)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.danger.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'متبقي ${remaining.toStringAsFixed(0)} ج.م',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 10,
+                              color: AppColors.danger,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ];
 
-                    // ─── 4. الإجراء الفوري السريع ───
-                    Builder(
-                      builder: (context) {
-                        final action = _buildQuickAction(context, ref, status, isDoctor);
-                        if (action == null) return const SizedBox(width: 8);
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: action,
-                        );
-                      },
-                    ),
+                    // 8. زر الإجراء السريع
+                    final quickActionWidget = _buildQuickAction(context, ref, status, isDoctor);
 
-                    // ─── 5. قائمة الخيارات المنبثقة ───
-                    PopupMenuButton<String>(
+                    // 9. القائمة المنبثقة
+                    final menuWidget = PopupMenuButton<String>(
                       icon: Icon(
                         Icons.more_vert_rounded,
                         size: 18,
@@ -595,8 +545,143 @@ class AppointmentCard extends ConsumerWidget {
                             ),
                           ),
                       ],
-                    ),
-                  ],
+                    );
+
+                    if (isCompact) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              buildColorBar(22),
+                              const SizedBox(width: 6),
+                              buildQueueBadge(22),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  appointment.patient.fullName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary(context),
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                              menuWidget,
+                            ],
+                          ),
+                          const SizedBox(height: 5),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              timeWidget,
+                              if (appointmentTypeWidget != null) appointmentTypeWidget,
+                              if (doctorWidget != null) doctorWidget,
+                              if (whatsappWidget != null) whatsappWidget,
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    AppBadge(
+                                      label: label,
+                                      icon: icon,
+                                      variant: _badgeVariant(status),
+                                    ),
+                                    ...financialBadges,
+                                  ],
+                                ),
+                              ),
+                              if (quickActionWidget != null) ...[
+                                const SizedBox(width: 6),
+                                quickActionWidget,
+                              ],
+                            ],
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        buildColorBar(38),
+                        const SizedBox(width: 8),
+                        buildQueueBadge(30),
+                        const SizedBox(width: 10),
+                        timeWidget,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      appointment.patient.fullName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textPrimary(context),
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ),
+                                  if (whatsappWidget != null) ...[
+                                    const SizedBox(width: 8),
+                                    whatsappWidget,
+                                  ],
+                                  if (appointmentTypeWidget != null) ...[
+                                    const SizedBox(width: 8),
+                                    appointmentTypeWidget,
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  AppBadge(
+                                    label: label,
+                                    icon: icon,
+                                    variant: _badgeVariant(status),
+                                  ),
+                                  if (doctorWidget != null) doctorWidget,
+                                  ...financialBadges,
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (quickActionWidget != null)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: quickActionWidget,
+                          )
+                        else
+                          const SizedBox(width: 8),
+                        menuWidget,
+                      ],
+                    );
+                  },
                 ),
               ),
             ),

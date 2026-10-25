@@ -62,7 +62,7 @@ class _NotificationsSheet extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface(context),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.radiusX2l)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadii.radiusX2l)),
         border: Border.all(color: AppColors.borderSubtle(context), width: 1),
       ),
       clipBehavior: Clip.antiAlias,
@@ -81,7 +81,7 @@ class _NotificationsSheet extends ConsumerWidget {
                     color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
                     borderRadius: AppRadii.brSm,
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.notifications_active_rounded,
                     size: 18,
                     color: AppColors.primary,
@@ -229,7 +229,7 @@ class _NotificationsSheet extends ConsumerWidget {
                                               Container(
                                                 width: 8,
                                                 height: 8,
-                                                decoration: BoxDecoration(
+                                                decoration: const BoxDecoration(
                                                   color: AppColors.primary,
                                                   shape: BoxShape.circle,
                                                 ),

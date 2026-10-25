@@ -1,7 +1,8 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/ui/data/app_stat_card.dart';
 import '../../../../core/ui/feedback/app_empty_state.dart';
@@ -123,7 +124,13 @@ class _AppointmentsMobileViewState
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('حجز جديد'),
+        label: Text(
+          'حجز جديد',
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.w700,
+            fontSize: 13.5,
+          ),
+        ),
       ),
       body: RefreshIndicator(
         color: AppColors.primary,
@@ -376,8 +383,8 @@ class _List extends ConsumerWidget {
       loading: () => Column(
         children: List.generate(
           3,
-          (i) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpace.md),
+          (i) => const Padding(
+            padding: EdgeInsets.only(bottom: AppSpace.md),
             child: AppSkeleton(
               height: 120,
               radius: AppRadii.radiusMd,

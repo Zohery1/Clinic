@@ -680,20 +680,25 @@ class ClinicSwitcherButton extends ConsumerWidget {
       branchLabel = activeClinic.mainBranch?.name ?? 'الفرع الرئيسي';
     }
 
+    final isDark = theme.brightness == Brightness.dark;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         onTap: () => showSwitcherModal(context, ref),
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isCompact ? 8 : 12,
-            vertical: isCompact ? 4 : 6,
+            horizontal: isCompact ? 10 : 12,
+            vertical: isCompact ? 5 : 6,
           ),
           decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.darkBorder.withValues(alpha: 0.3)),
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              width: 1,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -712,31 +717,33 @@ class ClinicSwitcherButton extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    clinicName,
-                    style: GoogleFonts.cairo(
-                      fontSize: isCompact ? 11.5 : 12.5,
-                      fontWeight: FontWeight.bold,
-                      height: 1.1,
-                      color: theme.textTheme.bodyLarge?.color,
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      clinicName,
+                      style: GoogleFonts.cairo(
+                        fontSize: isCompact ? 11.5 : 12.5,
+                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                        color: theme.textTheme.bodyLarge?.color,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    branchLabel,
-                    style: GoogleFonts.cairo(
-                      fontSize: isCompact ? 9 : 10,
-                      height: 1.1,
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
+                    Text(
+                      branchLabel,
+                      style: GoogleFonts.cairo(
+                        fontSize: isCompact ? 9 : 10,
+                        height: 1.1,
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(width: 6),
               Icon(
