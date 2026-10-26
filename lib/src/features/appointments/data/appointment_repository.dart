@@ -80,6 +80,48 @@ class AppointmentRepository {
     }
   }
 
+  // إنشاء حجز فوري / كشف مباشر لمريض داخل العيادة
+  Future<AppointmentModel> createWalkInAppointment({
+    required String clinicId,
+    required String patientId,
+    String? doctorId,
+    String? branchId,
+    double price = 0.0,
+  }) async {
+    try {
+      final now = DateTime.now();
+      String? defaultTypeId;
+      try {
+        final types = await _supabase
+            .from('appointment_types')
+            .select('id, price')
+            .eq('clinic_id', clinicId)
+            .limit(1);
+        if (types.isNotEmpty) {
+          defaultTypeId = types.first['id'] as String;
+          if (price == 0.0 && types.first['price'] != null) {
+            price = (types.first['price'] as num).toDouble();
+          }
+        }
+      } catch (_) {}
+
+      final data = await _supabase.from('appointments').insert({
+        'clinic_id': clinicId,
+        if (branchId != null && branchId.isNotEmpty) 'branch_id': branchId,
+        'patient_id': patientId,
+        if (doctorId != null && doctorId.isNotEmpty) 'doctor_id': doctorId,
+        if (defaultTypeId != null) 'appointment_type_id': defaultTypeId,
+        'appointment_date': now.toUtc().toIso8601String(),
+        'price_charged': price,
+        'status': 'pending', // مع الطبيب مباشرة
+      }).select('*, patients(*), clinics(*)').single();
+
+      return AppointmentModel.fromJson(data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // حجز موعد جديد وحفظه في قاعدة البيانات مع الخدمات المرافقة
   Future<void> bookAppointment({
     required String clinicId,

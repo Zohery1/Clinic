@@ -75,10 +75,9 @@ class VisitNoteRepository {
             'clinic_id': clinicId,
             'appointment_id': appointmentId,
             'patient_id': patientId,
-            if (doctorId != null && doctorId.isNotEmpty) 'doctor_id': doctorId,
             'notes': notes,
           }, onConflict: 'appointment_id')
-          .select('*, users!doctor_id(full_name)')
+          .select()
           .single();
 
       return VisitNoteModel.fromJson(response);
@@ -104,7 +103,7 @@ class VisitNoteRepository {
     try {
       final data = await _supabase
           .from('visit_notes')
-          .select('*, users!doctor_id(full_name)')
+          .select()
           .eq('patient_id', patientId)
           .order('created_at', ascending: false);
 

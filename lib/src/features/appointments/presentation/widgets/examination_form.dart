@@ -78,29 +78,54 @@ class ExaminationForm extends StatelessWidget {
 
                 _buildFormField(
                   context,
-                  label: 'الشكوى الرئيسية (Chief Complaint)',
-                  hint: 'ما الذي يشكو منه المريض؟',
+                  label: 'الشكوى الرئيسية والأعراض (Chief Complaint)',
+                  hint: 'ما الذي يشكو منه المريض بالتفصيل؟',
                   controller: complaintController,
                   readOnly: !isDoctor,
                   icon: Icons.record_voice_over_outlined,
+                  quickChips: const [
+                    'ألم حاد في المعدة',
+                    'حموضة وارتجاع',
+                    'حرارة مرتفعة',
+                    'صداع مستمر',
+                    'سعال وكحة',
+                    'غثيان وقيء',
+                    'إرهاق ودوخة',
+                  ],
                 ),
                 const SizedBox(height: 20),
                 _buildFormField(
                   context,
                   label: 'التشخيص الطبي (Diagnosis)',
-                  hint: 'التشخيص الطبي للحالة...',
+                  hint: 'التشخيص الطبي المحدد للحالة...',
                   controller: diagnosisController,
                   readOnly: !isDoctor,
                   icon: Icons.medical_information_outlined,
+                  quickChips: const [
+                    'التهاب حاد بالمعدة (Gastritis)',
+                    'ارتجاع مريئي (GERD)',
+                    'نزلة معوية حادة',
+                    'التهاب الحلق واللوزتين',
+                    'نزلة برد حادة',
+                    'ارتفاع ضغط الدم',
+                  ],
                 ),
                 const SizedBox(height: 20),
                 _buildFormField(
                   context,
-                  label: 'التعليمات والخطة العلاجية (Instructions & Plan)',
-                  hint: 'أدوية، نصائح، أو مواعيد المراجعة...',
+                  label: 'الروشتة وخطة العلاج (Prescription & Plan)',
+                  hint: 'الأدوية الموصوفة والجرعات ومواعيد المتابعة...',
                   controller: instructionsController,
                   readOnly: !isDoctor,
                   icon: Icons.receipt_long_outlined,
+                  quickChips: const [
+                    'قرص قبل الإفطار بنصف ساعة',
+                    'قرص بعد الوجبات',
+                    'مرتين يومياً لمدة ٥ أيام',
+                    'كل ٨ ساعات عند اللزوم',
+                    'راحة تامة وسوائل دافئة',
+                    'إعادة الفحص بعد أسبوع',
+                  ],
                 ),
               ],
             );
@@ -251,6 +276,7 @@ class ExaminationForm extends StatelessWidget {
     required TextEditingController controller,
     required bool readOnly,
     required IconData icon,
+    List<String>? quickChips,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,6 +297,51 @@ class ExaminationForm extends StatelessWidget {
             ),
           ],
         ),
+        if (quickChips != null && quickChips.isNotEmpty && !readOnly) ...[
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 5,
+            children: quickChips.map((chip) {
+              return InkWell(
+                onTap: () {
+                  final cur = controller.text.trim();
+                  if (cur.isEmpty) {
+                    controller.text = chip;
+                  } else if (!cur.contains(chip)) {
+                    controller.text = '$cur\n• $chip';
+                  }
+                },
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                  decoration: BoxDecoration(
+                    color: AppColors.subtle(context),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: AppColors.borderSubtle(context),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.add_rounded, size: 12, color: AppColors.primary),
+                      const SizedBox(width: 3),
+                      Text(
+                        chip,
+                        style: GoogleFonts.cairo(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
         const SizedBox(height: 8),
         TextField(
           controller: controller,

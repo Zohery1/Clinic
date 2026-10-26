@@ -10,12 +10,14 @@ void showSendWhatsAppDialog(
   WidgetRef ref, {
   required String phone,
   required String patientName,
+  String? initialMessage,
 }) {
   showDialog(
     context: context,
     builder: (context) => SendWhatsAppDialog(
       phone: phone,
       patientName: patientName,
+      initialMessage: initialMessage,
     ),
   );
 }
@@ -23,11 +25,13 @@ void showSendWhatsAppDialog(
 class SendWhatsAppDialog extends ConsumerStatefulWidget {
   final String phone;
   final String patientName;
+  final String? initialMessage;
 
   const SendWhatsAppDialog({
     super.key,
     required this.phone,
     required this.patientName,
+    this.initialMessage,
   });
 
   @override
@@ -48,7 +52,7 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
   @override
   void initState() {
     super.initState();
-    _messageController = TextEditingController(text: '');
+    _messageController = TextEditingController(text: widget.initialMessage ?? '');
     _phoneController = TextEditingController(text: widget.phone);
   }
 

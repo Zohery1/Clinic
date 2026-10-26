@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart' as intl;
 import '../../../core/ui/tokens/colors.dart';
+import '../../../core/widgets/send_whatsapp_dialog.dart';
+import '../../clinics/presentation/clinics_controller.dart';
+import '../../patients/data/patient_repository.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
 import '../data/visit_note_repository.dart';
@@ -250,8 +254,66 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     }
   }
 
+  /// مشاركة الروشتة والتعليمات الطبية عبر واتساب المريض
+  Future<void> _sharePrescriptionViaWhatsApp() async {
+    String? patientPhone;
+    try {
+      final patients = await ref.read(patientRepositoryProvider).getPatients(widget.clinicId);
+      for (final p in patients) {
+        if (p.id == _currentPatientId && p.phone != null && p.phone!.isNotEmpty) {
+          patientPhone = p.phone;
+          break;
+        }
+      }
+    } catch (_) {}
+
+    final user = ref.read(currentUserProvider);
+    final activeClinic = ref.read(activeClinicSummaryProvider);
+    final clinicName = activeClinic?.clinicName ?? 'العيادة';
+    final doctorName = user?.fullName ?? 'الطبيب المعالج';
+
+    final text = StringBuffer();
+    text.writeln('🏥 $clinicName');
+    text.writeln('👨‍⚕️ د. $doctorName');
+    text.writeln('━━━━━━━━━━━━━━━━━━━━');
+    text.writeln('👤 المريض: $_currentPatientName');
+    final nowStr = intl.DateFormat('yyyy/MM/dd', 'ar').format(DateTime.now());
+    text.writeln('📅 التاريخ: $nowStr');
+    text.writeln('━━━━━━━━━━━━━━━━━━━━');
+
+    if (_diagnosisController.text.trim().isNotEmpty) {
+      text.writeln('🩺 التشخيص الطبي:');
+      text.writeln(_diagnosisController.text.trim());
+      text.writeln('');
+    }
+
+    if (_instructionsController.text.trim().isNotEmpty) {
+      text.writeln('💊 الروشتة وخطة العلاج:');
+      text.writeln(_instructionsController.text.trim());
+      text.writeln('');
+    }
+
+    if (_selectedServices.isNotEmpty) {
+      text.writeln('📋 الخدمات والإجراءات:');
+      text.writeln(_selectedServices.map((s) => s.name).join('، '));
+      text.writeln('');
+    }
+
+    text.writeln('مع تمنياتنا لكم بالشفاء العاجل ودوام الصحة والعافية 🌿');
+
+    if (!mounted) return;
+    showSendWhatsAppDialog(
+      context,
+      ref,
+      phone: patientPhone ?? '',
+      patientName: _currentPatientName,
+      initialMessage: text.toString(),
+    );
+  }
+
   /// حفظ التقرير دون إنهاء الكشف
   Future<void> _save({bool andComplete = false}) async {
+    debugPrint('[Examination] START SAVE: apptId=$_currentAppointmentId, patientId=$_currentPatientId, clinicId=${widget.clinicId}');
     final text = _buildNotesText();
     final hasContent = _complaintController.text.trim().isNotEmpty ||
         _diagnosisController.text.trim().isNotEmpty ||
@@ -280,8 +342,20 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     setState(() => _isSaving = true);
 
     try {
+      final currentUser = ref.read(currentUserProvider);
+
+      // إذا فُتحت شاشة الفحص مباشرة دون حجز مسبق، يتم إنشاء جلسة كشف فورية بالعيادة
+      if (_currentAppointmentId.isEmpty || _currentAppointmentId.length < 30) {
+        final walkIn = await ref.read(appointmentRepositoryProvider).createWalkInAppointment(
+              clinicId: widget.clinicId,
+              patientId: _currentPatientId,
+              doctorId: currentUser?.id,
+              branchId: currentUser?.activeBranchId,
+            );
+        _currentAppointmentId = walkIn.id;
+      }
+
       if (text.replaceAll(_fieldSeparator, '').trim().isNotEmpty) {
-        final currentUser = ref.read(currentUserProvider);
         await ref.read(visitNoteRepositoryProvider).upsertVisitNote(
               clinicId: widget.clinicId,
               appointmentId: _currentAppointmentId,
@@ -522,34 +596,51 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
               Row(
                 children: [
                   Text(
-                    'قمرة الفحص الطبي — $_currentPatientName',
+                    'جلسة الفحص الطبي — $_currentPatientName',
                     style: GoogleFonts.cairo(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                     decoration: BoxDecoration(
-                      color: AppColors.successSubtle,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'Clinical Cockpit',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.success,
+                      color: AppColors.primarySubtle,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
                       ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          'جلسة نشطة',
+                          style: GoogleFonts.cairo(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
               Text(
-                'فحص سريري متزامن مع طابور الانتظار والسجل التاريخي',
+                'الملف الطبي والكشف السريري المباشر',
                 style: GoogleFonts.cairo(
                   fontSize: 11,
                   color: AppColors.textSecondary(context),
@@ -558,6 +649,24 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
             ],
           ),
           actions: [
+            FilledButton.tonalIcon(
+              onPressed: _sharePrescriptionViaWhatsApp,
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.12),
+                foregroundColor: const Color(0xFF10B981),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              icon: const Icon(Icons.share_rounded, size: 15),
+              label: Text(
+                'إرسال الروشتة بالواتساب',
+                style: GoogleFonts.cairo(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
             if (isDoctor)
               PopupMenuButton<String>(
                 icon: Icon(Icons.more_vert_rounded,
@@ -823,6 +932,20 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       ),
       child: Row(
         children: [
+          // زر إرسال الروشتة بالواتساب للمريض
+          IconButton.filledTonal(
+            onPressed: _sharePrescriptionViaWhatsApp,
+            tooltip: 'إرسال الروشتة بالواتساب',
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
+              foregroundColor: const Color(0xFF10B981),
+              padding: const EdgeInsets.all(12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.share_rounded, size: 20),
+          ),
+          const SizedBox(width: 10),
+
           // زر حفظ التقرير فقط (المسودة)
           Expanded(
             flex: 2,
