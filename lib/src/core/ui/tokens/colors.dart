@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 /// Design Tokens — Premium Enterprise SaaS (Linear-style).
 /// Indigo + White + Mint. Single source of truth for every color used by
@@ -6,36 +6,41 @@
 class AppColors {
   AppColors._();
 
-  // Brand
-  static const Color primary = Color(0xFF2563EB);
-  static const Color primaryHover = Color(0xFF1D4ED8);
-  static const Color primarySubtle = Color(0xFFEFF4FF);
-  static const Color primarySurface = Color(0xFFF8FAFF);
-  static const Color primaryDark = Color(0xFF1D4ED8);
+  // Brand — Authoritative Clinical Sapphire & Deep Slate
+  static const Color primary = Color(0xFF1D4ED8); // Refined clinical royal blue
+  static const Color primaryHover = Color(0xFF1E40AF);
+  static const Color primarySubtle = Color(0xFFEFF6FF); // Ultra-soft blue tint
+  static const Color primarySurface = Color(0xFFF8FAFC);
+  static const Color primaryDark = Color(0xFF1E3A8A); // Deep medical navy
   static const Color onPrimary = Color(0xFFFFFFFF);
 
-  // Status
-  static const Color success = Color(0xFF059669);
+  // Status — Pure semantic WCAG compliant
+  static const Color success = Color(0xFF059669); // Emerald
   static const Color successSubtle = Color(0xFFECFDF5);
   static const Color successBright = Color(0xFF10B981);
+  static const Color successBorder = Color(0xFFA7F3D0);
 
-  static const Color warning = Color(0xFFD97706);
+  static const Color warning = Color(0xFFD97706); // Amber
   static const Color warningSubtle = Color(0xFFFFFBEB);
   static const Color warningBright = Color(0xFFF59E0B);
+  static const Color warningBorder = Color(0xFFFDE68A);
 
-  static const Color danger = Color(0xFFDC2626);
+  static const Color danger = Color(0xFFDC2626); // Crimson
   static const Color dangerSubtle = Color(0xFFFEF2F2);
   static const Color dangerBright = Color(0xFFEF4444);
+  static const Color dangerBorder = Color(0xFFFECACA);
 
-  static const Color info = Color(0xFF2563EB);
-  static const Color infoSubtle = Color(0xFFEFF6FF);
+  static const Color info = Color(0xFF0284C7); // Sky / Info
+  static const Color infoSubtle = Color(0xFFF0F9FF);
+  static const Color infoBorder = Color(0xFFBAE6FD);
 
-  // Status completions
-  static const Color completed = Color(0xFF7C3AED);
+  // Status completions & Clinical Procedures
+  static const Color completed = Color(0xFF7C3AED); // Clinical violet
   static const Color completedSubtle = Color(0xFFF5F3FF);
+  static const Color completedBorder = Color(0xFFDDD6FE);
 
-  // Neutrals — Light
-  static const Color lightCanvas = Color(0xFFF7F9FC);
+  // Neutrals — Light (Crisp clinical slate, zero yellow murkiness)
+  static const Color lightCanvas = Color(0xFFF8FAFC);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightElevated = Color(0xFFFFFFFF);
   static const Color lightSubtle = Color(0xFFF1F5F9);
@@ -43,36 +48,36 @@ class AppColors {
   static const Color lightBorder = Color(0xFFCBD5E1);
   static const Color lightBorderStrong = Color(0xFF94A3B8);
 
-  // Neutrals — Dark
-  static const Color darkCanvas = Color(0xFF0B1220);
-  static const Color darkSurface = Color(0xFF111A2E);
-  static const Color darkElevated = Color(0xFF1A2540);
-  static const Color darkSubtle = Color(0xFF1F2A44);
-  static const Color darkBorderSubtle = Color(0xFF1F2A44);
-  static const Color darkBorder = Color(0xFF334155);
-  static const Color darkBorderStrong = Color(0xFF64748B);
+  // Neutrals — Dark (Deep Obsidian Slate, not washed-out blue)
+  static const Color darkCanvas = Color(0xFF090D16);
+  static const Color darkSurface = Color(0xFF111827);
+  static const Color darkElevated = Color(0xFF1F2937);
+  static const Color darkSubtle = Color(0xFF1E293B);
+  static const Color darkBorderSubtle = Color(0xFF1F293D);
+  static const Color darkBorder = Color(0xFF374151);
+  static const Color darkBorderStrong = Color(0xFF4B5563);
 
   // Text — Light
-  static const Color lightTextPrimary = Color(0xFF0F172A);
-  static const Color lightTextSecondary = Color(0xFF475569);
-  static const Color lightTextMuted = Color(0xFF94A3B8);
+  static const Color lightTextPrimary = Color(0xFF0F172A); // High-contrast Slate-900
+  static const Color lightTextSecondary = Color(0xFF475569); // Slate-600
+  static const Color lightTextMuted = Color(0xFF64748B); // Slate-500 (passes 4.5:1 on white)
   static const Color lightTextOnPrimary = Color(0xFFFFFFFF);
 
   // Text — Dark
-  static const Color darkTextPrimary = Color(0xFFF1F5F9);
+  static const Color darkTextPrimary = Color(0xFFF8FAFC);
   static const Color darkTextSecondary = Color(0xFF94A3B8);
   static const Color darkTextMuted = Color(0xFF64748B);
 
-  // Doctor palette
+  // Doctor palette — Distinct clinical badges
   static const List<Color> doctorPalette = <Color>[
-    Color(0xFF2563EB),
-    Color(0xFF0D9488),
-    Color(0xFF7C3AED),
-    Color(0xFFD97706),
-    Color(0xFFDB2777),
-    Color(0xFF059669),
-    Color(0xFF4F46E5),
-    Color(0xFFEA580C),
+    Color(0xFF1D4ED8), // Sapphire
+    Color(0xFF0D9488), // Teal
+    Color(0xFF7C3AED), // Violet
+    Color(0xFFD97706), // Amber
+    Color(0xFF059669), // Emerald
+    Color(0xFF0284C7), // Sky
+    Color(0xFFE11D48), // Rose
+    Color(0xFF4F46E5), // Indigo
   ];
 
   // Backward-compatible aliases
@@ -80,10 +85,12 @@ class AppColors {
   static const Color surfaceLight = lightSurface;
   static const Color surfaceDimLight = lightSubtle;
   static const Color borderLight = lightBorderSubtle;
+  static const Color borderSubtleLight = lightBorderSubtle;
   static const Color backgroundDark = darkCanvas;
   static const Color surfaceDark = darkSurface;
   static const Color surfaceDimDark = darkSubtle;
   static const Color borderDark = darkBorder;
+  static const Color borderSubtleDark = darkBorderSubtle;
   static const Color textPrimaryLight = lightTextPrimary;
   static const Color textSecondaryLight = lightTextSecondary;
   static const Color textHintLight = lightTextMuted;

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../features/auth/domain/user_model.dart';
 import '../tokens/colors.dart';
@@ -20,6 +20,7 @@ class AppShell extends StatelessWidget {
   final int unreadCount;
   final VoidCallback? onNotificationsTap;
   final VoidCallback? onUserTap;
+  final VoidCallback? onSearchTap;
   final ValueChanged<bool>? onThemeToggle;
   final bool isDark;
   final List<Widget> actions;
@@ -39,6 +40,7 @@ class AppShell extends StatelessWidget {
     this.unreadCount = 0,
     this.onNotificationsTap,
     this.onUserTap,
+    this.onSearchTap,
     this.onThemeToggle,
     this.isDark = false,
     this.actions = const <Widget>[],
@@ -60,6 +62,7 @@ class AppShell extends StatelessWidget {
           unreadCount: unreadCount,
           onNotificationsTap: onNotificationsTap,
           onUserTap: onUserTap,
+          onSearchTap: onSearchTap,
           userName: user.fullName,
           compact: !isDesktop,
         );

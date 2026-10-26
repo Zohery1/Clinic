@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
+import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/widgets/clinic_toast.dart';
 import '../../../../core/widgets/double_bezel_card.dart';
 import '../../../auth/domain/user_model.dart';
@@ -50,7 +51,7 @@ class QueueCard extends ConsumerWidget {
         outerPadding: const EdgeInsets.all(2.5),
         innerPadding: const EdgeInsets.all(14),
         isActiveGlow: isWithDoctor,
-        glowColor: const Color(0xFF3B82F6),
+        glowColor: AppColors.primary,
         child: Opacity(
           opacity: (isCompleted || isCancelled) ? 0.68 : 1.0,
           child: Column(
@@ -108,7 +109,7 @@ class QueueCard extends ConsumerWidget {
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                           color: laneType == QueueLaneType.withDoctor
-                              ? const Color(0xFF3B82F6)
+                              ? AppColors.primary
                               : theme.textTheme.titleMedium?.color,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -200,7 +201,7 @@ class QueueCard extends ConsumerWidget {
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF10B981),
+                    color: AppColors.success,
                   ),
                 ),
               ],
@@ -288,10 +289,10 @@ class QueueCard extends ConsumerWidget {
       width: 38,
       height: 38,
       decoration: BoxDecoration(
-        color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.18 : 0.12),
+        color: AppColors.warning.withValues(alpha: isDark ? 0.18 : 0.12),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.35 : 0.25),
+          color: AppColors.warning.withValues(alpha: isDark ? 0.35 : 0.25),
         ),
       ),
       child: Center(
@@ -300,7 +301,7 @@ class QueueCard extends ConsumerWidget {
           style: GoogleFonts.jetBrainsMono(
             fontSize: 16,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFFF59E0B),
+            color: AppColors.warning,
           ),
         ),
       ),
@@ -316,16 +317,16 @@ class QueueCard extends ConsumerWidget {
     switch (laneType) {
       case QueueLaneType.withDoctor:
         icon = Icons.person_rounded;
-        color = const Color(0xFF3B82F6);
+        color = AppColors.info;
       case QueueLaneType.completed:
         icon = Icons.check_circle_outline_rounded;
-        color = const Color(0xFF10B981);
+        color = AppColors.success;
       case QueueLaneType.cancelled:
         icon = Icons.cancel_outlined;
-        color = const Color(0xFFEF4444);
+        color = AppColors.danger;
       case QueueLaneType.waiting:
         icon = Icons.hourglass_top_rounded;
-        color = const Color(0xFFF59E0B);
+        color = AppColors.warning;
     }
 
     return Container(
@@ -570,16 +571,16 @@ class QueueCard extends ConsumerWidget {
 
         if (status == 'pending') {
           iconData = Icons.person_search_rounded;
-          bgColor = const Color(0xFF1A73E8);
+          bgColor = AppColors.primary;
         } else if (status == 'completed') {
           iconData = Icons.check_circle_rounded;
-          bgColor = const Color(0xFF10B981);
+          bgColor = AppColors.success;
         } else if (status == 'confirmed') {
           iconData = Icons.hourglass_empty_rounded;
-          bgColor = const Color(0xFFF59E0B);
+          bgColor = AppColors.warning;
         } else {
           iconData = Icons.info_outline_rounded;
-          bgColor = const Color(0xFF1E293B);
+          bgColor = AppColors.surfaceDark;
         }
 
         ClinicToast.show(context, message: label, icon: iconData, color: bgColor);
@@ -679,10 +680,10 @@ class _SecondaryButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8.5),
           decoration: BoxDecoration(
-            color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.15 : 0.1),
+            color: AppColors.success.withValues(alpha: isDark ? 0.16 : 0.1),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.35 : 0.2),
+              color: AppColors.success.withValues(alpha: isDark ? 0.35 : 0.2),
             ),
           ),
           child: Row(
@@ -690,7 +691,7 @@ class _SecondaryButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 14, color: const Color(0xFF10B981)),
+                Icon(icon, size: 14, color: AppColors.success),
                 const SizedBox(width: 5),
               ],
               Flexible(
@@ -699,7 +700,7 @@ class _SecondaryButton extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF10B981),
+                    color: AppColors.success,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

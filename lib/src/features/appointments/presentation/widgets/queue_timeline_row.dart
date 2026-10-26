@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
+import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/widgets/clinic_toast.dart';
 import '../../../../core/widgets/double_bezel_card.dart';
 import '../../../../core/widgets/send_whatsapp_dialog.dart';
@@ -49,17 +50,17 @@ class QueueTimelineRow extends ConsumerWidget {
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
-        return const Color(0xFF3B82F6);
+        return AppColors.info;
       case 'confirmed':
-        return const Color(0xFFF59E0B);
+        return AppColors.warning;
       case 'completed':
-        return const Color(0xFF10B981);
+        return AppColors.success;
       case 'cancelled':
       case 'cancelled_by_patient':
       case 'cancelled_by_clinic':
-        return const Color(0xFFEF4444);
+        return AppColors.danger;
       default:
-        return const Color(0xFFF59E0B);
+        return AppColors.warning;
     }
   }
 
@@ -236,12 +237,12 @@ class QueueTimelineRow extends ConsumerWidget {
                     : Icons.info_outline_rounded;
 
         final bgColor = status == 'pending'
-            ? const Color(0xFF1A73E8)
+            ? AppColors.primary
             : status == 'completed'
-                ? const Color(0xFF10B981)
+                ? AppColors.success
                 : status == 'confirmed'
-                    ? const Color(0xFFF59E0B)
-                    : const Color(0xFF1E293B);
+                    ? AppColors.warning
+                    : AppColors.surfaceDark;
 
         ClinicToast.show(context, message: label, icon: iconData, color: bgColor);
       }
@@ -337,7 +338,7 @@ class QueueTimelineRow extends ConsumerWidget {
                 style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3B82F6),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -355,7 +356,7 @@ class QueueTimelineRow extends ConsumerWidget {
               style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
+              backgroundColor: AppColors.success,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -454,11 +455,11 @@ class QueueTimelineRow extends ConsumerWidget {
       outerPadding: const EdgeInsets.all(2.5),
       innerPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       isActiveGlow: isPending,
-      glowColor: const Color(0xFF3B82F6),
+      glowColor: AppColors.primary,
       innerColor: isPending
           ? (isDark
-              ? const Color(0xFF1E293B)
-              : const Color(0xFFF8FAFC))
+              ? AppColors.darkSurface
+              : AppColors.lightSurface)
           : null,
       child: Opacity(
         opacity: isCancelled ? 0.65 : 1.0,
@@ -513,10 +514,10 @@ class QueueTimelineRow extends ConsumerWidget {
                   CircleAvatar(
                     radius: 17,
                     backgroundColor: isPending
-                        ? const Color(0xFF3B82F6).withValues(alpha: 0.15)
+                        ? AppColors.primary.withValues(alpha: 0.15)
                         : (isCompleted
-                            ? const Color(0xFF10B981).withValues(alpha: 0.12)
-                            : theme.colorScheme.primary.withValues(alpha: 0.1)),
+                            ? AppColors.success.withValues(alpha: 0.12)
+                            : AppColors.primary.withValues(alpha: 0.1)),
                     child: Text(
                       appt.patient.fullName.trim().isNotEmpty
                           ? appt.patient.fullName.trim().substring(0, 1)
@@ -525,10 +526,10 @@ class QueueTimelineRow extends ConsumerWidget {
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: isPending
-                            ? const Color(0xFF3B82F6)
+                            ? AppColors.primary
                             : (isCompleted
-                                ? const Color(0xFF10B981)
-                                : theme.colorScheme.primary),
+                                ? AppColors.success
+                                : AppColors.primary),
                       ),
                     ),
                   ),
@@ -589,14 +590,14 @@ class QueueTimelineRow extends ConsumerWidget {
                                     const Icon(
                                       Icons.chat_bubble_outline_rounded,
                                       size: 11,
-                                      color: Color(0xFF10B981),
+                                      color: AppColors.success,
                                     ),
                                     const SizedBox(width: 3),
                                     Text(
                                       appt.patient.phone!,
                                       style: GoogleFonts.jetBrainsMono(
                                         fontSize: 11,
-                                        color: const Color(0xFF10B981),
+                                        color: AppColors.success,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -687,7 +688,7 @@ class QueueTimelineRow extends ConsumerWidget {
                     ? Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                          color: AppColors.success.withValues(alpha: isDark ? 0.16 : 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -695,7 +696,7 @@ class QueueTimelineRow extends ConsumerWidget {
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFF10B981),
+                            color: AppColors.success,
                           ),
                         ),
                       )
@@ -734,7 +735,7 @@ class QueueTimelineRow extends ConsumerWidget {
                           width: 6,
                           height: 6,
                           decoration: const BoxDecoration(
-                            color: Color(0xFF3B82F6),
+                            color: AppColors.primary,
                             shape: BoxShape.circle,
                           ),
                         ),

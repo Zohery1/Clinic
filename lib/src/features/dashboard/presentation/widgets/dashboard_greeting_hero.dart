@@ -7,8 +7,10 @@ import '../../../../core/ui/primitives/app_button.dart';
 import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/ui/tokens/spacing.dart';
 import '../../../../core/utils/doctor_utils.dart';
+import '../../../appointments/domain/appointment_model.dart';
 import '../../../appointments/presentation/appointments_controller.dart';
 import '../../../appointments/presentation/book_appointment_dialog.dart';
+import '../../../appointments/presentation/examination_screen.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../auth/presentation/login_controller.dart';
 
@@ -57,6 +59,16 @@ class DashboardGreetingHero extends ConsumerWidget {
                 (a) => a.status != 'completed' && !a.status.startsWith('cancelled'))
             .length ??
         0;
+    final inProgress = appointmentsAsync.value
+        ?.where((a) => a.status == 'pending')
+        .firstOrNull;
+    final waitingList = appointmentsAsync.value
+        ?.where((a) => a.status == 'confirmed')
+        .toList();
+    if (waitingList != null && waitingList.length > 1) {
+      waitingList.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+    }
+    final nextWaiting = waitingList?.firstOrNull;
 
     final effectiveClinicId = user?.clinicId ?? '';
 
@@ -230,6 +242,19 @@ class DashboardGreetingHero extends ConsumerWidget {
                           ),
                         ],
                       ),
+                    if (inProgress != null)
+                      _buildActiveSessionBanner(
+                        context: context,
+                        inProgress: inProgress,
+                        effectiveClinicId: effectiveClinicId,
+                        isDoctor: isDoctor,
+                        canViewHistory: user?.canViewMedicalHistory ?? false,
+                      )
+                    else if (nextWaiting != null)
+                      _buildNextWaitingBanner(
+                        context: context,
+                        nextWaiting: nextWaiting,
+                      ),
                   ],
                 );
 
@@ -344,6 +369,173 @@ class DashboardGreetingHero extends ConsumerWidget {
               fontSize: 12,
               fontWeight: FontWeight.w800,
               color: isDark ? Colors.white : AppColors.textPrimary(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveSessionBanner({
+    required BuildContext context,
+    required AppointmentModel inProgress,
+    required String effectiveClinicId,
+    required bool isDoctor,
+    required bool canViewHistory,
+  }) {
+    final isDark = AppColors.isDark(context);
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpace.sm),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: isDark ? 0.12 : 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: isDark ? 0.35 : 0.2),
+          width: 1,
+        ),
+      ),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
+        runSpacing: 4,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primary,
+            ),
+          ),
+          Text(
+            'في غرفة الكشف الآن:',
+            style: GoogleFonts.cairo(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: Text(
+              inProgress.patient.fullName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.cairo(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+          ),
+          if (isDoctor || canViewHistory)
+            InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ExaminationScreen(
+                      clinicId: effectiveClinicId,
+                      appointmentId: inProgress.id,
+                      patientId: inProgress.patientId,
+                      patientName: inProgress.patient.fullName,
+                    ),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(4),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'متابعة الجلسة',
+                      style: GoogleFonts.cairo(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 12,
+                      color: AppColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNextWaitingBanner({
+    required BuildContext context,
+    required AppointmentModel nextWaiting,
+  }) {
+    final isDark = AppColors.isDark(context);
+    String formattedTime;
+    try {
+      formattedTime = intl.DateFormat('hh:mm a', 'ar').format(nextWaiting.appointmentDate.toLocal());
+    } catch (_) {
+      formattedTime = intl.DateFormat('hh:mm a').format(nextWaiting.appointmentDate.toLocal());
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpace.sm),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: isDark ? 0.12 : 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.warning.withValues(alpha: isDark ? 0.35 : 0.2),
+          width: 1,
+        ),
+      ),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
+        runSpacing: 4,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.warning,
+            ),
+          ),
+          Text(
+            'المريض التالي في الانتظار:',
+            style: GoogleFonts.cairo(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.warning,
+            ),
+          ),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: Text(
+              nextWaiting.patient.fullName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.cairo(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+          ),
+          Text(
+            formattedTime,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary(context),
             ),
           ),
         ],

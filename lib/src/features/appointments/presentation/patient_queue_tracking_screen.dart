@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart' as intl;
+import '../../../core/ui/tokens/colors.dart';
+import '../../../core/ui/tokens/spacing.dart';
 
 /// شاشة تتبع دور المريض اللحظية في العيادة (Public Patient Queue Tracker)
 /// تُفتح عبر رابط الواتساب المرسل للمريض بدون الحاجة لتسجيل الدخول
@@ -344,11 +346,11 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.access_time_rounded, size: 14, color: Colors.grey.shade600),
+                      Icon(Icons.access_time_rounded, size: 14, color: AppColors.textMuted(context)),
                       const SizedBox(width: 6),
                       Text(
                         'موعد الكشف: ${intl.DateFormat('yyyy/MM/dd - hh:mm a', 'ar').format(apptDate)}',
-                        style: GoogleFonts.cairo(fontSize: 11.5, color: Colors.grey.shade600),
+                        style: GoogleFonts.cairo(fontSize: 11.5, color: AppColors.textSecondary(context)),
                       ),
                     ],
                   ),
@@ -380,14 +382,14 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                    color: Color(0xFF10B981),
+                    color: AppColors.success,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'يتم التحديث اللحظي تلقائياً • آخر تحديث: ${intl.DateFormat('hh:mm:ss a').format(_lastRefreshedAt)}',
-                  style: GoogleFonts.cairo(fontSize: 11, color: Colors.grey.shade600),
+                  style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textMuted(context)),
                 ),
               ],
             ),
@@ -466,14 +468,14 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
     }
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppSpace.xl),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.blue.withValues(alpha: 0.25)),
+        color: AppColors.surface(context),
+        borderRadius: AppRadii.brLg,
+        border: Border.all(color: AppColors.borderSubtle(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -487,22 +489,29 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14),
+                    color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.08),
+                    borderRadius: AppRadii.brMd,
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: isDark ? 0.35 : 0.2),
+                    ),
                   ),
                   child: Column(
                     children: [
                       Text(
                         'رقم دورك',
-                        style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue.shade700),
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? const Color(0xFF93C5FD) : AppColors.primary,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '#$queueNumber',
-                        style: GoogleFonts.cairo(
+                        style: GoogleFonts.jetBrainsMono(
                           fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.blue.shade800,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E3A8A),
                         ),
                       ),
                     ],
@@ -514,22 +523,29 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.09),
-                    borderRadius: BorderRadius.circular(14),
+                    color: AppColors.warning.withValues(alpha: isDark ? 0.15 : 0.08),
+                    borderRadius: AppRadii.brMd,
+                    border: Border.all(
+                      color: AppColors.warning.withValues(alpha: isDark ? 0.35 : 0.2),
+                    ),
                   ),
                   child: Column(
                     children: [
                       Text(
                         'متبقي قبلك',
-                        style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber.shade800),
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? const Color(0xFFFCD34D) : const Color(0xFFB45309),
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '$patientsAhead',
-                        style: GoogleFonts.cairo(
+                        style: GoogleFonts.jetBrainsMono(
                           fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.amber.shade900,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E),
                         ),
                       ),
                     ],
@@ -542,17 +558,21 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: (patientsAhead <= 1 ? Colors.green : Colors.blue).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
+              color: (patientsAhead <= 1 ? AppColors.success : AppColors.primary)
+                  .withValues(alpha: isDark ? 0.15 : 0.08),
+              borderRadius: AppRadii.brSm,
               border: Border.all(
-                color: (patientsAhead <= 1 ? Colors.green : Colors.blue).withValues(alpha: 0.2),
+                color: (patientsAhead <= 1 ? AppColors.success : AppColors.primary)
+                    .withValues(alpha: isDark ? 0.35 : 0.2),
               ),
             ),
             child: Row(
               children: [
                 Icon(
                   patientsAhead <= 1 ? Icons.notification_important_rounded : Icons.info_outline_rounded,
-                  color: patientsAhead <= 1 ? Colors.green.shade700 : Colors.blue.shade700,
+                  color: patientsAhead <= 1
+                      ? (isDark ? const Color(0xFF6EE7B7) : AppColors.success)
+                      : (isDark ? const Color(0xFF93C5FD) : AppColors.primary),
                   size: 22,
                 ),
                 const SizedBox(width: 12),
@@ -562,7 +582,9 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
                     style: GoogleFonts.cairo(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: patientsAhead <= 1 ? Colors.green.shade800 : Colors.blue.shade900,
+                      color: isDark
+                          ? const Color(0xFFF1F5F9)
+                          : (patientsAhead <= 1 ? const Color(0xFF065F46) : const Color(0xFF1E3A8A)),
                       height: 1.4,
                     ),
                   ),
@@ -577,33 +599,57 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
 
   /// بطاقة انتهاء الكشف
   Widget _buildCompletedCard() {
+    final isDark = AppColors.isDark(context);
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(AppSpace.xxl),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.green.withValues(alpha: 0.25)),
+        color: AppColors.surface(context),
+        borderRadius: AppRadii.brLg,
+        border: Border.all(
+          color: AppColors.success.withValues(alpha: isDark ? 0.35 : 0.20),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpace.lg),
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
+              color: AppColors.success.withValues(alpha: isDark ? 0.16 : 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_circle_outline_rounded, size: 50, color: Colors.green),
+            child: const Icon(
+              Icons.check_circle_outline_rounded,
+              size: 50,
+              color: AppColors.success,
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpace.lg),
           Text(
             'اكتمل الكشف بنجاح',
-            style: GoogleFonts.cairo(fontSize: 19, fontWeight: FontWeight.bold),
+            style: GoogleFonts.cairo(
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary(context),
+            ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpace.xs),
           Text(
             'تم الانتهاء من موعدك الطبي. نتمنى لكم دوام الصحة والعافية والشفاء العاجل.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.cairo(fontSize: 13, color: Colors.grey.shade600),
+            style: GoogleFonts.cairo(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary(context),
+              height: 1.5,
+            ),
           ),
         ],
       ),
@@ -612,33 +658,57 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
 
   /// بطاقة إلغاء الموعد
   Widget _buildCancelledCard() {
+    final isDark = AppColors.isDark(context);
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(AppSpace.xxl),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.25)),
+        color: AppColors.surface(context),
+        borderRadius: AppRadii.brLg,
+        border: Border.all(
+          color: AppColors.danger.withValues(alpha: isDark ? 0.35 : 0.20),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpace.lg),
             decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.1),
+              color: AppColors.danger.withValues(alpha: isDark ? 0.16 : 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.cancel_outlined, size: 50, color: Colors.red),
+            child: const Icon(
+              Icons.cancel_outlined,
+              size: 50,
+              color: AppColors.danger,
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpace.lg),
           Text(
             'تم إلغاء هذا الحجز',
-            style: GoogleFonts.cairo(fontSize: 19, fontWeight: FontWeight.bold),
+            style: GoogleFonts.cairo(
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary(context),
+            ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpace.xs),
           Text(
             'تم إلغاء هذا الموعد في نظام العيادة. يرجى التواصل مع إدارة العيادة عند وجود أي استفسار.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.cairo(fontSize: 13, color: Colors.grey.shade600),
+            style: GoogleFonts.cairo(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary(context),
+              height: 1.5,
+            ),
           ),
         ],
       ),

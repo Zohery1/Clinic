@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
@@ -197,37 +196,43 @@ class _HeroMeshBlobs extends StatelessWidget {
   const _HeroMeshBlobs();
   @override
   Widget build(BuildContext context) {
-    return const Stack(
-      fit: StackFit.expand,
-      children: [
-        Positioned(top: -80, right: -60, child: _Blob(size: 320)),
-        Positioned(bottom: -120, left: -80, child: _Blob(size: 380)),
-      ],
+    return CustomPaint(
+      painter: _ClinicalGridPainter(),
+      size: Size.infinite,
     );
   }
 }
 
-class _Blob extends StatelessWidget {
-  final double size;
-  const _Blob({required this.size});
+class _ClinicalGridPainter extends CustomPainter {
   @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: ImageFiltered(
-        imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [Colors.white.withValues(alpha: 0.18), Colors.white.withValues(alpha: 0.0)],
-            ),
-          ),
-        ),
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.04)
+      ..strokeWidth = 1.0;
+
+    const spacing = 32.0;
+    for (double x = 0; x < size.width; x += spacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y < size.height; y += spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+
+    // Subtle clinical crosshairs at key intersections
+    final crosshairPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.12)
+      ..strokeWidth = 1.5;
+
+    for (double x = spacing * 2; x < size.width; x += spacing * 4) {
+      for (double y = spacing * 2; y < size.height; y += spacing * 4) {
+        canvas.drawLine(Offset(x - 4, y), Offset(x + 4, y), crosshairPaint);
+        canvas.drawLine(Offset(x, y - 4), Offset(x, y + 4), crosshairPaint);
+      }
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _HeroBullet extends StatelessWidget {

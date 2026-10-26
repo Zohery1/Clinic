@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../primitives/app_avatar.dart';
@@ -22,6 +22,7 @@ class AppTopBar extends StatelessWidget {
   final int unreadCount;
   final VoidCallback? onNotificationsTap;
   final VoidCallback? onUserTap;
+  final VoidCallback? onSearchTap;
   final String? userName;
   final bool compact;
 
@@ -34,6 +35,7 @@ class AppTopBar extends StatelessWidget {
     this.unreadCount = 0,
     this.onNotificationsTap,
     this.onUserTap,
+    this.onSearchTap,
     this.userName,
     this.compact = false,
   });
@@ -101,7 +103,29 @@ class AppTopBar extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpace.lg),
+              if (!compact && onSearchTap != null) ...[
+                const SizedBox(width: AppSpace.md),
+                Flexible(
+                  flex: 2,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 140, maxWidth: 280),
+                    child: _GlobalSearchTrigger(onTap: onSearchTap!),
+                  ),
+                ),
+              ],
+              const SizedBox(width: AppSpace.md),
+              if (!compact) ...[
+                const _OperationalStatusBadge(),
+                const SizedBox(width: AppSpace.sm),
+              ],
+              if (compact && onSearchTap != null) ...[
+                AppIconButton(
+                  icon: Icons.search_rounded,
+                  tooltip: 'بحث',
+                  onPressed: onSearchTap,
+                ),
+                const SizedBox(width: AppSpace.xs),
+              ],
               if (actions.isNotEmpty) ...[
                 for (final w in actions) ...[
                   w,
@@ -119,6 +143,142 @@ class AppTopBar extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlobalSearchTrigger extends StatefulWidget {
+  final VoidCallback onTap;
+  const _GlobalSearchTrigger({required this.onTap});
+
+  @override
+  State<_GlobalSearchTrigger> createState() => _GlobalSearchTriggerState();
+}
+
+class _GlobalSearchTriggerState extends State<_GlobalSearchTrigger> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
+    final borderColor = _hovered
+        ? AppColors.primary.withValues(alpha: isDark ? 0.6 : 0.4)
+        : AppColors.borderSubtle(context);
+    final bg = _hovered
+        ? AppColors.subtle(context)
+        : AppColors.subtle(context).withValues(alpha: 0.6);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          curve: AppMotion.easeOutCubic,
+          constraints: const BoxConstraints(minWidth: 140, maxWidth: 280, minHeight: 36),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: borderColor, width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.search_rounded,
+                size: 16,
+                color: _hovered ? AppColors.primary : AppColors.textMuted(context),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'بحث عن مريض أو موعد...',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.cairo(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMuted(context),
+                    height: 1.2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.surface(context),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AppColors.borderSubtle(context), width: 1),
+                ),
+                child: Text(
+                  'Ctrl+K',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary(context),
+                    height: 1.0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OperationalStatusBadge extends StatelessWidget {
+  const _OperationalStatusBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final showLabel = screenWidth >= 1150;
+
+    return Tooltip(
+      message: 'نظام العيادة متصل',
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: showLabel ? 8 : 7, vertical: 5),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: isDark ? 0.15 : 0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: AppColors.success.withValues(alpha: isDark ? 0.35 : 0.20),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: AppColors.success,
+                shape: BoxShape.circle,
+              ),
+            ),
+            if (showLabel) ...[
+              const SizedBox(width: 6),
+              Text(
+                'نظام العيادة متصل',
+                style: GoogleFonts.cairo(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.success,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

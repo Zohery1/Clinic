@@ -178,6 +178,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               clinicId: user.clinicId,
             );
           },
+          const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
+              _navigateToTab(2),
+          const SingleActivator(LogicalKeyboardKey.keyK, meta: true): () =>
+              _navigateToTab(2),
           const SingleActivator(LogicalKeyboardKey.digit1, control: true): () =>
               _navigateToTab(0),
           const SingleActivator(LogicalKeyboardKey.digit2, control: true): () =>
@@ -200,6 +204,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             unreadCount: unreadCount,
             onNotificationsTap: () =>
                 DashboardNotificationsDialog.show(context),
+            onSearchTap: () => _navigateToTab(2),
             actions: const <Widget>[
               ClinicSwitcherButton(isCompact: true),
             ],
