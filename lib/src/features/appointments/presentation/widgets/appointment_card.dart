@@ -617,67 +617,76 @@ class AppointmentCard extends ConsumerWidget {
                     return Row(
                       children: [
                         buildColorBar(38),
-                        const SizedBox(width: 8),
-                        buildQueueBadge(30),
                         const SizedBox(width: 10),
-                        timeWidget,
+                        buildQueueBadge(30),
                         const SizedBox(width: 12),
+                        timeWidget,
+                        const SizedBox(width: 16),
+                        // Patient Name + Doctor Info
                         Expanded(
+                          flex: 3,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              Text(
+                                appointment.patient.fullName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary(context),
+                                  height: 1.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
                               Row(
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      appointment.patient.fullName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary(context),
-                                        height: 1.35,
-                                      ),
-                                    ),
-                                  ),
-                                  if (whatsappWidget != null) ...[
+                                  if (doctorWidget != null) ...[
+                                    doctorWidget,
                                     const SizedBox(width: 8),
-                                    whatsappWidget,
                                   ],
-                                  if (appointmentTypeWidget != null) ...[
-                                    const SizedBox(width: 8),
-                                    appointmentTypeWidget,
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: 3),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  AppBadge(
-                                    label: label,
-                                    icon: icon,
-                                    variant: _badgeVariant(status),
-                                  ),
-                                  if (doctorWidget != null) doctorWidget,
-                                  ...financialBadges,
+                                  if (whatsappWidget != null) whatsappWidget,
                                 ],
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        if (quickActionWidget != null)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: quickActionWidget,
-                          )
-                        else
+                        const SizedBox(width: 12),
+                        // Service Type & Status Badge
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (appointmentTypeWidget != null) ...[
+                                appointmentTypeWidget,
+                                const SizedBox(height: 4),
+                              ],
+                              AppBadge(
+                                label: label,
+                                icon: icon,
+                                variant: _badgeVariant(status),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Financial Status
+                        if (financialBadges.isNotEmpty) ...[
+                          Wrap(
+                            spacing: 4,
+                            children: financialBadges,
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        // Action Station
+                        if (quickActionWidget != null) ...[
+                          quickActionWidget,
                           const SizedBox(width: 8),
+                        ],
                         menuWidget,
                       ],
                     );

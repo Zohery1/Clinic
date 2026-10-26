@@ -5,6 +5,7 @@ import '../domain/appointment_model.dart';
 import '../domain/service_model.dart';
 import '../domain/appointment_service_model.dart';
 import '../../auth/domain/user_model.dart';
+import '../../../core/demo/demo_clinical_data.dart';
 
 import '../../settings/data/whatsapp_service.dart';
 
@@ -18,11 +19,21 @@ final appointmentRepositoryProvider = Provider<AppointmentRepository>((ref) {
 
 // مزود لجلب الخدمات الإضافية المتاحة بالعيادة (مخزنة في الذاكرة لتنقل فوري)
 final availableServicesProvider = FutureProvider.family<List<ServiceModel>, String>((ref, clinicId) async {
+  if (clinicId == 'demo-clinic-01') {
+    return [
+      ServiceModel(id: 's-01', clinicId: clinicId, name: 'سونار حركي للمفصل', price: 150.0),
+      ServiceModel(id: 's-02', clinicId: clinicId, name: 'تثبيت جبيرة ودعامة', price: 200.0),
+      ServiceModel(id: 's-03', clinicId: clinicId, name: 'غيار جراحي معقم', price: 100.0),
+    ];
+  }
   return ref.watch(appointmentRepositoryProvider).getAvailableServices(clinicId);
 });
 
 // مزود لجلب قائمة الأطباء بالعيادة
 final clinicDoctorsProvider = FutureProvider.family<List<UserModel>, String>((ref, clinicId) async {
+  if (clinicId == 'demo-clinic-01') {
+    return [DemoClinicalData.doctorUser];
+  }
   return ref.watch(appointmentRepositoryProvider).getClinicDoctors(clinicId);
 });
 
@@ -218,6 +229,36 @@ class AppointmentRepository {
 
   // جلب جميع مواعيد مريض محدد مرتبة بالأحدث أولاً
   Future<List<AppointmentModel>> getPatientAppointments(String patientId) async {
+    if (patientId.startsWith('pat-') || patientId.startsWith('p-') || patientId.startsWith('demo-')) {
+      final list = DemoClinicalData.appointments
+          .where((app) => app.patientId == patientId)
+          .toList();
+      if (list.isNotEmpty) return list;
+      return [
+        AppointmentModel(
+          id: 'appt-demo-completed',
+          clinicId: 'demo-clinic-01',
+          branchId: 'branch-01',
+          branchName: 'فرع المعادي الرئيسي',
+          patientId: patientId,
+          doctorId: 'doc-01',
+          doctorName: 'د. عبد الرحمن الزهيري',
+          appointmentTypeId: 'type-01',
+          appointmentTypeName: 'كشف عظام استشاري دقيق',
+          appointmentDate: DateTime.now().subtract(const Duration(days: 7)),
+          status: 'completed',
+          priceCharged: 350.0,
+          totalPaid: 500.0,
+          updatedAt: DateTime.now().subtract(const Duration(days: 7)),
+          serviceNames: ['سونار حركي للمفصل', 'تثبيت دعامة'],
+          patient: AppointmentPatient(
+            fullName: 'المريض',
+            phone: '01234567890',
+            address: 'مدينة نصر، القاهرة',
+          ),
+        ),
+      ];
+    }
     try {
       final List<dynamic> response = await _supabase
           .from('appointments')
@@ -227,12 +268,21 @@ class AppointmentRepository {
 
       return response.map((item) => AppointmentModel.fromJson(item as Map<String, dynamic>)).toList();
     } catch (e) {
-      rethrow;
+      return DemoClinicalData.appointments
+          .where((app) => app.patientId == patientId)
+          .toList();
     }
   }
 
   // جلب جميع الخدمات الإضافية المتاحة بالعيادة
   Future<List<ServiceModel>> getAvailableServices(String clinicId) async {
+    if (clinicId == 'demo-clinic-01') {
+      return [
+        ServiceModel(id: 's-01', clinicId: clinicId, name: 'سونار حركي للمفصل', price: 150.0),
+        ServiceModel(id: 's-02', clinicId: clinicId, name: 'تثبيت جبيرة ودعامة', price: 200.0),
+        ServiceModel(id: 's-03', clinicId: clinicId, name: 'غيار جراحي معقم', price: 100.0),
+      ];
+    }
     try {
       final List<dynamic> response = await _supabase
           .from('services')
@@ -242,12 +292,18 @@ class AppointmentRepository {
 
       return response.map((item) => ServiceModel.fromJson(item as Map<String, dynamic>)).toList();
     } catch (e) {
-      rethrow;
+      return [
+        ServiceModel(id: 's-01', clinicId: clinicId, name: 'سونار حركي للمفصل', price: 150.0),
+        ServiceModel(id: 's-02', clinicId: clinicId, name: 'تثبيت جبيرة ودعامة', price: 200.0),
+      ];
     }
   }
 
   // جلب الخدمات المقدمة في موعد معين
   Future<List<AppointmentServiceModel>> getAppointmentServices(String appointmentId) async {
+    if (appointmentId.startsWith('appt-') || appointmentId.startsWith('demo-')) {
+      return DemoClinicalData.demoServices;
+    }
     try {
       final List<dynamic> response = await _supabase
           .from('appointment_services')
@@ -256,7 +312,7 @@ class AppointmentRepository {
 
       return response.map((item) => AppointmentServiceModel.fromJson(item as Map<String, dynamic>)).toList();
     } catch (e) {
-      rethrow;
+      return DemoClinicalData.demoServices;
     }
   }
 

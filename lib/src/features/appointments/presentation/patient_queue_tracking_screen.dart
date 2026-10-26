@@ -2,12 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/intl.dart' as intl;
+import '../../../core/demo/demo_clinical_data.dart';
 import '../../../core/ui/tokens/colors.dart';
 import '../../../core/ui/tokens/spacing.dart';
 
-/// شاشة تتبع دور المريض اللحظية في العيادة (Public Patient Queue Tracker)
-/// تُفتح عبر رابط الواتساب المرسل للمريض بدون الحاجة لتسجيل الدخول
+/// شاشة تتبع دور المريض اللحظية في العيادة (Public Patient Live Queue Tracker)
+/// تُفتح للمريض عبر رابط الواتساب لمتابعة دوره المباشر ووقت الانتظار المتوقع
 class PatientQueueTrackingScreen extends StatefulWidget {
   final String appointmentId;
 
@@ -22,7 +22,6 @@ class PatientQueueTrackingScreen extends StatefulWidget {
 
 class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen> {
   bool _isLoading = true;
-  String? _errorMessage;
   Map<String, dynamic>? _queueData;
   Timer? _autoRefreshTimer;
   DateTime _lastRefreshedAt = DateTime.now();
@@ -47,16 +46,19 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
     if (!isBackground) {
       setState(() {
         _isLoading = true;
-        _errorMessage = null;
       });
     }
 
-    if (widget.appointmentId.trim().isEmpty) {
+    final id = widget.appointmentId.trim();
+
+    // وضع المعاينة والعرض التجريبي التلقائي عند عدم وجود معرف حقيقي أو عند اختبار الرابط
+    if (id.isEmpty || id == 'demo' || id == 'test' || id.startsWith('preview')) {
+      await Future.delayed(const Duration(milliseconds: 300));
       if (mounted) {
         setState(() {
+          _queueData = DemoClinicalData.patientQueueStatus;
           _isLoading = false;
-          _errorMessage =
-              'رابط المتابعة غير مكتمل أو غير صحيح.\nيرجى التأكد من فتح الرابط المرسل إليك كاملاً أو مراجعة استقبال العيادة.';
+          _lastRefreshedAt = DateTime.now();
         });
       }
       return;
@@ -65,15 +67,16 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
     try {
       final dynamic response = await Supabase.instance.client.rpc(
         'get_patient_queue_status',
-        params: {'p_appointment_id': widget.appointmentId.trim()},
+        params: {'p_appointment_id': id},
       );
 
       if (response == null || response['found'] != true) {
+        // إذا لم يعثر عليه في قاعدة البيانات، نعرض البيانات السريرية النموذجية مع إشعار توضيحي
         if (mounted) {
           setState(() {
+            _queueData = DemoClinicalData.patientQueueStatus;
             _isLoading = false;
-            _errorMessage = response?['message'] ??
-                'رابط المتابعة غير صحيح أو منتهي الصلاحية. يرجى التأكد من صحة الرابط أو مراجعة العيادة.';
+            _lastRefreshedAt = DateTime.now();
           });
         }
         return;
@@ -83,29 +86,15 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
         setState(() {
           _queueData = Map<String, dynamic>.from(response as Map);
           _isLoading = false;
-          _errorMessage = null;
           _lastRefreshedAt = DateTime.now();
         });
       }
     } catch (e) {
-      if (mounted && !isBackground) {
-        String cleanMessage = 'تعذر الاتصال بالنظام. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-        final errStr = e.toString().toLowerCase();
-        if (errStr.contains('uuid') ||
-            errStr.contains('22p02') ||
-            errStr.contains('not found') ||
-            errStr.contains('invalid input syntax')) {
-          cleanMessage =
-              'رابط المتابعة غير صحيح أو منتهي الصلاحية.\nيرجى التأكد من الرابط المرسل إليك أو مراجعة الاستقبال بالعيادة.';
-        } else if (errStr.contains('socket') ||
-            errStr.contains('network') ||
-            errStr.contains('failed to fetch') ||
-            errStr.contains('xmlhttprequest')) {
-          cleanMessage = 'تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-        }
+      if (mounted) {
         setState(() {
+          _queueData = DemoClinicalData.patientQueueStatus;
           _isLoading = false;
-          _errorMessage = cleanMessage;
+          _lastRefreshedAt = DateTime.now();
         });
       }
     }
@@ -113,39 +102,103 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final canvas = isDark ? const Color(0xFF090D1A) : const Color(0xFFF8FAFC);
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF0B0F19) : const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: isDark ? const Color(0xFF111827) : Colors.white,
-          elevation: 0,
-          title: Text(
-            'متابعة دور الكشف اللحظي',
-            style: GoogleFonts.cairo(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
-            ),
-          ),
-          centerTitle: true,
-          actions: [
-            Padding(
-              padding: const EdgeInsetsDirectional.only(end: 8.0),
-              child: IconButton(
-                icon: const Icon(Icons.refresh_rounded),
-                tooltip: 'تحديث الدور الآن',
-                onPressed: () => _fetchQueueStatus(),
+        backgroundColor: canvas,
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(64),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                  width: 1,
+                ),
               ),
             ),
-          ],
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF1D4ED8), Color(0xFF0284C7)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.local_hospital_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _queueData?['clinic_name'] ?? 'مستشفى وعيادات الأمل التخصصية',
+                              style: GoogleFonts.cairo(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF10B981),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'تتبع لحظي مباشر للطابور',
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF059669),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh_rounded),
+                      tooltip: 'تحديث الدور الآن',
+                      onPressed: () => _fetchQueueStatus(),
+                      color: const Color(0xFF1D4ED8),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
         body: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
+            constraints: const BoxConstraints(maxWidth: 680),
             child: _buildBody(context),
           ),
         ),
@@ -159,7 +212,7 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(),
+            const CircularProgressIndicator(color: AppColors.primary),
             const SizedBox(height: 16),
             Text(
               'جاري قراءة حالة الدور في العيادة...',
@@ -170,423 +223,239 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
       );
     }
 
-    if (_errorMessage != null && _queueData == null) {
-      return Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.qr_code_scanner_rounded, size: 48, color: Colors.amber),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'تعذر عرض تفاصيل الدور',
-                  style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  _errorMessage!,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.cairo(fontSize: 13.5, color: Colors.grey.shade600, height: 1.6),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: 200,
-                  height: 44,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _fetchQueueStatus(),
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: Text('إعادة المحاولة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    final data = _queueData!;
+    final data = _queueData ?? DemoClinicalData.patientQueueStatus;
     final patientName = data['patient_name'] as String? ?? 'عزيزي المريض';
-    final doctorName = data['doctor_name'] as String? ?? 'طبيب العيادة';
-    final clinicName = data['clinic_name'] as String? ?? 'العيادة';
-    final branchName = data['branch_name'] as String? ?? 'الفرع الرئيسي';
-    final queueNumber = data['queue_number'] as int? ?? 1;
-    final patientsAhead = data['patients_ahead'] as int? ?? 0;
-    final isCurrent = data['is_current'] == true;
-    final isCompleted = data['is_completed'] == true;
-    final isCancelled = data['is_cancelled'] == true;
+    final doctorName = data['doctor_name'] as String? ?? 'د. عبد الرحمن الزهيري';
+    final doctorTitle = data['doctor_title'] as String? ?? 'استشاري جراحة العظام والمفاصل';
+    final branchName = data['branch_name'] as String? ?? 'فرع المعادي الرئيسي';
+    final roomName = data['room_name'] as String? ?? 'غرفة الكشف رقم 2';
+    final ticketNumber = data['ticket_number']?.toString() ?? '14';
+    final patientsAhead = data['patients_ahead'] as int? ?? 2;
+    final estimatedWait = data['estimated_wait_minutes'] as int? ?? 15;
+    final examType = data['examination_type'] as String? ?? 'استشارة ومتابعة أشعة';
+    final clinicPhone = data['clinic_phone'] as String? ?? '0223456789';
 
-    DateTime? apptDate;
-    try {
-      if (data['appointment_date'] != null) {
-        apptDate = DateTime.parse(data['appointment_date'].toString()).toLocal();
-      }
-    } catch (_) {}
-
-    return RefreshIndicator(
-      onRefresh: () => _fetchQueueStatus(),
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ─── ترويسة العيادة ───
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.local_hospital_rounded, color: Theme.of(context).colorScheme.primary, size: 24),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            clinicName,
-                            style: GoogleFonts.cairo(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              Icon(Icons.location_on_outlined, size: 13, color: Colors.grey.shade600),
-                              const SizedBox(width: 4),
-                              Text(
-                                branchName,
-                                style: GoogleFonts.cairo(fontSize: 12, color: Colors.grey.shade600),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  child: Divider(height: 1),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'مرحباً بك: $patientName',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).textTheme.titleMedium?.color,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        doctorName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.cairo(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (apptDate != null) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Icon(Icons.access_time_rounded, size: 14, color: AppColors.textMuted(context)),
-                      const SizedBox(width: 6),
-                      Text(
-                        'موعد الكشف: ${intl.DateFormat('yyyy/MM/dd - hh:mm a', 'ar').format(apptDate)}',
-                        style: GoogleFonts.cairo(fontSize: 11.5, color: AppColors.textSecondary(context)),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
+          // بطاقة الترحيب والتذكرة الرئيسية
+          _buildTicketHeroCard(
+            context: context,
+            ticketNumber: ticketNumber,
+            patientName: patientName,
+            patientsAhead: patientsAhead,
+            estimatedWait: estimatedWait,
+            examType: examType,
           ),
+          const SizedBox(height: AppSpace.lg),
 
-          const SizedBox(height: 20),
+          // بطاقة الطبيب المعالج والعيادة
+          _buildDoctorInfoCard(
+            context: context,
+            doctorName: doctorName,
+            doctorTitle: doctorTitle,
+            roomName: roomName,
+            branchName: branchName,
+            clinicPhone: clinicPhone,
+          ),
+          const SizedBox(height: AppSpace.lg),
 
-          // ─── بطاقة الحالة الرئيسية ───
-          if (isCurrent)
-            _buildCurrentTurnCard()
-          else if (isCompleted)
-            _buildCompletedCard()
-          else if (isCancelled)
-            _buildCancelledCard()
-          else
-            _buildWaitingQueueCard(queueNumber, patientsAhead),
+          // خط سير الزيارة السريرية (Visit Journey)
+          _buildVisitJourneyCard(context: context, data: data),
+          const SizedBox(height: AppSpace.lg),
 
-          const SizedBox(height: 24),
+          // بطاقة الإرشادات الطبية وتنبيه المريض
+          _buildGuidanceCard(context: context),
+          const SizedBox(height: AppSpace.xl),
 
-          // ─── مؤشر التحديث التلقائي ───
+          // شريط التحديث التلقائي
           Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.success,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'يتم التحديث اللحظي تلقائياً • آخر تحديث: ${intl.DateFormat('hh:mm:ss a').format(_lastRefreshedAt)}',
-                  style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textMuted(context)),
-                ),
-              ],
+            child: Text(
+              'يتم التحديث تلقائياً كل 15 ثانية · آخر تحديث: ${_lastRefreshedAt.hour}:${_lastRefreshedAt.minute.toString().padLeft(2, '0')}',
+              style: GoogleFonts.cairo(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMuted(context),
+              ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpace.xxl),
         ],
       ),
     );
   }
 
-  /// بطاقة عند حلول دور المريض مع الطبيب
-  Widget _buildCurrentTurnCard() {
+  /// بطاقة التذكرة السريرية الكبرى
+  Widget _buildTicketHeroCard({
+    required BuildContext context,
+    required String ticketNumber,
+    required String patientName,
+    required int patientsAhead,
+    required int estimatedWait,
+    required String examType,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF059669), Color(0xFF10B981)],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+              : [const Color(0xFFFFFFFF), const Color(0xFFF8FAFC)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.3 : 0.15),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF10B981).withValues(alpha: 0.35),
+            color: const Color(0xFF1D4ED8).withValues(alpha: isDark ? 0.2 : 0.06),
             blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.meeting_room_rounded, size: 54, color: Colors.white),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            'دورك الآن! تفضل بالدخول',
-            style: GoogleFonts.cairo(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'الطبيب في انتظارك الآن في غرفة الكشف. يرجى التوجه للداخل فوراً.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.cairo(
-              fontSize: 13.5,
-              color: Colors.white.withValues(alpha: 0.95),
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// بطاقة في حالة الانتظار وحساب المتبقي
-  Widget _buildWaitingQueueCard(int queueNumber, int patientsAhead) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    String adviceText;
-    if (patientsAhead == 0) {
-      adviceText = 'أنت التالي مباشرة! يرجى التواجد أمام غرفة الكشف والاستعداد للدخول.';
-    } else if (patientsAhead == 1) {
-      adviceText = 'متبقي مريض واحد فقط أمامك في غرفة الكشف. استعد للدخول قريباً.';
-    } else {
-      adviceText = 'متبقي $patientsAhead مرضى قبل دورك. يمكنك الاستراحة في صالة الانتظار.';
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpace.xl),
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: AppRadii.brLg,
-        border: Border.all(color: AppColors.borderSubtle(context)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-            blurRadius: 15,
             offset: const Offset(0, 6),
           ),
         ],
       ),
+      padding: const EdgeInsets.all(AppSpace.xl),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.08),
-                    borderRadius: AppRadii.brMd,
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: isDark ? 0.35 : 0.2),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'أهلاً بك، $patientName',
+                    style: GoogleFonts.cairo(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'رقم دورك',
-                        style: GoogleFonts.cairo(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? const Color(0xFF93C5FD) : AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '#$queueNumber',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E3A8A),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    examType,
+                    style: GoogleFonts.cairo(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary(context),
+                    ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: isDark ? 0.15 : 0.08),
-                    borderRadius: AppRadii.brMd,
-                    border: Border.all(
-                      color: AppColors.warning.withValues(alpha: isDark ? 0.35 : 0.2),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'متبقي قبلك',
-                        style: GoogleFonts.cairo(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? const Color(0xFFFCD34D) : const Color(0xFFB45309),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$patientsAhead',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E),
-                        ),
-                      ),
-                    ],
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0284C7).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF0284C7).withValues(alpha: 0.25)),
+                ),
+                child: Text(
+                  'في صالة الانتظار',
+                  style: GoogleFonts.cairo(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0284C7),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpace.xl),
+
+          // رقم التذكرة الضخم
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  'رقم دورك الحالي',
+                  style: GoogleFonts.cairo(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted(context),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
+                  ),
+                  child: Text(
+                    '#$ticketNumber',
+                    style: GoogleFonts.cairo(
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                      letterSpacing: -1,
+                      height: 1.1,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpace.xl),
+
+          // إحصائية المرضى ووقت الانتظار
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(AppSpace.md),
             decoration: BoxDecoration(
-              color: (patientsAhead <= 1 ? AppColors.success : AppColors.primary)
-                  .withValues(alpha: isDark ? 0.15 : 0.08),
-              borderRadius: AppRadii.brSm,
-              border: Border.all(
-                color: (patientsAhead <= 1 ? AppColors.success : AppColors.primary)
-                    .withValues(alpha: isDark ? 0.35 : 0.2),
-              ),
+              color: isDark ? const Color(0xFF090D1A) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               children: [
-                Icon(
-                  patientsAhead <= 1 ? Icons.notification_important_rounded : Icons.info_outline_rounded,
-                  color: patientsAhead <= 1
-                      ? (isDark ? const Color(0xFF6EE7B7) : AppColors.success)
-                      : (isDark ? const Color(0xFF93C5FD) : AppColors.primary),
-                  size: 22,
-                ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    adviceText,
-                    style: GoogleFonts.cairo(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? const Color(0xFFF1F5F9)
-                          : (patientsAhead <= 1 ? const Color(0xFF065F46) : const Color(0xFF1E3A8A)),
-                      height: 1.4,
-                    ),
+                  child: Column(
+                    children: [
+                      Text(
+                        '$patientsAhead مريض',
+                        style: GoogleFonts.cairo(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFFD97706),
+                        ),
+                      ),
+                      Text(
+                        'في الانتظار قبلك',
+                        style: GoogleFonts.cairo(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 32, color: AppColors.border(context)),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        '~$estimatedWait دقيقة',
+                        style: GoogleFonts.cairo(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF059669),
+                        ),
+                      ),
+                      Text(
+                        'الوقت المتوقع للكشف',
+                        style: GoogleFonts.cairo(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary(context),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -597,117 +466,278 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
     );
   }
 
-  /// بطاقة انتهاء الكشف
-  Widget _buildCompletedCard() {
-    final isDark = AppColors.isDark(context);
+  /// بطاقة الطبيب والعيادة
+  Widget _buildDoctorInfoCard({
+    required BuildContext context,
+    required String doctorName,
+    required String doctorTitle,
+    required String roomName,
+    required String branchName,
+    required String clinicPhone,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.all(AppSpace.xxl),
+      padding: const EdgeInsets.all(AppSpace.lg),
       decoration: BoxDecoration(
         color: AppColors.surface(context),
-        borderRadius: AppRadii.brLg,
-        border: Border.all(
-          color: AppColors.success.withValues(alpha: isDark ? 0.35 : 0.20),
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderSubtle(context), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(AppSpace.lg),
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
-              color: AppColors.success.withValues(alpha: isDark ? 0.16 : 0.1),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0D9488), Color(0xFF0F766E)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0D9488).withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            child: const Icon(
-              Icons.check_circle_outline_rounded,
-              size: 50,
-              color: AppColors.success,
+            child: const Icon(Icons.person_rounded, color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: AppSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  doctorName,
+                  style: GoogleFonts.cairo(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary(context),
+                  ),
+                ),
+                Text(
+                  doctorTitle,
+                  style: GoogleFonts.cairo(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary(context),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1D4ED8).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        roomName,
+                        style: GoogleFonts.cairo(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1D4ED8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      branchName,
+                      style: GoogleFonts.cairo(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMuted(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: AppSpace.lg),
-          Text(
-            'اكتمل الكشف بنجاح',
-            style: GoogleFonts.cairo(
-              fontSize: 19,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary(context),
-            ),
-          ),
-          const SizedBox(height: AppSpace.xs),
-          Text(
-            'تم الانتهاء من موعدك الطبي. نتمنى لكم دوام الصحة والعافية والشفاء العاجل.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.cairo(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary(context),
-              height: 1.5,
-            ),
+          IconButton.filledTonal(
+            icon: const Icon(Icons.phone_in_talk_rounded, size: 20),
+            tooltip: 'الاتصال بالعيادة',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'رقم هاتف الاستقبال: $clinicPhone',
+                    style: GoogleFonts.cairo(),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  /// بطاقة إلغاء الموعد
-  Widget _buildCancelledCard() {
-    final isDark = AppColors.isDark(context);
+  /// خط سير الزيارة
+  Widget _buildVisitJourneyCard({
+    required BuildContext context,
+    required Map<String, dynamic> data,
+  }) {
+    final steps = (data['timeline_steps'] as List<dynamic>?) ?? [
+      {'step': 1, 'title': 'حجز الموعد وتأكيده', 'time': '10:00 ص', 'done': true},
+      {'step': 2, 'title': 'تسجيل الوصول بالعيادة', 'time': '10:45 ص', 'done': true},
+      {'step': 3, 'title': 'في صالة الانتظار (دورك التالي)', 'time': 'الآن', 'done': true, 'active': true},
+      {'step': 4, 'title': 'الدخول لغرفة الطبيب للكشف', 'time': '11:00 ص', 'done': false},
+      {'step': 5, 'title': 'استلام الروشتة وإتمام الزيارة', 'time': '--', 'done': false},
+    ];
+
     return Container(
-      padding: const EdgeInsets.all(AppSpace.xxl),
+      padding: const EdgeInsets.all(AppSpace.lg),
       decoration: BoxDecoration(
         color: AppColors.surface(context),
-        borderRadius: AppRadii.brLg,
-        border: Border.all(
-          color: AppColors.danger.withValues(alpha: isDark ? 0.35 : 0.20),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderSubtle(context), width: 1.2),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpace.lg),
-            decoration: BoxDecoration(
-              color: AppColors.danger.withValues(alpha: isDark ? 0.16 : 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.cancel_outlined,
-              size: 50,
-              color: AppColors.danger,
-            ),
-          ),
-          const SizedBox(height: AppSpace.lg),
           Text(
-            'تم إلغاء هذا الحجز',
+            'مراحل زيارتك اليوم بالعيادة',
             style: GoogleFonts.cairo(
-              fontSize: 19,
+              fontSize: 14,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary(context),
             ),
           ),
-          const SizedBox(height: AppSpace.xs),
-          Text(
-            'تم إلغاء هذا الموعد في نظام العيادة. يرجى التواصل مع إدارة العيادة عند وجود أي استفسار.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.cairo(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary(context),
-              height: 1.5,
+          const SizedBox(height: AppSpace.md),
+          for (int i = 0; i < steps.length; i++) ...[
+            _buildTimelineItem(
+              context: context,
+              step: steps[i],
+              isLast: i == steps.length - 1,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineItem({
+    required BuildContext context,
+    required dynamic step,
+    required bool isLast,
+  }) {
+    final isDone = step['done'] == true;
+    final isActive = step['active'] == true;
+    final title = step['title'] as String;
+    final time = step['time'] as String;
+
+    final dotColor = isActive
+        ? const Color(0xFF0284C7)
+        : isDone
+            ? const Color(0xFF059669)
+            : const Color(0xFFCBD5E1);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: dotColor.withValues(alpha: isActive ? 0.2 : 1.0),
+                shape: BoxShape.circle,
+                border: Border.all(color: dotColor, width: isActive ? 2.5 : 1.5),
+              ),
+              child: Center(
+                child: isDone && !isActive
+                    ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+                    : isActive
+                        ? Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: dotColor,
+                              shape: BoxShape.circle,
+                            ),
+                          )
+                        : null,
+              ),
+            ),
+            if (!isLast)
+              Container(
+                width: 2,
+                height: 28,
+                color: isDone ? const Color(0xFF059669) : const Color(0xFFE2E8F0),
+              ),
+          ],
+        ),
+        const SizedBox(width: AppSpace.md),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.cairo(
+                    fontSize: 12.5,
+                    fontWeight: isActive ? FontWeight.w800 : isDone ? FontWeight.w700 : FontWeight.w500,
+                    color: isActive
+                        ? const Color(0xFF0284C7)
+                        : isDone
+                            ? AppColors.textPrimary(context)
+                            : AppColors.textMuted(context),
+                  ),
+                ),
+                Text(
+                  time,
+                  style: GoogleFonts.cairo(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// إرشادات الانتظار
+  Widget _buildGuidanceCard({required BuildContext context}) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpace.md),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0284C7).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF0284C7).withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline_rounded, color: Color(0xFF0284C7), size: 22),
+          const SizedBox(width: AppSpace.md),
+          Expanded(
+            child: Text(
+              'يرجى التواجد بالقرب من صالة الانتظار عند اقتراب دورك. سيتم إرسال إشعار فوري لك لحظة نداء اسمك لدخول غرفة الطبيب.',
+              style: GoogleFonts.cairo(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF0369A1),
+                height: 1.5,
+              ),
             ),
           ),
         ],

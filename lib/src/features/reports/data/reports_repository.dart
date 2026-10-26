@@ -270,6 +270,26 @@ class ReportsRepository {
     String? doctorId,
     String? branchId,
   }) async {
+    if (clinicId == 'demo-clinic-01') {
+      final startDt = DateTime.tryParse(startDate) ?? DateTime.now().subtract(const Duration(days: 30));
+      final endDt = DateTime.tryParse(endDate) ?? DateTime.now();
+      final results = <Map<String, dynamic>>[];
+      final pattern = [4850.0, 4200.0, 5600.0, 3900.0, 6100.0, 4800.0, 0.0, 5100.0, 4700.0, 6300.0, 5400.0, 4900.0, 5800.0, 0.0];
+      int i = 0;
+      for (var d = endDt; !d.isBefore(startDt); d = d.subtract(const Duration(days: 1))) {
+        final dayStr = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+        final isFriday = d.weekday == DateTime.friday;
+        final rev = isFriday ? 0.0 : pattern[i % pattern.length];
+        final visits = isFriday ? 0 : (rev / 700).round().clamp(3, 10);
+        results.add({
+          'date': dayStr,
+          'revenue': rev,
+          'visits': visits,
+        });
+        i++;
+      }
+      return results;
+    }
     try {
       final start = DateTime.parse(startDate).toUtc().toIso8601String();
       final endParsed = DateTime.parse(endDate);
@@ -340,6 +360,13 @@ class ReportsRepository {
 
   // جلب إحصائيات الشهور التراكمية
   Future<List<Map<String, dynamic>>> getMonthlyStats(String clinicId, {String? doctorId, String? branchId}) async {
+    if (clinicId == 'demo-clinic-01') {
+      return [
+        {'month': '2026-10', 'revenue': 68500.0, 'visits': 134},
+        {'month': '2026-09', 'revenue': 64200.0, 'visits': 125},
+        {'month': '2026-08', 'revenue': 58000.0, 'visits': 110},
+      ];
+    }
     try {
       final today = DateTime.now();
       final oneYearAgo = DateTime(today.year - 1, today.month, 1).toUtc().toIso8601String();
@@ -416,6 +443,34 @@ class ReportsRepository {
     String? doctorId,
     String? branchId,
   }) async {
+    if (clinicId == 'demo-clinic-01') {
+      return {
+        'appointmentsByType': [
+          {'name': 'كشف استشاري جديد', 'count': 4, 'totalCost': 1400.0},
+          {'name': 'استشارة ومتابعة أشعة', 'count': 2, 'totalCost': 400.0},
+          {'name': 'جلسة حقن موضعي بلازما', 'count': 1, 'totalCost': 700.0},
+        ],
+        'servicesByType': [
+          {'name': 'سونار حركي للمفصل', 'count': 2, 'totalCost': 300.0},
+          {'name': 'تثبيت جبيرة ودعامة', 'count': 1, 'totalCost': 200.0},
+        ],
+        'totalAppointmentsRevenue': 2500.0,
+        'totalServicesRevenue': 2350.0,
+        'totalRevenue': 4850.0,
+        'previousRevenue': 4200.0,
+        'comparisonLabel': 'مقارنة بيوم أمس (+15.5%)',
+        'totalVisits': 7,
+        'newPatientsCount': 3,
+        'oldPatientsCount': 4,
+        'cancelledAppointmentsCount': 1,
+        'cancelledByPatientCount': 1,
+        'peakTimes': [
+          {'label': '10 ص', 'count': 2},
+          {'label': '11 ص', 'count': 3},
+          {'label': '12 م', 'count': 2},
+        ],
+      };
+    }
     try {
       final start = DateTime.parse(startDate).toUtc().toIso8601String();
       final endParsed = DateTime.parse(endDate);

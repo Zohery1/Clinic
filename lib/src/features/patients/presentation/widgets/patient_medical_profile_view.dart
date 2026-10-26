@@ -141,179 +141,173 @@ class PatientMedicalProfileView extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header Info Card
+              // Header Info Card - Clinical EMR Banner
               Container(
-                padding: EdgeInsets.all(isCompact ? AppSpace.md : AppSpace.xl),
-            decoration: BoxDecoration(
-              color: AppColors.primarySubtle,
-              borderRadius: AppRadii.brMd,
-            ),
-            child: Row(
-              children: [
-                AppAvatar(
-                  name: patient.fullName,
-                  size: AppAvatarSize.lg,
-                ),
-                const SizedBox(width: AppSpace.xl),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              capitalizeName(patient.fullName),
-                              style: GoogleFonts.cairo(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 18,
-                                color: AppColors.textPrimary(context),
-                                height: 1.3,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpace.md),
-                          if (age != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpace.sm,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface(context),
-                                borderRadius: AppRadii.brSm,
-                              ),
-                              child: Text(
-                                '$age سنة',
-                                style: GoogleFonts.cairo(
-                                  color: AppColors.primary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  height: 1.2,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpace.xs),
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          if (patient.phone != null && patient.phone!.isNotEmpty)
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.phone_rounded,
-                                  size: 14,
-                                  color: AppColors.textMuted(context),
-                                ),
-                                const SizedBox(width: AppSpace.xs),
-                                Text(
-                                  patient.phone!,
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 13,
-                                    color: AppColors.textMuted(context),
-                                    height: 1.3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          if (displayAddress.isNotEmpty)
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.location_on_outlined,
-                                  size: 14,
-                                  color: AppColors.textMuted(context),
-                                ),
-                                const SizedBox(width: AppSpace.xs),
-                                Text(
-                                  displayAddress,
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 13,
-                                    color: AppColors.textMuted(context),
-                                    height: 1.3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ],
+                padding: EdgeInsets.all(isCompact ? AppSpace.md : AppSpace.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.surface(context),
+                  borderRadius: AppRadii.brLg,
+                  border: Border.all(
+                    color: AppColors.borderSubtle(context),
+                    width: 1.2,
                   ),
-                ),
-                const SizedBox(width: AppSpace.md),
-                // Actions buttons
-                Row(
-                  children: [
-                    AppIconButton(
-                      tooltip: 'تعديل البيانات',
-                      onPressed: onEdit,
-                      icon: Icons.edit_rounded,
-                      variant: AppIconButtonVariant.subtle,
-                      size: AppIconButtonSize.md,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: AppSpace.xs),
-                    if (user.role == UserRole.doctor) ...[
-                      AppIconButton(
-                        tooltip: 'حذف المريض',
-                        onPressed: onDelete,
-                        icon: Icons.delete_outline_rounded,
-                        variant: AppIconButtonVariant.subtle,
-                        size: AppIconButtonSize.md,
-                        color: AppColors.danger,
-                      ),
-                      const SizedBox(width: AppSpace.xs),
-                      AppButton(
-                        label: 'فحص المريض',
-                        icon: Icons.medical_services_outlined,
-                        onPressed: () {
-                          final latestAppt = appointmentsAsync.value?.isNotEmpty == true
-                              ? appointmentsAsync.value!.first
-                              : null;
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => ExaminationScreen(
-                                clinicId: clinicId,
-                                appointmentId: latestAppt?.id ?? '',
-                                patientId: patient.id,
-                                patientName: patient.fullName,
-                              ),
-                            ),
-                          );
-                        },
-                        size: AppButtonSize.md,
-                        variant: AppButtonVariant.secondary,
-                      ),
-                      const SizedBox(width: AppSpace.xs),
-                    ],
-                    AppButton(
-                      label: 'حجز موعد جديد',
-                      icon: Icons.add_task_rounded,
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => BookAppointmentDialog(
-                            clinicId: clinicId,
-                            preselectedPatientId: patient.id,
-                          ),
-                        );
-                      },
-                      size: AppButtonSize.md,
-                      variant: AppButtonVariant.primary,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: AppColors.isDark(context) ? 0.25 : 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpace.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppAvatar(
+                          name: patient.fullName,
+                          size: isCompact ? AppAvatarSize.md : AppAvatarSize.lg,
+                        ),
+                        const SizedBox(width: AppSpace.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      capitalizeName(patient.fullName),
+                                      style: GoogleFonts.cairo(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: isCompact ? 16 : 19,
+                                        color: AppColors.textPrimary(context),
+                                        height: 1.25,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpace.sm),
+                                  if (age != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpace.sm,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primarySubtle,
+                                        borderRadius: AppRadii.brSm,
+                                        border: Border.all(
+                                          color: AppColors.primary.withValues(alpha: 0.25),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '$age سنة',
+                                        style: GoogleFonts.cairo(
+                                          color: AppColors.primary,
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.2,
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(width: AppSpace.xs),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpace.sm,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.subtle(context),
+                                      borderRadius: AppRadii.brSm,
+                                    ),
+                                    child: Text(
+                                      fileNo,
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textSecondary(context),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpace.xs),
+                              Wrap(
+                                spacing: 14,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  if (patient.phone != null && patient.phone!.isNotEmpty)
+                                    InkWell(
+                                      onTap: () => showSendWhatsAppDialog(
+                                        context,
+                                        ref,
+                                        phone: patient.phone!,
+                                        patientName: patient.fullName,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.chat_bubble_rounded,
+                                            size: 13,
+                                            color: AppColors.success,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            patient.phone!,
+                                            style: GoogleFonts.jetBrainsMono(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.success,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  if (displayAddress.isNotEmpty)
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.location_on_outlined,
+                                          size: 14,
+                                          color: AppColors.textMuted(context),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          displayAddress,
+                                          style: GoogleFonts.cairo(
+                                            fontSize: 12.5,
+                                            color: AppColors.textMuted(context),
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!isCompact) ...[
+                          const SizedBox(width: AppSpace.md),
+                          _buildProfileActions(context, ref, isCompact: false),
+                        ],
+                      ],
+                    ),
+                    if (isCompact) ...[
+                      const SizedBox(height: AppSpace.md),
+                      _buildProfileActions(context, ref, isCompact: true),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpace.md),
 
           // Vitals and clinical variables grid
           LayoutBuilder(
@@ -550,6 +544,74 @@ class PatientMedicalProfileView extends ConsumerWidget {
       ),
     );
       },
+    );
+  }
+
+  Widget _buildProfileActions(BuildContext context, WidgetRef ref, {required bool isCompact}) {
+    final appointmentsAsync = ref.watch(patientAppointmentsProvider(patient.id));
+
+    return Wrap(
+      spacing: AppSpace.sm,
+      runSpacing: AppSpace.xs,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        AppIconButton(
+          tooltip: 'تعديل البيانات',
+          onPressed: onEdit,
+          icon: Icons.edit_rounded,
+          variant: AppIconButtonVariant.subtle,
+          size: isCompact ? AppIconButtonSize.sm : AppIconButtonSize.md,
+          color: AppColors.primary,
+        ),
+        if (user.role == UserRole.doctor) ...[
+          AppIconButton(
+            tooltip: 'حذف المريض',
+            onPressed: onDelete,
+            icon: Icons.delete_outline_rounded,
+            variant: AppIconButtonVariant.subtle,
+            size: isCompact ? AppIconButtonSize.sm : AppIconButtonSize.md,
+            color: AppColors.danger,
+          ),
+          AppButton(
+            label: 'فحص المريض',
+            icon: Icons.medical_services_outlined,
+            expand: false,
+            onPressed: () {
+              final latestAppt = appointmentsAsync.value?.isNotEmpty == true
+                  ? appointmentsAsync.value!.first
+                  : null;
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => ExaminationScreen(
+                    clinicId: clinicId,
+                    appointmentId: latestAppt?.id ?? '',
+                    patientId: patient.id,
+                    patientName: patient.fullName,
+                  ),
+                ),
+              );
+            },
+            size: isCompact ? AppButtonSize.sm : AppButtonSize.md,
+            variant: AppButtonVariant.secondary,
+          ),
+        ],
+        AppButton(
+          label: 'حجز موعد جديد',
+          icon: Icons.add_task_rounded,
+          expand: false,
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => BookAppointmentDialog(
+                clinicId: clinicId,
+                preselectedPatientId: patient.id,
+              ),
+            );
+          },
+          size: isCompact ? AppButtonSize.sm : AppButtonSize.md,
+          variant: AppButtonVariant.primary,
+        ),
+      ],
     );
   }
 }

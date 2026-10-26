@@ -8,9 +8,13 @@ import '../data/appointment_repository.dart';
 import '../domain/appointment_model.dart';
 import '../domain/appointment_service_model.dart';
 import '../../reports/presentation/reports_controller.dart';
+import '../../../core/demo/demo_clinical_data.dart';
 
 // مزود لجلب الخدمات المقدمة لحجز معين
 final appointmentServicesProvider = FutureProvider.family<List<AppointmentServiceModel>, String>((ref, appointmentId) async {
+  if (appointmentId.startsWith('appt-')) {
+    return DemoClinicalData.demoServices;
+  }
   final repository = ref.watch(appointmentRepositoryProvider);
   return repository.getAppointmentServices(appointmentId);
 });
@@ -46,6 +50,9 @@ final todayAppointmentsProvider = FutureProvider<List<AppointmentModel>>((ref) a
   if (user == null) {
     return [];
   }
+  if (user.clinicId == 'demo-clinic-01') {
+    return DemoClinicalData.appointments;
+  }
 
   final selectedDate = ref.watch(selectedDateProvider);
   final repository = ref.watch(appointmentRepositoryProvider);
@@ -58,6 +65,9 @@ final todayAppointmentsProvider = FutureProvider<List<AppointmentModel>>((ref) a
 final appointmentsForDateProvider = FutureProvider.family<List<AppointmentModel>, DateTime>((ref, date) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
+  if (user.clinicId == 'demo-clinic-01') {
+    return DemoClinicalData.appointments;
+  }
   final repository = ref.watch(appointmentRepositoryProvider);
   final doctorId = getEffectiveDoctorIdForAppointments(ref);
   final branchId = ref.watch(selectedBranchFilterProvider);

@@ -79,7 +79,7 @@ class DashboardGreetingHero extends ConsumerWidget {
         borderRadius: AppRadii.brLg,
         border: Border.all(
           color: AppColors.borderSubtle(context),
-          width: 1,
+          width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
@@ -89,30 +89,15 @@ class DashboardGreetingHero extends ConsumerWidget {
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          // Subtle top brand accent line (2px)
-          Positioned(
-            top: 0,
-            left: AppSpace.xl,
-            right: AppSpace.xl,
-            child: Container(
-              height: 2,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: isDark ? 0.6 : 0.8),
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(2)),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppSpace.xl,
-              horizontal: AppSpace.xl,
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final stacked = constraints.maxWidth < 700;
-                final textWidget = Column(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpace.xl,
+          horizontal: AppSpace.xl,
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final stacked = constraints.maxWidth < 700;
+            final textWidget = Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -315,11 +300,9 @@ class DashboardGreetingHero extends ConsumerWidget {
                     const SizedBox(width: AppSpace.xl),
                     actions,
                   ],
-                );
-              },
-            ),
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }

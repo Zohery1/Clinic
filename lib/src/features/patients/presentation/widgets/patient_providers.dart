@@ -6,7 +6,9 @@ import '../../../appointments/domain/appointment_service_model.dart';
 /// مزود لجلب تاريخ مواعيد المريض بالكامل (منتهية فقط)
 final patientAppointmentsProvider = FutureProvider.family<List<AppointmentModel>, String>((ref, patientId) async {
   final all = await ref.watch(appointmentRepositoryProvider).getPatientAppointments(patientId);
-  return all.where((app) => app.status == 'completed').toList();
+  final completed = all.where((app) => app.status == 'completed').toList();
+  if (completed.isNotEmpty) return completed;
+  return all;
 });
 
 /// مزود لجلب الخدمات الطبية الخاصة بالزيارة

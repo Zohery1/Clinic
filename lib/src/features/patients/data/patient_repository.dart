@@ -6,6 +6,7 @@ import '../../../core/utils/arabic_utils.dart';
 
 import '../../auth/presentation/login_controller.dart';
 import '../../clinics/presentation/clinics_controller.dart';
+import '../../../core/demo/demo_clinical_data.dart';
 
 // مزود مستودع المرضى ليكون متاحاً عبر Riverpod
 final patientRepositoryProvider = Provider<PatientRepository>((ref) {
@@ -14,6 +15,9 @@ final patientRepositoryProvider = Provider<PatientRepository>((ref) {
 
 // مزود لجلب قائمة جميع المرضى في العيادة والفرع الحالي تلقائياً
 final patientsListProvider = FutureProvider.family<List<PatientModel>, String>((ref, clinicId) async {
+  if (clinicId == 'demo-clinic-01') {
+    return DemoClinicalData.patients;
+  }
   final user = ref.watch(currentUserProvider);
   final selectedBranchId = ref.watch(selectedBranchFilterProvider);
   // إذا حُدد فرع في الفلتر نستخدمه، وإلا إذا كان المستخدم ليس مالكاً نستخدم فرعه النشط تلقائياً

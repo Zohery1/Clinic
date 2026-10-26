@@ -11,6 +11,13 @@ import '../../auth/domain/user_model.dart';
 final appointmentTypesProvider = FutureProvider<List<AppointmentTypeModel>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
+  if (user.clinicId == 'demo-clinic-01') {
+    return [
+      AppointmentTypeModel(id: 'type-01', clinicId: user.clinicId, name: 'كشف جديد استشاري', price: 350.0),
+      AppointmentTypeModel(id: 'type-02', clinicId: user.clinicId, name: 'استشارة ومتابعة', price: 200.0),
+      AppointmentTypeModel(id: 'type-03', clinicId: user.clinicId, name: 'جلسة حقن موضعي', price: 700.0),
+    ];
+  }
   return ref.watch(reportsRepositoryProvider).getAppointmentTypes(user.clinicId);
 });
 
@@ -18,6 +25,13 @@ final appointmentTypesProvider = FutureProvider<List<AppointmentTypeModel>>((ref
 final servicesProvider = FutureProvider<List<ServiceModel>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
+  if (user.clinicId == 'demo-clinic-01') {
+    return [
+      ServiceModel(id: 's-01', clinicId: user.clinicId, name: 'سونار حركي للمفصل', price: 150.0),
+      ServiceModel(id: 's-02', clinicId: user.clinicId, name: 'تثبيت جبيرة ودعامة', price: 200.0),
+      ServiceModel(id: 's-03', clinicId: user.clinicId, name: 'غيار جراحي معقم', price: 100.0),
+    ];
+  }
   return ref.watch(reportsRepositoryProvider).getServices(user.clinicId);
 });
 
@@ -49,6 +63,7 @@ String? getEffectiveBranchIdForReport(Ref ref) {
 final todayRevenueProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
+  if (user.clinicId == 'demo-clinic-01') return 4850.0;
   final selectedDate = ref.watch(selectedDateProvider);
   final doctorId = getEffectiveDoctorIdForReport(ref);
   final branchId = getEffectiveBranchIdForReport(ref);
@@ -59,6 +74,7 @@ final todayRevenueProvider = FutureProvider<double>((ref) async {
 final myTodayRevenueProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
+  if (user.clinicId == 'demo-clinic-01') return 4850.0;
   final selectedDate = ref.watch(selectedDateProvider);
   final branchId = getEffectiveBranchIdForReport(ref);
   return ref.watch(reportsRepositoryProvider).getTodayRevenue(user.clinicId, selectedDate, doctorId: user.id, branchId: branchId);
@@ -68,6 +84,7 @@ final myTodayRevenueProvider = FutureProvider<double>((ref) async {
 final monthRevenueProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
+  if (user.clinicId == 'demo-clinic-01') return 68500.0;
   final doctorId = getEffectiveDoctorIdForReport(ref);
   final branchId = getEffectiveBranchIdForReport(ref);
   return ref.watch(reportsRepositoryProvider).getMonthRevenue(user.clinicId, doctorId: doctorId, branchId: branchId);
@@ -77,6 +94,7 @@ final monthRevenueProvider = FutureProvider<double>((ref) async {
 final myMonthRevenueProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
+  if (user.clinicId == 'demo-clinic-01') return 68500.0;
   final branchId = getEffectiveBranchIdForReport(ref);
   return ref.watch(reportsRepositoryProvider).getMonthRevenue(user.clinicId, doctorId: user.id, branchId: branchId);
 });
@@ -85,6 +103,17 @@ final myMonthRevenueProvider = FutureProvider<double>((ref) async {
 final weeklyRevenueProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
+  if (user.clinicId == 'demo-clinic-01') {
+    return [
+      {'date': 'السبت', 'revenue': 4200.0},
+      {'date': 'الأحد', 'revenue': 5100.0},
+      {'date': 'الإثنين', 'revenue': 3800.0},
+      {'date': 'الثلاثاء', 'revenue': 4600.0},
+      {'date': 'الأربعاء', 'revenue': 5400.0},
+      {'date': 'الخميس', 'revenue': 4900.0},
+      {'date': 'الجمعة', 'revenue': 4850.0},
+    ];
+  }
   final doctorId = getEffectiveDoctorIdForReport(ref);
   final branchId = getEffectiveBranchIdForReport(ref);
   return ref.watch(reportsRepositoryProvider).getWeeklyRevenue(user.clinicId, doctorId: doctorId, branchId: branchId);
@@ -94,6 +123,9 @@ final weeklyRevenueProvider = FutureProvider<List<Map<String, dynamic>>>((ref) a
 final sixWeeksRevenueProvider = FutureProvider<List<double>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
+  if (user.clinicId == 'demo-clinic-01') {
+    return [24500.0, 28000.0, 31200.0, 29800.0, 34500.0, 36200.0];
+  }
 
   final today = DateTime.now();
   final diff = today.weekday >= DateTime.saturday ? today.weekday - DateTime.saturday : today.weekday + 7 - DateTime.saturday;

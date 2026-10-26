@@ -19,6 +19,7 @@ import 'src/core/utils/invite_utils.dart';
 import 'src/features/auth/domain/user_model.dart';
 import 'src/features/dashboard/presentation/dashboard_screen.dart';
 import 'src/features/appointments/presentation/patient_queue_tracking_screen.dart';
+import 'src/core/demo/demo_clinical_data.dart';
 
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -113,6 +114,13 @@ class MyApp extends ConsumerWidget {
           );
         }
 
+        if (name.contains('/preview') || name.contains('/demo')) {
+          return MaterialPageRoute(
+            builder: (context) => const PreviewGate(),
+            settings: settings,
+          );
+        }
+
         if (name == '/login') {
           return MaterialPageRoute(
             builder: (context) => const LoginScreen(),
@@ -125,6 +133,34 @@ class MyApp extends ConsumerWidget {
           settings: settings,
         );
       },
+    );
+  }
+}
+
+/// بوابة المعاينة السريرية المتقدمة (Instant Clinical Preview Gate)
+class PreviewGate extends ConsumerStatefulWidget {
+  const PreviewGate({super.key});
+
+  @override
+  ConsumerState<PreviewGate> createState() => _PreviewGateState();
+}
+
+class _PreviewGateState extends ConsumerState<PreviewGate> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(currentUserProvider.notifier).state = DemoClinicalData.doctorUser;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardScreen(
+      clinicName: 'مستشفى وعيادات الأمل التخصصية',
+      clinicId: 'demo-clinic-01',
+      inviteCode: 'AMAL-2026',
+      subscriptionEndDate: DateTime.now().add(const Duration(days: 365)),
     );
   }
 }
@@ -239,6 +275,9 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
   void _listenToClinicRealtime(String clinicId) {
     _clinicStreamSubscription?.cancel();
+    if (clinicId == 'demo-clinic-01' || !clinicId.contains('-') || clinicId.length < 30) {
+      return;
+    }
     _clinicStreamSubscription = Supabase.instance.client
         .from('clinics')
         .stream(primaryKey: ['id'])
@@ -272,6 +311,20 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       final targetClinicId = user?.activeClinicId ?? user?.clinicId;
       if (user != null && targetClinicId != null && targetClinicId.isNotEmpty) {
         _clinicId = targetClinicId;
+        if (targetClinicId == 'demo-clinic-01') {
+          if (mounted) {
+            setState(() {
+              _clinicName = 'مستشفى وعيادات الأمل التخصصية';
+              _inviteCode = 'AMAL-2026';
+              _isClinicActive = true;
+              _subscriptionEndDate = DateTime.now().add(const Duration(days: 365));
+              _subscriptionStatus = 'active';
+            });
+          }
+          _scheduleExpirationTimer();
+          return;
+        }
+
         _listenToClinicRealtime(targetClinicId);
         final res = await Supabase.instance.client
             .from('clinics')

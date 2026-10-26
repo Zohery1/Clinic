@@ -48,13 +48,16 @@ class SettingsScreen extends ConsumerWidget {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: AppColors.canvas(context),
-        appBar: null,
-        body: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpace.xl,
-            vertical: AppSpace.lg,
-          ),
-          children: [
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960),
+            child: ListView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.xl,
+                vertical: AppSpace.lg,
+              ),
+              children: [
             // ─── بطاقة الملف الشخصي المختصر ───
             UserProfileHeader(user: user),
             const SizedBox(height: AppSpace.lg),
@@ -185,6 +188,8 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 }

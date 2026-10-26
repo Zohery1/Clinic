@@ -126,9 +126,9 @@ class _AppointmentsDesktopViewState
     final selectedDate = ref.watch(selectedDateProvider);
     final appointments = widget.appointmentsAsync.value ?? [];
 
-    // مزامنة الموعد المحدد مع أحدث نسخة في Riverpod
+    // مزامنة الموعد المحدد مع أحدث نسخة في Riverpod (أو الموعد الأول تلقائياً في الشاشات العريضة)
     final activeSelected = _selected == null
-        ? null
+        ? (appointments.isNotEmpty ? appointments.first : null)
         : appointments.firstWhere(
             (a) => a.id == _selected!.id,
             orElse: () => _selected!,
