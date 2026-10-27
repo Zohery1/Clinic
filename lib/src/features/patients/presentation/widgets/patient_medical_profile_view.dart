@@ -646,9 +646,9 @@ class _ClinicalMetaStat extends StatelessWidget {
         vertical: AppSpace.sm,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: isDark ? 0.12 : 0.08),
-        borderRadius: AppRadii.brSm,
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
+        color: AppColors.surface(context),
+        borderRadius: AppRadii.brMd,
+        border: Border.all(color: AppColors.borderSubtle(context), width: 1),
       ),
       child: Row(
         children: [
@@ -656,7 +656,7 @@ class _ClinicalMetaStat extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpace.xs),
             decoration: BoxDecoration(
               color: color.withValues(alpha: isDark ? 0.18 : 0.10),
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 16),
           ),
@@ -668,7 +668,8 @@ class _ClinicalMetaStat extends StatelessWidget {
                 Text(
                   title,
                   style: GoogleFonts.cairo(
-                    fontSize: 10,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textMuted(context),
                     height: 1.3,
                   ),
@@ -681,13 +682,13 @@ class _ClinicalMetaStat extends StatelessWidget {
                         value,
                         style: isMonospace
                             ? GoogleFonts.jetBrainsMono(
-                                fontSize: 12,
+                                fontSize: 12.5,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary(context),
                                 height: 1.3,
                               )
                             : GoogleFonts.cairo(
-                                fontSize: 11,
+                                fontSize: 11.5,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textPrimary(context),
                                 height: 1.3,

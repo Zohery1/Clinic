@@ -221,8 +221,8 @@ class _ActionTileState extends State<_ActionTile> {
                   ),
                   const SizedBox(width: AppSpace.xs),
                   Icon(
-                    Icons.arrow_back_rounded,
-                    size: 16,
+                    Icons.chevron_left_rounded,
+                    size: 18,
                     color: AppColors.textMuted(context),
                   ),
                 ],

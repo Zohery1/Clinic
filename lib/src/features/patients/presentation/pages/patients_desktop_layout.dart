@@ -43,33 +43,28 @@ class _PatientsDesktopLayoutState
     }
 
     // Synchronize selected patient state:
-    // If the selected patient was deleted, gracefully reset to null.
-    // If updated, update the reference.
-    final currentSelected = _selectedPatient;
+    // If no patient selected yet and list has patients, preselect the first one
+    // to provide an immediate EMR cockpit view rather than empty screen.
+    final currentSelected = _selectedPatient ?? full.firstOrNull;
     PatientModel? selected = currentSelected;
     if (currentSelected != null && patientsAsync.hasValue) {
       final selectedId = currentSelected.id;
       final matching = full.where((p) => p.id == selectedId).firstOrNull;
       if (matching == null) {
-        selected = null;
+        selected = full.firstOrNull;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _selectedPatient != null) {
-            setState(() => _selectedPatient = null);
+            setState(() => _selectedPatient = selected);
           }
         });
       } else if (matching != _selectedPatient) {
         selected = matching;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _selectedPatient != matching) {
-            setState(() => _selectedPatient = matching);
-          }
-        });
       }
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final panelWidth = constraints.maxWidth < 1200 ? 300.0 : 350.0;
+        final panelWidth = constraints.maxWidth < 1200 ? 340.0 : 380.0;
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,

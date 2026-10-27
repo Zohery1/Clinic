@@ -413,41 +413,45 @@ class DashboardGreetingHero extends ConsumerWidget {
             ),
           ),
           if (isDoctor || canViewHistory)
-            InkWell(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ExaminationScreen(
-                      clinicId: effectiveClinicId,
-                      appointmentId: inProgress.id,
-                      patientId: inProgress.patientId,
-                      patientName: inProgress.patient.fullName,
-                    ),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(4),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'متابعة الجلسة',
-                      style: GoogleFonts.cairo(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                        decoration: TextDecoration.underline,
+            Semantics(
+              button: true,
+              label: 'متابعة الجلسة',
+              child: InkWell(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ExaminationScreen(
+                        clinicId: effectiveClinicId,
+                        appointmentId: inProgress.id,
+                        patientId: inProgress.patientId,
+                        patientName: inProgress.patient.fullName,
                       ),
                     ),
-                    const SizedBox(width: 2),
-                    const Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 12,
-                      color: AppColors.primary,
-                    ),
-                  ],
+                  );
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'متابعة الجلسة',
+                        style: GoogleFonts.cairo(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 12,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -140,6 +140,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
         children: [
           // ─── رأس البطاقة: المريض والحالة والواتساب ───
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AppAvatar(
                 name: appointment.patient.fullName,
@@ -153,13 +154,16 @@ class AppointmentDetailsCard extends ConsumerWidget {
                   children: [
                     Text(
                       appointment.patient.fullName,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.headingLg(
-                        AppColors.textPrimary(context),
-                      ).copyWith(height: 1.3),
+                      style: GoogleFonts.cairo(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary(context),
+                        height: 1.25,
+                      ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     if (appointment.patient.phone != null &&
                         appointment.patient.phone!.isNotEmpty)
                       InkWell(
@@ -173,8 +177,8 @@ class AppointmentDetailsCard extends ConsumerWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.chat_bubble_outline_rounded,
-                                size: 14, color: AppColors.success),
+                            const Icon(Icons.chat_bubble_rounded,
+                                size: 13, color: AppColors.success),
                             const SizedBox(width: 4),
                             Text(
                               appointment.patient.phone!,
@@ -190,6 +194,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: AppSpace.sm),
               AppBadge(
                 label: label,
                 icon: icon,
@@ -206,10 +211,10 @@ class AppointmentDetailsCard extends ConsumerWidget {
             Icons.event_note_rounded,
           ),
           Container(
-            padding: const EdgeInsets.all(AppSpace.md),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpace.md, vertical: AppSpace.sm),
             decoration: BoxDecoration(
-              color: AppColors.subtle(context),
-              borderRadius: BorderRadius.circular(10),
+              color: AppColors.canvas(context),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.borderSubtle(context)),
             ),
             child: Column(
@@ -219,7 +224,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
                   label: 'التاريخ',
                   value: formattedDate,
                 ),
-                const SizedBox(height: AppSpace.sm),
+                Divider(height: 12, color: AppColors.borderSubtle(context)),
                 _DetailRow(
                   icon: Icons.access_time_rounded,
                   label: 'الوقت',
@@ -228,7 +233,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
                 ),
                 if (appointment.appointmentTypeName != null &&
                     appointment.appointmentTypeName!.isNotEmpty) ...[
-                  const SizedBox(height: AppSpace.sm),
+                  Divider(height: 12, color: AppColors.borderSubtle(context)),
                   _DetailRow(
                     icon: Icons.medical_information_outlined,
                     label: 'نوع الكشف',
@@ -237,7 +242,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
                 ],
                 if (appointment.doctorName != null &&
                     appointment.doctorName!.isNotEmpty) ...[
-                  const SizedBox(height: AppSpace.sm),
+                  Divider(height: 12, color: AppColors.borderSubtle(context)),
                   _DetailRow(
                     icon: Icons.person_pin_outlined,
                     label: 'الطبيب',
@@ -246,7 +251,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
                 ],
                 if (appointment.branchName != null &&
                     appointment.branchName!.isNotEmpty) ...[
-                  const SizedBox(height: AppSpace.sm),
+                  Divider(height: 12, color: AppColors.borderSubtle(context)),
                   _DetailRow(
                     icon: Icons.storefront_outlined,
                     label: 'الفرع',
@@ -265,10 +270,10 @@ class AppointmentDetailsCard extends ConsumerWidget {
             Icons.account_balance_wallet_outlined,
           ),
           Container(
-            padding: const EdgeInsets.all(AppSpace.md),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpace.md, vertical: AppSpace.sm),
             decoration: BoxDecoration(
-              color: AppColors.subtle(context),
-              borderRadius: BorderRadius.circular(10),
+              color: AppColors.canvas(context),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.borderSubtle(context)),
             ),
             child: Column(
@@ -281,7 +286,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
                   isMono: true,
                 ),
                 if (appointment.priceCharged != null) ...[
-                  const SizedBox(height: AppSpace.sm),
+                  Divider(height: 12, color: AppColors.borderSubtle(context)),
                   _DetailRow(
                     icon: Icons.receipt_long_outlined,
                     label: 'السعر المستحق',
@@ -289,42 +294,45 @@ class AppointmentDetailsCard extends ConsumerWidget {
                     isMono: true,
                   ),
                 ],
-                const SizedBox(height: AppSpace.sm),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.price_check_rounded,
-                      size: 16,
-                      color: AppColors.textSecondary(context),
-                    ),
-                    const SizedBox(width: AppSpace.sm),
-                    SizedBox(
-                      width: 100,
-                      child: Text(
-                        'حالة التحصيل',
-                        style: AppTypography.bodySm(
-                            AppColors.textSecondary(context)),
+                Divider(height: 12, color: AppColors.borderSubtle(context)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.price_check_rounded,
+                        size: 16,
+                        color: AppColors.textSecondary(context),
                       ),
-                    ),
-                    if (remaining > 0)
-                      AppBadge(
-                        label: 'متبقي ${remaining.toStringAsFixed(0)} ج.م',
-                        icon: Icons.warning_amber_rounded,
-                        variant: AppBadgeVariant.danger,
-                      )
-                    else if (totalPaid > 0)
-                      const AppBadge(
-                        label: 'مسدد بالكامل',
-                        icon: Icons.check_circle_rounded,
-                        variant: AppBadgeVariant.success,
-                      )
-                    else
-                      const AppBadge(
-                        label: 'لم يتم التحصيل',
-                        icon: Icons.hourglass_empty_rounded,
-                        variant: AppBadgeVariant.warning,
+                      const SizedBox(width: AppSpace.sm),
+                      SizedBox(
+                        width: 100,
+                        child: Text(
+                          'حالة التحصيل',
+                          style: AppTypography.bodySm(
+                              AppColors.textSecondary(context)),
+                        ),
                       ),
-                  ],
+                      if (remaining > 0)
+                        AppBadge(
+                          label: 'متبقي ${remaining.toStringAsFixed(0)} ج.م',
+                          icon: Icons.warning_amber_rounded,
+                          variant: AppBadgeVariant.danger,
+                        )
+                      else if (totalPaid > 0)
+                        const AppBadge(
+                          label: 'مسدد بالكامل',
+                          icon: Icons.check_circle_rounded,
+                          variant: AppBadgeVariant.success,
+                        )
+                      else
+                        const AppBadge(
+                          label: 'لم يتم التحصيل',
+                          icon: Icons.hourglass_empty_rounded,
+                          variant: AppBadgeVariant.warning,
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -341,8 +349,8 @@ class AppointmentDetailsCard extends ConsumerWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(AppSpace.md),
             decoration: BoxDecoration(
-              color: AppColors.subtle(context),
-              borderRadius: BorderRadius.circular(10),
+              color: AppColors.canvas(context),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.borderSubtle(context)),
             ),
             child: (appointment.serviceNames != null &&

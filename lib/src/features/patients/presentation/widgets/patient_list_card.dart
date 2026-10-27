@@ -126,12 +126,26 @@ class _PatientListCardState extends State<PatientListCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        _capitalizeName(widget.patient.fullName),
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.5,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.textPrimary(context),
+                          height: 1.25,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
                       Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
-                              vertical: 2,
+                              vertical: 1.5,
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
@@ -141,7 +155,7 @@ class _PatientListCardState extends State<PatientListCard> {
                                   : (isDark
                                       ? AppColors.darkSubtle
                                       : AppColors.lightSubtle),
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(5),
                               border: Border.all(
                                 color: isSelected
                                     ? AppColors.primary.withValues(alpha: 0.5)
@@ -160,34 +174,23 @@ class _PatientListCardState extends State<PatientListCard> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              _capitalizeName(widget.patient.fullName),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.textPrimary(context),
+                          if (widget.patient.phone != null &&
+                              widget.patient.phone!.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                widget.patient.phone!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.jetBrainsMono(
+                                  color: AppColors.textMuted(context),
+                                  fontSize: 11.5,
+                                ),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
+                          ],
                         ],
                       ),
-                      if (widget.patient.phone != null &&
-                          widget.patient.phone!.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Text(
-                          widget.patient.phone!,
-                          style: GoogleFonts.jetBrainsMono(
-                            color: AppColors.textMuted(context),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),

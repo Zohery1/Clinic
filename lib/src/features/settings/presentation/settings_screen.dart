@@ -68,93 +68,109 @@ class SettingsScreen extends ConsumerWidget {
 
             // ─── القسم الأول: البيانات والملفات ───
             const SettingsSectionHeader(title: 'البيانات الشخصية والعيادة'),
-            SettingsTile(
-              icon: Icons.local_hospital_outlined,
-              title: 'بيانات العيادة والدكتور',
-              subtitle: 'تعديل اسم الطبيب، واسم المركز الطبي',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ClinicDetailsPage()),
-                );
-              },
+            SettingsCardGroup(
+              children: [
+                SettingsTile(
+                  icon: Icons.local_hospital_outlined,
+                  title: 'بيانات العيادة والدكتور',
+                  subtitle: 'تعديل اسم الطبيب، واسم المركز الطبي',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ClinicDetailsPage()),
+                    );
+                  },
+                ),
+                if (isDoctor)
+                  SettingsTile(
+                    icon: Icons.badge_outlined,
+                    title: 'مشاركة كود الدعوة والصلاحيات',
+                    subtitle: 'إرسال رابط التسجيل للسكرتيرة وضبط الصلاحيات',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const StaffPermissionsPage()),
+                      );
+                    },
+                  ),
+                if (user.isOwner)
+                  SettingsTile(
+                    icon: Icons.store_mall_directory_outlined,
+                    title: 'إدارة فروع العيادة',
+                    subtitle: 'إضافة وتعديل فروع المركز والعيادات الفرعية',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ClinicBranchesPage()),
+                      );
+                    },
+                  ),
+                SettingsTile(
+                  icon: Icons.swap_horiz_rounded,
+                  title: 'التبديل بين العيادات والفروع',
+                  subtitle: 'التنقل الفوري بين عياداتك وفروعها المسجلة',
+                  onTap: () {
+                    ClinicSwitcherButton.showSwitcherModal(context, ref);
+                  },
+                ),
+              ],
             ),
-            if (isDoctor)
-              SettingsTile(
-                icon: Icons.badge_outlined,
-                title: 'مشاركة كود الدعوة والصلاحيات',
-                subtitle: 'إرسال رابط التسجيل للسكرتيرة وضبط الصلاحيات',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const StaffPermissionsPage()),
-                  );
-                },
-              ),
-            if (user.isOwner)
-              SettingsTile(
-                icon: Icons.store_mall_directory_outlined,
-                title: 'إدارة فروع العيادة',
-                subtitle: 'إضافة وتعديل فروع المركز والعيادات الفرعية',
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ClinicBranchesPage()),
-                  );
-                },
-              ),
-            SettingsTile(
-              icon: Icons.swap_horiz_rounded,
-              title: 'التبديل بين العيادات والفروع',
-              subtitle: 'التنقل الفوري بين عياداتك وفروعها المسجلة',
-              onTap: () {
-                ClinicSwitcherButton.showSwitcherModal(context, ref);
-              },
-            ),
-            const SizedBox(height: AppSpace.lg),
+            const SizedBox(height: AppSpace.xl),
 
             // ─── القسم الثاني: إدارة الأسعار والخدمات ───
             const SettingsSectionHeader(title: 'الخدمات الطبية والأسعار'),
-            SettingsTile(
-              icon: Icons.medical_services_outlined,
-              title: 'إدارة الكشوفات والخدمات',
-              subtitle: 'ضبط أسعار الكشوفات والخدمات الإضافية',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ServicesConfigPage()),
-                );
-              },
+            SettingsCardGroup(
+              children: [
+                SettingsTile(
+                  icon: Icons.medical_services_outlined,
+                  title: 'إدارة الكشوفات والخدمات',
+                  subtitle: 'ضبط أسعار الكشوفات والخدمات الإضافية',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ServicesConfigPage()),
+                    );
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: AppSpace.lg),
+            const SizedBox(height: AppSpace.xl),
 
             // ─── القسم الثالث: الربط والأتمتة ───
             const SettingsSectionHeader(title: 'الربط والأتمتة'),
-            SettingsTile(
-              icon: Icons.chat_outlined,
-              title: 'إعدادات الواتساب والأتمتة',
-              subtitle: 'ربط رقم العيادة وتعديل قوالب الرسائل التلقائية',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const WhatsAppAutomationPage()),
-                );
-              },
+            SettingsCardGroup(
+              children: [
+                SettingsTile(
+                  icon: Icons.chat_outlined,
+                  title: 'إعدادات الواتساب والأتمتة',
+                  subtitle: 'ربط رقم العيادة وتعديل قوالب الرسائل التلقائية',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const WhatsAppAutomationPage()),
+                    );
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: AppSpace.lg),
+            const SizedBox(height: AppSpace.xl),
 
             // ─── القسم الرابع: المظهر والنظام ───
             const SettingsSectionHeader(title: 'تخصيص النظام'),
-            SettingsTile(
-              icon: Icons.dark_mode_outlined,
-              title: 'مظهر التطبيق (Theme)',
-              subtitle: currentTheme == ThemeMode.light
-                  ? 'الوضع الفاتح (النهاري)'
-                  : currentTheme == ThemeMode.dark
-                      ? 'الوضع الداكن (الليلي)'
-                      : 'تلقائي (حسب النظام)',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ThemeSettingsPage()),
-                );
-              },
+            SettingsCardGroup(
+              children: [
+                SettingsTile(
+                  icon: Icons.dark_mode_outlined,
+                  title: 'مظهر التطبيق (Theme)',
+                  subtitle: currentTheme == ThemeMode.light
+                      ? 'الوضع الفاتح (النهاري)'
+                      : currentTheme == ThemeMode.dark
+                          ? 'الوضع الداكن (الليلي)'
+                          : 'تلقائي (حسب النظام)',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ThemeSettingsPage()),
+                    );
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: AppSpace.lg),
+            const SizedBox(height: AppSpace.xl),
 
             // ─── أزرار الحساب والخروج ───
             SettingsActionCard(

@@ -28,6 +28,41 @@ class SettingsSectionHeader extends StatelessWidget {
   }
 }
 
+/// مجمّع بطاقات الإعدادات لتنظيم الخيارات في بطاقة واحدة أنيقة
+class SettingsCardGroup extends StatelessWidget {
+  final List<Widget> children;
+  const SettingsCardGroup({super.key, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
+        borderRadius: AppRadii.brLg,
+        border: Border.all(
+          color: AppColors.borderSubtle(context),
+          width: 1.0,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (int i = 0; i < children.length; i++) ...[
+            if (i > 0)
+              Divider(
+                height: 1,
+                thickness: 1,
+                indent: 56,
+                color: AppColors.borderSubtle(context),
+              ),
+            children[i],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// عنصر خيار في شاشة الإعدادات
 class SettingsTile extends StatelessWidget {
   final IconData icon;
@@ -50,50 +85,37 @@ class SettingsTile extends StatelessWidget {
         ? AppColors.primary.withValues(alpha: 0.15)
         : AppColors.primarySubtle;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface(context),
-          borderRadius: AppRadii.brMd,
-          border: Border.all(
-            color: AppColors.borderSubtle(context),
-            width: 1.0,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconBg,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 18, color: AppColors.primary),
+        ),
+        title: Text(
+          title,
+          style: GoogleFonts.cairo(
+            fontWeight: FontWeight.w700,
+            fontSize: 13.5,
+            color: AppColors.textPrimary(context),
           ),
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Material(
-          color: Colors.transparent,
-          child: ListTile(
-            onTap: onTap,
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 18, color: AppColors.primary),
-            ),
-            title: Text(
-              title,
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: AppColors.textPrimary(context),
-              ),
-            ),
-            subtitle: Text(
-              subtitle,
-              style: GoogleFonts.cairo(
-                fontSize: 11,
-                color: AppColors.textSecondary(context),
-              ),
-            ),
-            trailing: Icon(
-              Icons.chevron_left_rounded,
-              color: AppColors.textMuted(context),
-            ),
+        subtitle: Text(
+          subtitle,
+          style: GoogleFonts.cairo(
+            fontSize: 11,
+            color: AppColors.textSecondary(context),
           ),
+        ),
+        trailing: Icon(
+          Icons.chevron_left_rounded,
+          color: AppColors.textMuted(context),
         ),
       ),
     );

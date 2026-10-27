@@ -197,16 +197,21 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
           ),
         ),
         body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680),
-            child: _buildBody(context),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isDesktop = constraints.maxWidth >= 900;
+              return ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: isDesktop ? 1120 : 680),
+                child: _buildBody(context, isDesktop: isDesktop),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildBody(BuildContext context, {bool isDesktop = false}) {
     if (_isLoading && _queueData == null) {
       return Center(
         child: Column(
@@ -235,52 +240,91 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
     final examType = data['examination_type'] as String? ?? 'استشارة ومتابعة أشعة';
     final clinicPhone = data['clinic_phone'] as String? ?? '0223456789';
 
+    final ticketCard = _buildTicketHeroCard(
+      context: context,
+      ticketNumber: ticketNumber,
+      patientName: patientName,
+      patientsAhead: patientsAhead,
+      estimatedWait: estimatedWait,
+      examType: examType,
+    );
+
+    final doctorCard = _buildDoctorInfoCard(
+      context: context,
+      doctorName: doctorName,
+      doctorTitle: doctorTitle,
+      roomName: roomName,
+      branchName: branchName,
+      clinicPhone: clinicPhone,
+    );
+
+    final journeyCard = _buildVisitJourneyCard(context: context, data: data);
+    final guidanceCard = _buildGuidanceCard(context: context);
+
+    final footerWidget = Center(
+      child: Text(
+        'يتم التحديث تلقائياً كل 15 ثانية · آخر تحديث: ${_lastRefreshedAt.hour}:${_lastRefreshedAt.minute.toString().padLeft(2, '0')}',
+        style: GoogleFonts.cairo(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textMuted(context),
+        ),
+      ),
+    );
+
+    if (isDesktop) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: Column(
+                    children: [
+                      ticketCard,
+                      const SizedBox(height: AppSpace.lg),
+                      guidanceCard,
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpace.xl),
+                Expanded(
+                  flex: 5,
+                  child: Column(
+                    children: [
+                      doctorCard,
+                      const SizedBox(height: AppSpace.lg),
+                      journeyCard,
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpace.xl),
+            footerWidget,
+            const SizedBox(height: AppSpace.xxl),
+          ],
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // بطاقة الترحيب والتذكرة الرئيسية
-          _buildTicketHeroCard(
-            context: context,
-            ticketNumber: ticketNumber,
-            patientName: patientName,
-            patientsAhead: patientsAhead,
-            estimatedWait: estimatedWait,
-            examType: examType,
-          ),
+          ticketCard,
           const SizedBox(height: AppSpace.lg),
-
-          // بطاقة الطبيب المعالج والعيادة
-          _buildDoctorInfoCard(
-            context: context,
-            doctorName: doctorName,
-            doctorTitle: doctorTitle,
-            roomName: roomName,
-            branchName: branchName,
-            clinicPhone: clinicPhone,
-          ),
+          doctorCard,
           const SizedBox(height: AppSpace.lg),
-
-          // خط سير الزيارة السريرية (Visit Journey)
-          _buildVisitJourneyCard(context: context, data: data),
+          journeyCard,
           const SizedBox(height: AppSpace.lg),
-
-          // بطاقة الإرشادات الطبية وتنبيه المريض
-          _buildGuidanceCard(context: context),
+          guidanceCard,
           const SizedBox(height: AppSpace.xl),
-
-          // شريط التحديث التلقائي
-          Center(
-            child: Text(
-              'يتم التحديث تلقائياً كل 15 ثانية · آخر تحديث: ${_lastRefreshedAt.hour}:${_lastRefreshedAt.minute.toString().padLeft(2, '0')}',
-              style: GoogleFonts.cairo(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textMuted(context),
-              ),
-            ),
-          ),
+          footerWidget,
           const SizedBox(height: AppSpace.xxl),
         ],
       ),
@@ -372,30 +416,56 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
           Center(
             child: Column(
               children: [
-                Text(
-                  'رقم دورك الحالي',
-                  style: GoogleFonts.cairo(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted(context),
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'رقم دورك الحالي في الطابور',
+                      style: GoogleFonts.cairo(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary(context),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 10),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.08),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
+                    color: isDark
+                        ? AppColors.primary.withValues(alpha: 0.15)
+                        : AppColors.primarySubtle,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: isDark ? 0.45 : 0.25),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.08),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Text(
                     '#$ticketNumber',
-                    style: GoogleFonts.cairo(
-                      fontSize: 48,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 52,
                       fontWeight: FontWeight.w900,
                       color: AppColors.primary,
                       letterSpacing: -1,
-                      height: 1.1,
+                      height: 1.05,
                     ),
                   ),
                 ),
@@ -686,26 +756,43 @@ class _PatientQueueTrackingScreenState extends State<PatientQueueTrackingScreen>
           child: Padding(
             padding: const EdgeInsets.only(top: 1),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: GoogleFonts.cairo(
-                    fontSize: 12.5,
-                    fontWeight: isActive ? FontWeight.w800 : isDone ? FontWeight.w700 : FontWeight.w500,
-                    color: isActive
-                        ? const Color(0xFF0284C7)
-                        : isDone
-                            ? AppColors.textPrimary(context)
-                            : AppColors.textMuted(context),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.cairo(
+                      fontSize: 13,
+                      fontWeight: isActive ? FontWeight.w800 : isDone ? FontWeight.w700 : FontWeight.w500,
+                      color: isActive
+                          ? AppColors.primary
+                          : isDone
+                              ? AppColors.textPrimary(context)
+                              : AppColors.textMuted(context),
+                    ),
                   ),
                 ),
-                Text(
-                  time,
-                  style: GoogleFonts.cairo(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted(context),
+                const SizedBox(width: AppSpace.sm),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? AppColors.primarySubtle
+                        : (isDone ? AppColors.subtle(context) : Colors.transparent),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isActive
+                          ? AppColors.primary.withValues(alpha: 0.3)
+                          : (isDone ? AppColors.borderSubtle(context) : Colors.transparent),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Text(
+                    time,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isActive ? AppColors.primary : AppColors.textSecondary(context),
+                    ),
                   ),
                 ),
               ],
