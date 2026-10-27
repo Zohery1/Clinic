@@ -176,12 +176,14 @@ class _ClinicalVitalsRibbonState extends State<ClinicalVitalsRibbon> {
     final bmiCat = widget.vitals.bmiCategory;
     final bmiCol = widget.vitals.bmiColor;
 
+    final isDark = AppColors.isDark(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.subtle(context),
+        color: isDark ? const Color(0xFF0C1424) : AppColors.subtle(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderSubtle(context)),
+        border: Border.all(color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

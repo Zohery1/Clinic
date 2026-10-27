@@ -42,8 +42,9 @@ class AppTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = AppColors.surface(context);
-    final borderColor = AppColors.borderSubtle(context);
+    final isDark = AppColors.isDark(context);
+    final bg = isDark ? AppColors.obsidianShell : AppColors.surface(context);
+    final borderColor = isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context);
 
     return Container(
       constraints: const BoxConstraints(minHeight: 64),
@@ -143,6 +144,7 @@ class AppTopBar extends StatelessWidget {
               _UserMenuButton(
                 userName: userName,
                 onTap: onUserTap,
+                compact: compact,
               ),
             ],
           ),
@@ -167,11 +169,13 @@ class _GlobalSearchTriggerState extends State<_GlobalSearchTrigger> {
   Widget build(BuildContext context) {
     final isDark = AppColors.isDark(context);
     final borderColor = _hovered
-        ? AppColors.primary.withValues(alpha: isDark ? 0.6 : 0.4)
-        : AppColors.borderSubtle(context);
-    final bg = _hovered
-        ? AppColors.subtle(context)
-        : AppColors.subtle(context).withValues(alpha: 0.6);
+        ? (isDark ? AppColors.obsidianActiveGlow : AppColors.primary)
+        : (isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context));
+    final bg = isDark
+        ? (_hovered ? AppColors.obsidianCardHover : AppColors.obsidianCard)
+        : (_hovered
+            ? AppColors.subtle(context)
+            : AppColors.subtle(context).withValues(alpha: 0.6));
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -188,6 +192,15 @@ class _GlobalSearchTriggerState extends State<_GlobalSearchTrigger> {
             color: bg,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: borderColor, width: 1),
+            boxShadow: _hovered && isDark
+                ? [
+                    BoxShadow(
+                      color: AppColors.obsidianActiveGlow.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -195,7 +208,9 @@ class _GlobalSearchTriggerState extends State<_GlobalSearchTrigger> {
               Icon(
                 Icons.search_rounded,
                 size: 16,
-                color: _hovered ? AppColors.primary : AppColors.textMuted(context),
+                color: _hovered
+                    ? (isDark ? AppColors.obsidianActiveGlow : AppColors.primary)
+                    : (isDark ? AppColors.obsidianTextSecondary : AppColors.textMuted(context)),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -206,7 +221,7 @@ class _GlobalSearchTriggerState extends State<_GlobalSearchTrigger> {
                   style: GoogleFonts.cairo(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textMuted(context),
+                    color: isDark ? AppColors.obsidianTextSecondary : AppColors.textMuted(context),
                     height: 1.2,
                   ),
                 ),
@@ -215,16 +230,19 @@ class _GlobalSearchTriggerState extends State<_GlobalSearchTrigger> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.surface(context),
+                  color: isDark ? const Color(0xFF131D31) : AppColors.surface(context),
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: AppColors.borderSubtle(context), width: 1),
+                  border: Border.all(
+                    color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
+                    width: 1,
+                  ),
                 ),
                 child: Text(
                   'Ctrl+K',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textSecondary(context),
+                    color: isDark ? AppColors.obsidianActiveGlow : AppColors.textSecondary(context),
                     height: 1.0,
                   ),
                 ),
@@ -247,14 +265,18 @@ class _OperationalStatusBadge extends StatelessWidget {
     final showLabel = screenWidth >= 1150;
 
     return Tooltip(
-      message: 'نظام العيادة متصل',
+      message: 'نظام العيادة متصل • سحابي متزامن',
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: showLabel ? 8 : 7, vertical: 5),
         decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: isDark ? 0.15 : 0.08),
+          color: isDark
+              ? const Color(0xFF0E1626)
+              : AppColors.success.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: AppColors.success.withValues(alpha: isDark ? 0.35 : 0.20),
+            color: isDark
+                ? const Color(0xFF1E2E4A)
+                : AppColors.success.withValues(alpha: 0.20),
             width: 1,
           ),
         ),
@@ -276,8 +298,25 @@ class _OperationalStatusBadge extends StatelessWidget {
                 style: GoogleFonts.cairo(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.success,
+                  color: isDark ? AppColors.obsidianTextPrimary : AppColors.success,
                   height: 1.2,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                decoration: BoxDecoration(
+                  color: AppColors.accentCyan.withValues(alpha: isDark ? 0.2 : 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'سحابي',
+                  style: GoogleFonts.cairo(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? AppColors.accentCyan : AppColors.primary,
+                    height: 1.1,
+                  ),
                 ),
               ),
             ],
@@ -406,10 +445,97 @@ class _NotificationsButton extends StatelessWidget {
 class _UserMenuButton extends StatelessWidget {
   final String? userName;
   final VoidCallback? onTap;
-  const _UserMenuButton({required this.userName, required this.onTap});
+  final bool compact;
+
+  const _UserMenuButton({
+    required this.userName,
+    required this.onTap,
+    this.compact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
+    final hasName = userName != null && userName!.trim().isNotEmpty;
+
+    if (!compact && hasName) {
+      return AppTooltip(
+        message: 'الملف الشخصي وإعدادات الحساب',
+        waitDuration: Duration.zero,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.obsidianCard : AppColors.subtle(context).withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppAvatar(name: userName, size: AppAvatarSize.sm),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        userName!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary(context),
+                          height: 1.2,
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.success,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'طبيب متصل',
+                            style: GoogleFonts.cairo(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.success,
+                              height: 1.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 16,
+                    color: AppColors.textMuted(context),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return AppTooltip(
       message: userName ?? 'الحساب',
       waitDuration: Duration.zero,
@@ -425,7 +551,7 @@ class _UserMenuButton extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: AppColors.borderSubtle(context),
+                color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
                 width: 1,
               ),
             ),

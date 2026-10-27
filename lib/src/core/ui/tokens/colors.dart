@@ -68,6 +68,7 @@ class AppColors {
   static const Color obsidianTextMuted = Color(0xFF64748B);
   static const Color obsidianActiveGlow = Color(0xFF38BDF8); // Cyan pulse
   static const Color obsidianActiveBg = Color(0x2438BDF8); // 14% cyan fill
+  static const Color accentCyan = Color(0xFF38BDF8);
 
   // Text — Light (Warm clinical slate per DESIGN.md)
   static const Color lightTextPrimary = Color(0xFF1E293B); // Slate 800

@@ -31,14 +31,15 @@ class ExaminationForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.borderSubtle(context)),
+        side: BorderSide(color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context)),
       ),
-      color: AppColors.surface(context),
+      color: isDark ? AppColors.obsidianCard : AppColors.surface(context),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: LayoutBuilder(
@@ -278,6 +279,8 @@ class ExaminationForm extends StatelessWidget {
     required IconData icon,
     List<String>? quickChips,
   }) {
+    final isDark = AppColors.isDark(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -316,10 +319,10 @@ class ExaminationForm extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                   decoration: BoxDecoration(
-                    color: AppColors.subtle(context),
+                    color: isDark ? const Color(0xFF0C1424) : AppColors.subtle(context),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: AppColors.borderSubtle(context),
+                      color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
                     ),
                   ),
                   child: Row(
@@ -360,17 +363,17 @@ class ExaminationForm extends StatelessWidget {
               color: AppColors.textMuted(context),
             ),
             filled: true,
-            fillColor: AppColors.subtle(context),
+            fillColor: isDark ? const Color(0xFF0C1424) : AppColors.subtle(context),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: AppColors.borderSubtle(context),
+                color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: AppColors.borderSubtle(context),
+                color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
               ),
             ),
             focusedBorder: const OutlineInputBorder(

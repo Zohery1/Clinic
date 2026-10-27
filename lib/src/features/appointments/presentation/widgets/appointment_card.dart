@@ -172,50 +172,56 @@ class AppointmentCard extends ConsumerWidget {
     final remaining = (price > totalPaid) ? (price - totalPaid) : 0.0;
     final hasBalance = remaining > 0;
 
+    final isDark = AppColors.isDark(context);
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 3),
+        margin: const EdgeInsets.symmetric(vertical: 4),
         decoration: BoxDecoration(
           color: isSelected
-              ? (AppColors.isDark(context)
-                  ? AppColors.primary.withValues(alpha: 0.18)
-                  : AppColors.primarySubtle)
+              ? (isDark ? AppColors.obsidianActiveBg : AppColors.primarySubtle)
               : (isPending
-                  ? (AppColors.isDark(context)
-                      ? AppColors.info.withValues(alpha: 0.12)
-                      : AppColors.infoSubtle)
-                  : AppColors.surface(context)),
-          borderRadius: BorderRadius.circular(10),
+                  ? (isDark ? const Color(0xFF0C192E) : AppColors.infoSubtle)
+                  : (isDark ? AppColors.obsidianCard : AppColors.surface(context))),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
-                ? AppColors.primary
+                ? (isDark ? AppColors.obsidianActiveGlow : AppColors.primary)
                 : (isPending
-                    ? AppColors.info.withValues(alpha: 0.45)
-                    : AppColors.borderSubtle(context)),
+                    ? (isDark ? const Color(0xFF38BDF8).withValues(alpha: 0.6) : AppColors.info.withValues(alpha: 0.45))
+                    : (isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context))),
             width: isSelected ? 1.5 : (isPending ? 1.2 : 1.0),
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    blurRadius: 8,
+                    color: (isDark ? AppColors.obsidianActiveGlow : AppColors.primary).withValues(alpha: isDark ? 0.20 : 0.1),
+                    blurRadius: 10,
                     offset: const Offset(0, 2),
                   )
                 ]
               : (isPending
                   ? [
                       BoxShadow(
-                        color: AppColors.info.withValues(alpha: 0.08),
-                        blurRadius: 6,
+                        color: (isDark ? const Color(0xFF38BDF8) : AppColors.info).withValues(alpha: isDark ? 0.14 : 0.08),
+                        blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
                     ]
-                  : null),
+                  : (isDark
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ]
+                      : null)),
         ),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(14),
           child: InkWell(
             onTap: onTap ??
                 () {

@@ -130,11 +130,12 @@ class AppointmentDetailsCard extends ConsumerWidget {
     final price = appointment.priceCharged ?? 0.0;
     final totalPaid = appointment.totalPaid;
     final remaining = (price > totalPaid) ? (price - totalPaid) : 0.0;
+    final isDark = AppColors.isDark(context);
 
     return AppCard(
       padding: const EdgeInsets.all(AppSpace.xl),
-      backgroundColor: AppColors.surface(context),
-      borderColor: AppColors.borderSubtle(context),
+      backgroundColor: isDark ? AppColors.obsidianCard : AppColors.surface(context),
+      borderColor: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -213,9 +214,9 @@ class AppointmentDetailsCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: AppSpace.md, vertical: AppSpace.sm),
             decoration: BoxDecoration(
-              color: AppColors.canvas(context),
+              color: isDark ? const Color(0xFF090E1A) : AppColors.canvas(context),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderSubtle(context)),
+              border: Border.all(color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context)),
             ),
             child: Column(
               children: [
@@ -272,9 +273,9 @@ class AppointmentDetailsCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: AppSpace.md, vertical: AppSpace.sm),
             decoration: BoxDecoration(
-              color: AppColors.canvas(context),
+              color: isDark ? const Color(0xFF090E1A) : AppColors.canvas(context),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderSubtle(context)),
+              border: Border.all(color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context)),
             ),
             child: Column(
               children: [
@@ -349,9 +350,9 @@ class AppointmentDetailsCard extends ConsumerWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(AppSpace.md),
             decoration: BoxDecoration(
-              color: AppColors.canvas(context),
+              color: isDark ? const Color(0xFF090E1A) : AppColors.canvas(context),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderSubtle(context)),
+              border: Border.all(color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context)),
             ),
             child: (appointment.serviceNames != null &&
                     appointment.serviceNames!.isNotEmpty)

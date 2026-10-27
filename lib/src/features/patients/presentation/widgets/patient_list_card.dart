@@ -86,12 +86,20 @@ class _PatientListCardState extends State<PatientListCard> {
         ),
       ];
     } else {
-      backgroundColor = AppColors.surface(context);
+      backgroundColor = isDark ? AppColors.obsidianCard : AppColors.surface(context);
       border = Border.all(
-        color: AppColors.borderSubtle(context),
+        color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
         width: 1,
       );
-      boxShadow = null;
+      boxShadow = isDark
+          ? [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ]
+          : null;
     }
 
     return MouseRegion(

@@ -8,6 +8,7 @@ import '../../../core/ui/layout/app_shell.dart';
 import '../../appointments/presentation/appointments_controller.dart';
 import '../../appointments/presentation/appointments_screen.dart';
 import '../../appointments/presentation/book_appointment_dialog.dart';
+import '../../appointments/presentation/examination_screen.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/presentation/top_up_subscription_screen.dart';
 import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
@@ -192,6 +193,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               _navigateToTab(3),
           const SingleActivator(LogicalKeyboardKey.digit5, control: true): () =>
               _navigateToTab(4),
+          const SingleActivator(LogicalKeyboardKey.keyE, control: true): () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ExaminationScreen(
+                  clinicId: user.clinicId,
+                  appointmentId: 'appt-01',
+                  patientId: 'pat-01',
+                  patientName: 'أحمد محمود عبد العزيز',
+                ),
+              ),
+            );
+          },
+          const SingleActivator(LogicalKeyboardKey.keyE, meta: true): () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ExaminationScreen(
+                  clinicId: user.clinicId,
+                  appointmentId: 'appt-01',
+                  patientId: 'pat-01',
+                  patientName: 'أحمد محمود عبد العزيز',
+                ),
+              ),
+            );
+          },
         },
         child: Focus(
           autofocus: true,
