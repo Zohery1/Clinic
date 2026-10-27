@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../features/auth/presentation/login_controller.dart';
 import '../../features/settings/data/whatsapp_service.dart';
+import '../ui/tokens/colors.dart';
+import '../ui/tokens/radii.dart';
 
 void showSendWhatsAppDialog(
   BuildContext context,
@@ -119,7 +121,7 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
             Expanded(child: Text('جاري إرسال الرسالة إلى ${widget.patientName}...')),
           ],
         ),
-        backgroundColor: const Color(0xFF10B981),
+        backgroundColor: AppColors.successBright,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -149,8 +151,8 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
       textDirection: TextDirection.rtl,
       child: Dialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.radiusXl)),
+        backgroundColor: AppColors.surface(context),
         child: Container(
           width: screenWidth > 560 ? 520 : screenWidth * 0.92,
           padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
@@ -165,10 +167,10 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                        color: AppColors.successBright.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF10B981), size: 22),
+                      child: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.successBright, size: 22),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -221,19 +223,19 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
                     hintText: 'أدخل رقم الواتساب...',
                     isDense: true,
                     filled: true,
-                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                    prefixIcon: const Icon(Icons.phone_rounded, size: 18, color: Color(0xFF10B981)),
+                    fillColor: AppColors.canvas(context),
+                    prefixIcon: const Icon(Icons.phone_rounded, size: 18, color: AppColors.successBright),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
                       borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
                       borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
+                      borderSide: const BorderSide(color: AppColors.successBright, width: 1.5),
                     ),
                   ),
                 ),
@@ -269,18 +271,18 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
                   decoration: InputDecoration(
                     hintText: 'اكتب نص الرسالة هنا...',
                     filled: true,
-                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    fillColor: AppColors.canvas(context),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
                       borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
                       borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
+                      borderSide: const BorderSide(color: AppColors.successBright, width: 1.5),
                     ),
                   ),
                 ),
@@ -295,10 +297,10 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
                             child: ElevatedButton.icon(
                               onPressed: _sendViaApi,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF10B981),
+                                backgroundColor: AppColors.successBright,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.radiusMd)),
                                 elevation: 0,
                               ),
                               icon: const Icon(Icons.send_rounded, size: 18),
@@ -315,14 +317,14 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
                               onPressed: _openInWhatsAppApp,
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(vertical: 12),
-                                side: const BorderSide(color: Color(0xFF10B981)),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                side: const BorderSide(color: AppColors.successBright),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.radiusMd)),
                               ),
-                              icon: const Icon(Icons.open_in_new_rounded, color: Color(0xFF10B981), size: 18),
+                              icon: const Icon(Icons.open_in_new_rounded, color: AppColors.successBright, size: 18),
                               label: Text(
                                 'فتح الواتساب',
                                 style: GoogleFonts.cairo(
-                                  color: const Color(0xFF10B981),
+                                  color: AppColors.successBright,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -337,10 +339,10 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
                             child: ElevatedButton.icon(
                               onPressed: _sendViaApi,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF10B981),
+                                backgroundColor: AppColors.successBright,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.radiusMd)),
                                 elevation: 0,
                               ),
                               icon: const Icon(Icons.send_rounded, size: 18),
@@ -355,14 +357,14 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
                             onPressed: _openInWhatsAppApp,
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                              side: const BorderSide(color: Color(0xFF10B981)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              side: const BorderSide(color: AppColors.successBright),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.radiusMd)),
                             ),
-                            icon: const Icon(Icons.open_in_new_rounded, color: Color(0xFF10B981), size: 18),
+                            icon: const Icon(Icons.open_in_new_rounded, color: AppColors.successBright, size: 18),
                             label: Text(
                               'فتح الواتساب',
                               style: GoogleFonts.cairo(
-                                color: const Color(0xFF10B981),
+                                color: AppColors.successBright,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),

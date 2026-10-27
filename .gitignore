@@ -49,3 +49,4 @@ app.*.map.json
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
 .kilo/
+node_modules/

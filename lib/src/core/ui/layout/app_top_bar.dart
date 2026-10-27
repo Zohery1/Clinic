@@ -73,16 +73,19 @@ class AppTopBar extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 2),
                         child: _Breadcrumbs(items: breadcrumbs),
                       ),
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.cairo(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary(context),
-                        height: 1.2,
-                        letterSpacing: -0.2,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        style: GoogleFonts.cairo(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary(context),
+                          height: 1.2,
+                          letterSpacing: -0.2,
+                        ),
                       ),
                     ),
                     if (subtitle != null && subtitle!.isNotEmpty)

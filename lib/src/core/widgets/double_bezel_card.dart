@@ -62,21 +62,21 @@ class DoubleBezelCard extends StatelessWidget {
             ? accent.withValues(alpha: isDark ? 0.16 : 0.08)
             : (isDark
                 ? Colors.white.withValues(alpha: 0.035)
-                : const Color(0xFFF1F5F9)));
+                : AppColors.lightSubtle));
 
     // Outer bezel border color
     final resolvedBorderColor = borderColor ??
         (isActiveGlow
-            ? accent.withValues(alpha: isDark ? 0.65 : 0.45)
+            ? accent.withValues(alpha: isDark ? 0.45 : 0.30)
             : (isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleLight));
 
     // Outer halo / elevation shadow
     final outerShadows = isActiveGlow
         ? [
             BoxShadow(
-              color: accent.withValues(alpha: isDark ? 0.22 : 0.12),
-              blurRadius: 16,
-              spreadRadius: 1,
+              color: accent.withValues(alpha: isDark ? 0.14 : 0.08),
+              blurRadius: 10,
+              spreadRadius: 0.5,
               offset: const Offset(0, 2),
             ),
           ]

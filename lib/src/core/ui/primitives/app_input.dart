@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
@@ -56,7 +56,7 @@ class AppTextField extends StatelessWidget {
     final baseBorder = OutlineInputBorder(
       borderRadius: radius,
       borderSide: BorderSide(
-        color: hasError ? AppColors.danger : Colors.transparent,
+        color: hasError ? AppColors.danger : AppColors.borderSubtle(context),
         width: 1,
       ),
     );
@@ -65,7 +65,7 @@ class AppTextField extends StatelessWidget {
       borderRadius: radius,
       borderSide: BorderSide(
         color: hasError ? AppColors.danger : AppColors.primary,
-        width: 2,
+        width: 1.5,
       ),
     );
 

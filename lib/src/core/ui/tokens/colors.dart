@@ -48,7 +48,7 @@ class AppColors {
   static const Color lightBorder = Color(0xFFCBD5E1);
   static const Color lightBorderStrong = Color(0xFF94A3B8);
 
-  // Neutrals — Dark (Deep Obsidian Slate, not washed-out blue)
+  // Neutrals — Dark (Clinical Deep Slate)
   static const Color darkCanvas = Color(0xFF090D16);
   static const Color darkSurface = Color(0xFF111827);
   static const Color darkElevated = Color(0xFF1F2937);
@@ -57,10 +57,10 @@ class AppColors {
   static const Color darkBorder = Color(0xFF374151);
   static const Color darkBorderStrong = Color(0xFF4B5563);
 
-  // Text — Light
-  static const Color lightTextPrimary = Color(0xFF0F172A); // High-contrast Slate-900
-  static const Color lightTextSecondary = Color(0xFF475569); // Slate-600
-  static const Color lightTextMuted = Color(0xFF64748B); // Slate-500 (passes 4.5:1 on white)
+  // Text — Light (Warm clinical slate per DESIGN.md)
+  static const Color lightTextPrimary = Color(0xFF1E293B); // Slate 800
+  static const Color lightTextSecondary = Color(0xFF64748B); // Slate 500
+  static const Color lightTextMuted = Color(0xFF9CA3AF); // Slate 400
   static const Color lightTextOnPrimary = Color(0xFFFFFFFF);
 
   // Text — Dark

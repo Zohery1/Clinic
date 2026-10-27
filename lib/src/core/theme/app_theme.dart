@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../ui/tokens/colors.dart';
 import '../ui/tokens/spacing.dart';
@@ -119,11 +119,11 @@ class AppTheme {
         floatingLabelStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.radiusSm),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: AppColors.lightBorderSubtle, width: 1.0),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.radiusSm),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: AppColors.lightBorderSubtle, width: 1.0),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.radiusSm),
@@ -294,11 +294,11 @@ class AppTheme {
         floatingLabelStyle: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.radiusSm),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: AppColors.darkBorder, width: 1.0),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.radiusSm),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: AppColors.darkBorder, width: 1.0),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.radiusSm),

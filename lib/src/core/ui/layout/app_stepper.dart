@@ -37,42 +37,50 @@ class AppStepper extends StatelessWidget {
       children: [
         // شريط وصف الخطوة الحالية ونسبة الإنجاز
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'الخطوة ${currentIndex + 1} من ${steps.length}',
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'الخطوة ${currentIndex + 1} من ${steps.length}',
+                style: GoogleFonts.cairo(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpace.sm),
+            Flexible(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    currentStep.title,
                     style: GoogleFonts.cairo(
-                      fontSize: 11.5,
+                      fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
-                ),
-                const SizedBox(width: AppSpace.sm),
-                Text(
-                  currentStep.title,
-                  style: GoogleFonts.cairo(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary(context),
-                  ),
-                ),
-              ],
-            ),
-            Text(
-              currentStep.description,
-              style: GoogleFonts.cairo(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textMuted(context),
+                  if (currentStep.description.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        '· ${currentStep.description}',
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textSecondary(context),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ],
