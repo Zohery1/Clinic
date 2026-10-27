@@ -58,17 +58,22 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
   }
 
   Widget _buildGenderToggle() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isMale = _selectedGender == 'male';
+    final isFemale = _selectedGender == 'female';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 5),
+          padding: const EdgeInsets.only(bottom: 6),
           child: Text(
             'الجنس',
-            style: TextStyle(
+            style: GoogleFonts.cairo(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).textTheme.bodySmall?.color,
+              color: theme.textTheme.bodySmall?.color,
             ),
           ),
         ),
@@ -77,14 +82,20 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
             Expanded(
               child: GestureDetector(
                 onTap: () => setState(() => _selectedGender = 'male'),
-                child: Container(
-                  height: 48,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  height: 46,
                   decoration: BoxDecoration(
-                    color: _selectedGender == 'male'
-                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
-                        : Theme.of(context).colorScheme.surface,
+                    color: isMale
+                        ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.20 : 0.10)
+                        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
                     borderRadius: BorderRadius.circular(10),
-                    // removed border
+                    border: Border.all(
+                      color: isMale
+                          ? theme.colorScheme.primary
+                          : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                      width: isMale ? 1.5 : 1.0,
+                    ),
                   ),
                   alignment: Alignment.center,
                   child: Row(
@@ -93,19 +104,19 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                       Icon(
                         Icons.male_rounded,
                         size: 18,
-                        color: _selectedGender == 'male'
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).hintColor,
+                        color: isMale
+                            ? theme.colorScheme.primary
+                            : theme.hintColor,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'ذكر',
-                        style: TextStyle(
+                        style: GoogleFonts.cairo(
                           fontSize: 13,
-                          fontWeight: _selectedGender == 'male' ? FontWeight.bold : FontWeight.normal,
-                          color: _selectedGender == 'male'
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).textTheme.bodyLarge?.color,
+                          fontWeight: isMale ? FontWeight.w700 : FontWeight.w600,
+                          color: isMale
+                              ? theme.colorScheme.primary
+                              : theme.textTheme.bodyLarge?.color,
                         ),
                       ),
                     ],
@@ -117,14 +128,20 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
             Expanded(
               child: GestureDetector(
                 onTap: () => setState(() => _selectedGender = 'female'),
-                child: Container(
-                  height: 48,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  height: 46,
                   decoration: BoxDecoration(
-                    color: _selectedGender == 'female'
-                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
-                        : Theme.of(context).colorScheme.surface,
+                    color: isFemale
+                        ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.20 : 0.10)
+                        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
                     borderRadius: BorderRadius.circular(10),
-                    // removed border
+                    border: Border.all(
+                      color: isFemale
+                          ? theme.colorScheme.primary
+                          : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                      width: isFemale ? 1.5 : 1.0,
+                    ),
                   ),
                   alignment: Alignment.center,
                   child: Row(
@@ -133,19 +150,19 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                       Icon(
                         Icons.female_rounded,
                         size: 18,
-                        color: _selectedGender == 'female'
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).hintColor,
+                        color: isFemale
+                            ? theme.colorScheme.primary
+                            : theme.hintColor,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'أنثى',
-                        style: TextStyle(
+                        style: GoogleFonts.cairo(
                           fontSize: 13,
-                          fontWeight: _selectedGender == 'female' ? FontWeight.bold : FontWeight.normal,
-                          color: _selectedGender == 'female'
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).textTheme.bodyLarge?.color,
+                          fontWeight: isFemale ? FontWeight.w700 : FontWeight.w600,
+                          color: isFemale
+                              ? theme.colorScheme.primary
+                              : theme.textTheme.bodyLarge?.color,
                         ),
                       ),
                     ],
@@ -270,10 +287,10 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 elevation: 0),
             child: _isSaving
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary),
                   )
                 : Text('حفظ التعديل',
                     style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),

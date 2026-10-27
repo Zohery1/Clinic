@@ -55,10 +55,8 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0.5,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_rounded,
-                size: 18,
-                color: Theme.of(context).textTheme.bodyLarge?.color),
+          leading: BackButton(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
             onPressed: () => Navigator.pop(context),
           ),
           title: Column(
@@ -202,7 +200,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                               isDark: isDark,
                               title: 'تفاصيل الخدمات المقدمة',
                               icon: Icons.build_outlined,
-                              accentColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                              accentColor: AppColors.success,
                               items: servicesByType,
                               totalRevenue: totalSvcRev,
                             ),
@@ -232,7 +230,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                           isDark: isDark,
                           title: 'تفاصيل الخدمات المقدمة',
                           icon: Icons.build_outlined,
-                          accentColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                          accentColor: AppColors.success,
                           items: servicesByType,
                           totalRevenue: totalSvcRev,
                         ),
@@ -288,50 +286,50 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
         label: 'إيرادات الكشوفات',
         value: '${totalAppRev.toStringAsFixed(0)} ج.م',
         icon: Icons.medical_services_outlined,
-        accentColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1A73E8),
+        accentColor: AppColors.info,
         bgColor: isDark
-            ? const Color(0xFF60A5FA).withValues(alpha: 0.10)
-            : const Color(0xFFE8F0FE),
+            ? AppColors.infoSubtle
+            : AppColors.infoSubtle,
         mono: true,
       ),
       _SummaryCardData(
         label: 'إيرادات الخدمات',
         value: '${totalSvcRev.toStringAsFixed(0)} ج.م',
         icon: Icons.build_outlined,
-        accentColor: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+        accentColor: AppColors.success,
         bgColor: isDark
-            ? const Color(0xFF34D399).withValues(alpha: 0.10)
-            : const Color(0xFFECFDF5),
+            ? AppColors.successSubtle
+            : AppColors.successSubtle,
         mono: true,
       ),
       _SummaryCardData(
         label: 'إجمالي الزيارات',
         value: '$totalVisits زيارة',
         icon: Icons.people_alt_outlined,
-        accentColor: isDark ? const Color(0xFFC084FC) : const Color(0xFF7C3AED),
+        accentColor: AppColors.completed,
         bgColor: isDark
-            ? const Color(0xFFC084FC).withValues(alpha: 0.10)
-            : const Color(0xFFF5F3FF),
+            ? AppColors.completedSubtle
+            : AppColors.completedSubtle,
         mono: false,
       ),
       _SummaryCardData(
         label: 'إلغاء (من العيادة)',
         value: '$cancelledCount',
         icon: Icons.event_busy_outlined,
-        accentColor: isDark ? const Color(0xFFF87171) : const Color(0xFFEF4444),
+        accentColor: AppColors.danger,
         bgColor: isDark
-            ? const Color(0xFFF87171).withValues(alpha: 0.10)
-            : const Color(0xFFFEF2F2),
+            ? AppColors.dangerSubtle
+            : AppColors.dangerSubtle,
         mono: false,
       ),
       _SummaryCardData(
         label: 'عدم حضور (مريض)',
         value: '$cancelledByPatientCount',
         icon: Icons.person_off_outlined,
-        accentColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B),
+        accentColor: AppColors.warning,
         bgColor: isDark
-            ? const Color(0xFFFBBF24).withValues(alpha: 0.10)
-            : const Color(0xFFFFFBEB),
+            ? AppColors.warningSubtle
+            : AppColors.warningSubtle,
         mono: false,
       ),
     ];
@@ -430,7 +428,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: (data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444)).withValues(alpha: 0.12),
+                  color: (data.trendIsPositive! ? AppColors.success : AppColors.danger).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -438,7 +436,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                   children: [
                     Icon(
                       data.trendIsPositive! ? Icons.arrow_upward : Icons.arrow_downward,
-                      color: data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                      color: data.trendIsPositive! ? AppColors.success : AppColors.danger,
                       size: 11,
                     ),
                     const SizedBox(width: 2),
@@ -447,7 +445,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: data.trendIsPositive! ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                        color: data.trendIsPositive! ? AppColors.success : AppColors.danger,
                       ),
                     ),
                   ],
@@ -474,7 +472,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
     final svcPct = total > 0 ? (totalSvcRev / total * 100) : 0.0;
 
     final appColor = Theme.of(context).colorScheme.primary;
-    final svcColor = isDark ? const Color(0xFF34D399) : const Color(0xFF059669);
+    const svcColor = AppColors.success;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -674,8 +672,8 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
   Widget _buildPatientsCard(
       BuildContext context, bool isDark, int newPts, int oldPts) {
     final total = newPts + oldPts;
-    final newColor = isDark ? const Color(0xFF34D399) : const Color(0xFF059669);
-    final oldColor = isDark ? const Color(0xFF60A5FA) : const Color(0xFF1A73E8);
+    const newColor = AppColors.success;
+    const oldColor = AppColors.info;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -691,7 +689,7 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
                   color: newColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.people_alt_outlined, size: 16, color: newColor),
+                child: const Icon(Icons.people_alt_outlined, size: 16, color: newColor),
               ),
               const SizedBox(width: 10),
               Text(
@@ -734,11 +732,11 @@ class _ReportDetailScreenState extends ConsumerState<ReportDetailScreen> {
               children: [
                 Text(
                   'جدد: ${total > 0 ? (newPts / total * 100).toStringAsFixed(0) : 0}%',
-                  style: TextStyle(fontSize: 10, color: newColor, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 10, color: newColor, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   'قدامى: ${total > 0 ? (oldPts / total * 100).toStringAsFixed(0) : 0}%',
-                  style: TextStyle(fontSize: 10, color: oldColor, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 10, color: oldColor, fontWeight: FontWeight.bold),
                 ),
               ],
             ),

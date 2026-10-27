@@ -1,57 +1,95 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart' as intl;
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../patients/data/patient_repository.dart';
-import '../../patients/domain/patient_model.dart';
+import 'package:intl/intl.dart' as intl;
+
+import '../../../core/ui/primitives/app_button.dart';
+import '../../../core/ui/tokens/colors.dart';
+import '../../../core/ui/tokens/motion.dart';
+import '../../../core/ui/tokens/spacing.dart';
+import '../../dashboard/presentation/notifications_controller.dart';
+import '../../reports/presentation/reports_controller.dart';
 import '../data/appointment_repository.dart';
-import '../domain/appointment_model.dart';
-import '../domain/appointment_type_model.dart';
 import '../domain/service_model.dart';
 import 'appointments_controller.dart';
-import '../../reports/presentation/reports_controller.dart';
-import '../../dashboard/presentation/notifications_controller.dart';
-import '../../../core/widgets/clinic_dialog.dart';
-import '../../../core/utils/arabic_utils.dart';
+import 'widgets/appointment_doctor_branch_picker.dart';
+import 'widgets/appointment_patient_picker.dart';
+import 'widgets/appointment_services_picker.dart';
+import 'widgets/appointment_type_picker.dart';
 
-/// حوار حجز موعد جديد — متوافق مع الهاتف والويب
+/// نافذة حجز المواعيد فائقة السرعة (Express Clinical Intake Workspace)
+/// تستبدل معالج الـ 6 خطوات السابق بنموذج استقبال تفاعلي متزامن
+/// يدعم اختصارات لوحة المفاتيح والتحصيل والحجز الفوري في طابور اليوم.
 class BookAppointmentDialog extends ConsumerStatefulWidget {
   final String clinicId;
   final String? preselectedPatientId;
+
   const BookAppointmentDialog({
     super.key,
     required this.clinicId,
     this.preselectedPatientId,
   });
 
+  static Future<T?> show<T>({
+    required BuildContext context,
+    required String clinicId,
+    String? preselectedPatientId,
+  }) {
+    return showGeneralDialog<T>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'حجز موعد جديد',
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      transitionDuration: const Duration(milliseconds: 240),
+      transitionBuilder: (ctx, anim1, anim2, child) {
+        final curve =
+            CurvedAnimation(parent: anim1, curve: AppMotion.easeOutCubic);
+        return BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: 8.0 * curve.value,
+            sigmaY: 8.0 * curve.value,
+          ),
+          child: FadeTransition(
+            opacity: curve,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.96, end: 1.0).animate(curve),
+              child: child,
+            ),
+          ),
+        );
+      },
+      pageBuilder: (ctx, anim1, anim2) => BookAppointmentDialog(
+        clinicId: clinicId,
+        preselectedPatientId: preselectedPatientId,
+      ),
+    );
+  }
+
   @override
-  ConsumerState<BookAppointmentDialog> createState() => _BookAppointmentDialogState();
+  ConsumerState<BookAppointmentDialog> createState() =>
+      _BookAppointmentDialogState();
 }
 
-class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
-  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
-  Color get _textColor => Theme.of(context).textTheme.bodyLarge?.color ?? (_isDark ? Colors.white : const Color(0xFF1E293B));
-  Color get _textSecColor => Theme.of(context).textTheme.bodySmall?.color ?? (_isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B));
-  Color get _borderCol => Colors.transparent;
-  Color get _inputFillCol => Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
-  Color get _surfaceCol => Theme.of(context).colorScheme.surface;
-  Color get _primaryColor => Theme.of(context).colorScheme.primary;
-  Color get _errorColor => Theme.of(context).colorScheme.error;
-
-  final _formKey = GlobalKey<FormState>();
+class _BookAppointmentDialogState
+    extends ConsumerState<BookAppointmentDialog> {
+  bool _isSaving = false;
+  bool _isWalkInNow = true;
 
   String? _selectedPatientId;
+  TextEditingController? _autocompleteController;
+
+  String? _selectedDoctorId;
+  String? _selectedBranchId;
+
   String? _selectedAppointmentTypeId;
-  double _priceCharged = 0.0;
-  final List<ServiceModel> _selectedServices = [];
-  bool _isSaving = false;
+  double _basePrice = 0.0;
 
   DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0); // Default to 6:00 PM
+  TimeOfDay _selectedTime = TimeOfDay.now();
 
-  TextEditingController? _autocompleteController;
-  final _customTimeController = TextEditingController();
+  final List<ServiceModel> _selectedServices = [];
 
   @override
   void initState() {
@@ -59,111 +97,49 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
     if (widget.preselectedPatientId != null) {
       _selectedPatientId = widget.preselectedPatientId;
     }
-    _customTimeController.text = _formatTimeOfDay(_selectedTime);
   }
 
-  @override
-  void dispose() {
-    _customTimeController.dispose();
-    super.dispose();
+  double get _totalPrice {
+    final servicesSum = _selectedServices.fold<double>(
+      0.0,
+      (acc, s) => acc + s.price,
+    );
+    return _basePrice + servicesSum;
   }
 
-  List<String> get _allTimeSlots {
-    final List<String> slots = [];
-    
-    // 7:00 AM to 11:30 AM
-    for (int hour = 7; hour <= 11; hour++) {
-      slots.add('${hour.toString().padLeft(2, '0')}:00 AM');
-      slots.add('${hour.toString().padLeft(2, '0')}:30 AM');
+  Future<void> _submit() async {
+    if (_isSaving) return;
+
+    if (_selectedPatientId == null) {
+      _showError('يرجى اختيار مريض من القائمة أو تسجيل مريض جديد');
+      return;
     }
-    
-    // 12:00 PM to 11:30 PM
-    slots.add('12:00 PM');
-    slots.add('12:30 PM');
-    for (int hour = 1; hour <= 11; hour++) {
-      slots.add('${hour.toString().padLeft(2, '0')}:00 PM');
-      slots.add('${hour.toString().padLeft(2, '0')}:30 PM');
+    if (_selectedAppointmentTypeId == null) {
+      _showError('يرجى اختيار نوع الكشف والزيارة');
+      return;
     }
-    
-    // 12:00 AM to 2:00 AM (next day early morning slots)
-    slots.add('12:00 AM');
-    slots.add('12:30 AM');
-    slots.add('01:00 AM');
-    slots.add('01:30 AM');
-    slots.add('02:00 AM');
-    
-    return slots;
-  }
 
-  TimeOfDay _parseSlotTime(String slot) {
-    final parts = slot.split(' ');
-    final timeParts = parts[0].split(':');
-    int hour = int.parse(timeParts[0]);
-    final minute = int.parse(timeParts[1]);
-    final isPm = parts[1] == 'PM';
-    if (isPm && hour != 12) hour += 12;
-    if (!isPm && hour == 12) hour = 0;
-    return TimeOfDay(hour: hour, minute: minute);
-  }
-
-  bool _isSlotBooked(String slot, List<AppointmentModel> appointments) {
-    final slotTime = _parseSlotTime(slot);
-    return appointments.any((app) {
-      final appTime = TimeOfDay.fromDateTime(app.appointmentDate.toLocal());
-      return appTime.hour == slotTime.hour && appTime.minute == slotTime.minute;
-    });
-  }
-
-  String _formatTimeOfDay(TimeOfDay time) {
-    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
-    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '${hour.toString().padLeft(2, '0')}:$minute $period';
-  }
-
-  void _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    
     setState(() => _isSaving = true);
-
     try {
-      if (_selectedPatientId == null) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          const SnackBar(duration: Duration(seconds: 2), 
-            content: Text('يرجى اختيار مريض من القائمة'),
-            backgroundColor: AppTheme.error,
-          ),
-        );
-        setState(() => _isSaving = false);
-        return;
-      }
-
-      final appointmentDateTime = DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day,
-        _selectedTime.hour,
-        _selectedTime.minute,
-      );
-
-      double basePrice = 0.0;
-      if (_selectedAppointmentTypeId != null) {
-        final types = ref.read(appointmentTypesProvider).value;
-        if (types != null) {
-          final type = types.firstWhere(
-            (t) => t.id == _selectedAppointmentTypeId,
-            orElse: () => AppointmentTypeModel(id: '', clinicId: '', name: '', price: 0.0),
-          );
-          basePrice = type.price;
-        }
-      }
+      final now = DateTime.now();
+      final dt = _isWalkInNow
+          ? now
+          : DateTime(
+              _selectedDate.year,
+              _selectedDate.month,
+              _selectedDate.day,
+              _selectedTime.hour,
+              _selectedTime.minute,
+            );
 
       await ref.read(appointmentRepositoryProvider).bookAppointment(
             clinicId: widget.clinicId,
+            branchId: _selectedBranchId,
             patientId: _selectedPatientId!,
+            doctorId: _selectedDoctorId,
             appointmentTypeId: _selectedAppointmentTypeId,
-            appointmentDate: appointmentDateTime,
-            priceCharged: basePrice,
+            appointmentDate: dt,
+            priceCharged: _basePrice,
             selectedServices: _selectedServices,
           );
 
@@ -178,415 +154,418 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
       ref.invalidate(detailedReportProvider);
 
       try {
-        final formattedTime = intl.DateFormat('hh:mm a', 'ar').format(appointmentDateTime);
+        final formattedTime = intl.DateFormat('hh:mm a', 'ar').format(dt);
         final patientName = _autocompleteController?.text ?? '';
         ref.read(notificationsProvider.notifier).sendBroadcastNotification(
-          title: 'حجز جديد',
-          body: 'تم إضافة حجز جديد للمريض ($patientName) الساعة $formattedTime',
-          targetRole: 'doctor',
-          playSound: false,
-        );
+              title: 'حجز جديد',
+              body:
+                  'تم تسجيل حجز جديد للمريض ($patientName) الساعة $formattedTime',
+              targetRole: 'doctor',
+              playSound: false,
+            );
       } catch (_) {}
 
-      if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          const SnackBar(duration: Duration(seconds: 2), 
-            content: Text('تم حجز وتأكيد الموعد بنجاح'),
-            backgroundColor: AppTheme.success,
-          ),
-        );
-        Navigator.pop(context);
-      }
+      if (!mounted) return;
+      _showSuccess('تم حجز وتأكيد الموعد بنجاح');
+      Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(seconds: 2), 
-            content: Text('حدث خطأ أثناء حجز الموعد: $e'),
-            backgroundColor: AppTheme.error,
-          ),
-        );
-      }
+      if (!mounted) return;
+      _showError('حدث خطأ أثناء حجز الموعد: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  void _showAddPatientDialog(BuildContext context, String initialName, TextEditingController autocompleteController) {
-    final addPatientFormKey = GlobalKey<FormState>();
-    final nameController = TextEditingController(text: initialName);
-    final phoneController = TextEditingController();
-    final addressController = TextEditingController();
-    final ageController = TextEditingController();
-    final medicalHistoryController = TextEditingController();
-    String? selectedGender;
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content:
+            Text(msg, style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+        backgroundColor: AppColors.danger,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
 
-    ClinicDialog.show(
+  void _showSuccess(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(msg, style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+          ],
+        ),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
       context: context,
-      icon: Icons.person_add_alt_1_rounded,
-      title: 'تسجيل مريض جديد سريع',
-      subtitle: 'سيتم تسجيل المريض وتحديده تلقائياً في نافذة الحجز',
-      maxWidth: 480,
-      content: StatefulBuilder(
-        builder: (context, setDialogState) {
-          return Form(
-            key: addPatientFormKey,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 7)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (ctx, child) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 768;
+
+    // Auto-select first appointment type if none selected
+    ref.watch(appointmentTypesProvider).whenData((types) {
+      if (_selectedAppointmentTypeId == null && types.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _selectedAppointmentTypeId == null) {
+            setState(() {
+              _selectedAppointmentTypeId = types.first.id;
+              _basePrice = types.first.price;
+            });
+          }
+        });
+      }
+    });
+
+    final content = CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.enter, control: true): _submit,
+        const SingleActivator(LogicalKeyboardKey.enter, meta: true): _submit,
+        const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).maybePop(),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 28,
+            vertical: isMobile ? 16 : 32,
+          ),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 880, maxHeight: 780),
+            decoration: BoxDecoration(
+              color: AppColors.surface(context),
+              borderRadius: BorderRadius.circular(AppRadii.radiusXl),
+              border: Border.all(color: AppColors.borderSubtle(context)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 32,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 8),
-                ClinicFormField(
-                  label: 'الاسم الكامل للمريض',
-                  hint: 'مثال: محمد أحمد علي',
-                  prefixIcon: Icons.person_outline,
-                  controller: nameController,
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'يرجى إدخال الاسم' : null,
-                ),
-                const SizedBox(height: 14),
-                ClinicFormField(
-                  label: 'رقم الهاتف',
-                  hint: 'مثال: 01012345678',
-                  prefixIcon: Icons.phone_outlined,
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  validator: (val) =>
-                      val == null || val.trim().isEmpty ? 'يرجى إدخال رقم الهاتف' : null,
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: ClinicFormField(
-                        label: 'العمر (بالسنوات)',
-                        hint: 'مثال: 35',
-                        prefixIcon: Icons.cake_outlined,
-                        controller: ageController,
-                        keyboardType: TextInputType.number,
-                        validator: (val) {
-                          if (val == null || val.trim().isEmpty) {
-                            return 'يرجى إدخال العمر';
-                          }
-                          final age = int.tryParse(val.trim());
-                          if (age == null || age <= 0 || age > 150) {
-                            return 'يرجى إدخال عمر صحيح';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 5),
-                            child: Text(
-                              'الجنس',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).textTheme.bodySmall?.color,
-                              ),
-                            ),
-                          ),
-                          Row(
+                _buildHeader(context, isMobile),
+                const Divider(height: 1),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(isMobile ? AppSpace.md : AppSpace.xl),
+                    child: isMobile
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildPatientAndTypeSection(context),
+                              const SizedBox(height: AppSpace.xl),
+                              _buildDoctorAndTimingSection(context),
+                              const SizedBox(height: AppSpace.xl),
+                              _buildServicesSection(context),
+                            ],
+                          )
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setDialogState(() => selectedGender = 'male'),
-                                  child: Container(
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: selectedGender == 'male'
-                                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
-                                          : Theme.of(context).colorScheme.surface,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.male_rounded,
-                                          size: 16,
-                                          color: selectedGender == 'male'
-                                              ? Theme.of(context).colorScheme.primary
-                                              : Theme.of(context).hintColor,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'ذكر',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: selectedGender == 'male' ? FontWeight.bold : FontWeight.normal,
-                                            color: selectedGender == 'male'
-                                                ? Theme.of(context).colorScheme.primary
-                                                : Theme.of(context).textTheme.bodyLarge?.color,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                flex: 5,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    _buildPatientAndTypeSection(context),
+                                    const SizedBox(height: AppSpace.xl),
+                                    _buildServicesSection(context),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: AppSpace.xl),
+                              Container(
+                                width: 1,
+                                height: 480,
+                                color: AppColors.borderSubtle(context),
+                              ),
+                              const SizedBox(width: AppSpace.xl),
                               Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setDialogState(() => selectedGender = 'female'),
-                                  child: Container(
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: selectedGender == 'female'
-                                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
-                                          : Theme.of(context).colorScheme.surface,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.female_rounded,
-                                          size: 16,
-                                          color: selectedGender == 'female'
-                                              ? Theme.of(context).colorScheme.primary
-                                              : Theme.of(context).hintColor,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'أنثى',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: selectedGender == 'female' ? FontWeight.bold : FontWeight.normal,
-                                            color: selectedGender == 'female'
-                                                ? Theme.of(context).colorScheme.primary
-                                                : Theme.of(context).textTheme.bodyLarge?.color,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                flex: 5,
+                                child: _buildDoctorAndTimingSection(context),
                               ),
                             ],
                           ),
-                        ],
+                  ),
+                ),
+                const Divider(height: 1),
+                _buildFooter(context, isMobile),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: content,
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? AppSpace.md : AppSpace.xl,
+        vertical: AppSpace.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.subtle(context).withValues(alpha: 0.5),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadii.radiusXl),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primarySubtle,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.bolt_rounded,
+              color: AppColors.primary,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: AppSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'حجز كشف واستقبال سريع',
+                      style: GoogleFonts.cairo(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary(context),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.successSubtle,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'Express Intake',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.success,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                ClinicFormField(
-                  label: 'العنوان',
-                  hint: 'مثال: المعادي، القاهرة',
-                  prefixIcon: Icons.location_on_outlined,
-                  controller: addressController,
-                  optional: true,
-                ),
-                const SizedBox(height: 14),
-                ClinicFormField(
-                  label: 'السجل المرضي والملاحظات الطبية',
-                  hint: 'اكتب أي ملاحظات أو أمراض مزمنة...',
-                  prefixIcon: Icons.description_outlined,
-                  controller: medicalHistoryController,
-                  maxLines: 2,
-                  optional: true,
+                Text(
+                  'تسجيل المريض وإضافته لطابور العيادة في خطوة واحدة',
+                  style: GoogleFonts.cairo(
+                    fontSize: 12,
+                    color: AppColors.textSecondary(context),
+                  ),
                 ),
               ],
             ),
-          );
-        },
+          ),
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.close_rounded),
+            tooltip: 'إغلاق (Esc)',
+            style: IconButton.styleFrom(
+              foregroundColor: AppColors.textSecondary(context),
+            ),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('إلغاء'),
+    );
+  }
+
+  Widget _buildPatientAndTypeSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.person_outline_rounded,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text(
+              '1. بيانات المريض',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+          ],
         ),
-        ElevatedButton(
-          onPressed: () async {
-            if (addPatientFormKey.currentState!.validate()) {
-              try {
-                final age = int.tryParse(ageController.text.trim());
-                final birthDate = age != null ? DateTime(DateTime.now().year - age, 1, 1) : null;
-                final combinedAddress = "${addressController.text.trim()}|${medicalHistoryController.text.trim()}";
-
-                final newPatient = await ref.read(patientRepositoryProvider).createPatient(
-                      clinicId: widget.clinicId,
-                      fullName: nameController.text.trim(),
-                      phone: phoneController.text.trim(),
-                      gender: selectedGender,
-                      address: combinedAddress,
-                      birthDate: birthDate,
-                    );
-                ref.invalidate(patientsListProvider(widget.clinicId));
-                
-                // Select the newly added patient
-                setState(() {
-                  _selectedPatientId = newPatient.id;
-                  autocompleteController.text = newPatient.fullName;
-                });
-
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                    const SnackBar(duration: Duration(seconds: 2), 
-                      content: Text('تم تسجيل المريض وتحديده بنجاح'),
-                      backgroundColor: AppTheme.success,
-                    ),
-                  );
-                  Navigator.pop(context);
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-                    SnackBar(duration: const Duration(seconds: 2), content: Text('خطأ: $e'), backgroundColor: AppTheme.error),
-                  );
-                }
-              }
-            }
+        const SizedBox(height: AppSpace.sm),
+        AppointmentPatientPicker(
+          clinicId: widget.clinicId,
+          selectedPatientId: _selectedPatientId,
+          onPatientSelected: (p) => setState(() => _selectedPatientId = p?.id),
+          onControllerReady: (c) => _autocompleteController = c,
+        ),
+        const SizedBox(height: AppSpace.xl),
+        Row(
+          children: [
+            const Icon(Icons.medical_information_outlined,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text(
+              '2. نوع الكشف والزيارة',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.sm),
+        AppointmentTypePicker(
+          selectedTypeId: _selectedAppointmentTypeId,
+          onTypeChanged: (t) {
+            setState(() {
+              _selectedAppointmentTypeId = t?.id;
+              _basePrice = t?.price ?? 0.0;
+            });
           },
-          child: const Text('تسجيل وحفظ'),
         ),
       ],
     );
   }
 
-  Widget _buildSlotButton(String slot, List<AppointmentModel> booked) {
-    final isBooked = _isSlotBooked(slot, booked);
-    final slotTime = _parseSlotTime(slot);
-    final isSelected = _selectedTime.hour == slotTime.hour &&
-        _selectedTime.minute == slotTime.minute;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildDoctorAndTimingSection(BuildContext context) {
+    final formattedDate =
+        intl.DateFormat('yyyy/MM/dd', 'ar').format(_selectedDate);
+    final formattedTime = _selectedTime.format(context);
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedTime = slotTime;
-          _customTimeController.text = slot;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? _primaryColor
-              : isBooked
-                  ? (isDark ? const Color(0xFF2D2418) : const Color(0xFFFFF3E0))
-                  : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Directionality(
-              textDirection: TextDirection.ltr,
-              child: Text(
-                slot,
-                style: TextStyle(
-                  color: isSelected
-                      ? Colors.white
-                      : isBooked
-                          ? (isDark ? Colors.orange.shade300 : Colors.orange.shade800)
-                          : (isDark ? Colors.white70 : Colors.grey.shade800),
-                  fontSize: 12,
-                  fontWeight: isSelected || isBooked ? FontWeight.w700 : FontWeight.w500,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.badge_outlined,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text(
+              '3. الطبيب المعالج والفرع',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.sm),
+        AppointmentDoctorBranchPicker(
+          clinicId: widget.clinicId,
+          selectedDoctorId: _selectedDoctorId,
+          selectedBranchId: _selectedBranchId,
+          onDoctorChanged: (id) => setState(() => _selectedDoctorId = id),
+          onBranchChanged: (id) => setState(() => _selectedBranchId = id),
+        ),
+        const SizedBox(height: AppSpace.xl),
+        Row(
+          children: [
+            const Icon(Icons.schedule_rounded,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Text(
+              '4. التوقيت وحالة الانتظار',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.sm),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: AppColors.subtle(context),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.borderSubtle(context)),
           ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final patientsAsync = ref.watch(patientsListProvider(widget.clinicId));
-    final typesAsync = ref.watch(appointmentTypesProvider);
-    final appointmentsAsync = ref.watch(appointmentsForDateProvider(_selectedDate));
-
-    final isMobile = MediaQuery.of(context).size.width < 900;
-
-    if (isMobile) {
-      return _buildMobileScaffold(context, patientsAsync, typesAsync, appointmentsAsync);
-    } else {
-      return _buildDesktopDialog(context, patientsAsync, typesAsync, appointmentsAsync);
-    }
-  }
-
-  // ═══════════════════════════════════════════════
-  // ─── Desktop Layout ───
-  // ═══════════════════════════════════════════════
-  Widget _buildDesktopDialog(
-    BuildContext context,
-    AsyncValue<List<PatientModel>> patientsAsync,
-    AsyncValue<List<AppointmentTypeModel>> typesAsync,
-    AsyncValue<List<AppointmentModel>> appointmentsAsync,
-  ) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Dialog(
-        backgroundColor: _surfaceCol,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 900, maxHeight: 750),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              _buildHeader(),
-              Divider(height: 1, color: _borderCol),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
-                  child: Form(
-                    key: _formKey,
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() {
+                    _isWalkInNow = true;
+                    _selectedDate = DateTime.now();
+                    _selectedTime = TimeOfDay.now();
+                  }),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _isWalkInNow
+                          ? AppColors.primary
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Column 1: Patient Selection & Services
-                        Expanded(
-                          flex: 11,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildPatientField(patientsAsync),
-                              const SizedBox(height: 20),
-                              _buildServiceField(typesAsync),
-                              const SizedBox(height: 20),
-                              _buildAdditionalServices(),
-                              const SizedBox(height: 12),
-                            ],
-                          ),
+                        Icon(
+                          Icons.flash_on_rounded,
+                          size: 16,
+                          color: _isWalkInNow
+                              ? Colors.white
+                              : AppColors.textSecondary(context),
                         ),
-                        const SizedBox(width: 24),
-                        // Divider
-                        Container(
-                          width: 1,
-                          height: 480,
-                          color: _borderCol,
-                        ),
-                        const SizedBox(width: 24),
-                        // Column 2: Date and Time Grid
-                        Expanded(
-                          flex: 9,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildDateField(),
-                              const SizedBox(height: 16),
-                              appointmentsAsync.when(
-                                data: (booked) => _buildInlineTimeSlotsSelector(booked),
-                                loading: () => const Center(child: CircularProgressIndicator()),
-                                error: (err, _) => Text('خطأ: $err', style: TextStyle(color: _errorColor)),
-                              ),
-                              const SizedBox(height: 12),
-                            ],
+                        const SizedBox(width: 6),
+                        Text(
+                          'طابور الانتظار الآن (Walk-in)',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: _isWalkInNow
+                                ? Colors.white
+                                : AppColors.textSecondary(context),
                           ),
                         ),
                       ],
@@ -594,940 +573,305 @@ class _BookAppointmentDialogState extends ConsumerState<BookAppointmentDialog> {
                   ),
                 ),
               ),
-              _buildFooter(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════
-  // ─── Mobile Layout ───
-  // ═══════════════════════════════════════════════
-  Widget _buildMobileScaffold(
-    BuildContext context,
-    AsyncValue<List<PatientModel>> patientsAsync,
-    AsyncValue<List<AppointmentTypeModel>> typesAsync,
-    AsyncValue<List<AppointmentModel>> appointmentsAsync,
-  ) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_rounded, color: _textColor),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Text(
-            'حجز موعد جديد',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: _textColor),
-          ),
-        ),
-        body: Form(
-          key: _formKey,
-          child: Column(
-            children: [
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildPatientField(patientsAsync),
-                      const SizedBox(height: 20),
-                      _buildServiceField(typesAsync),
-                      const SizedBox(height: 20),
-                      _buildAdditionalServices(),
-                      const SizedBox(height: 20),
-                      _buildDateField(),
-                      const SizedBox(height: 20),
-                      appointmentsAsync.when(
-                        data: (booked) => _buildInlineTimeSlotsSelector(booked),
-                        loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (err, _) => Text('خطأ: $err', style: TextStyle(color: _errorColor)),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
+                child: InkWell(
+                  onTap: () => setState(() => _isWalkInNow = false),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: !_isWalkInNow
+                          ? AppColors.primary
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.event_available_rounded,
+                          size: 16,
+                          color: !_isWalkInNow
+                              ? Colors.white
+                              : AppColors.textSecondary(context),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'موعد محدد لاحقاً',
+                          style: GoogleFonts.cairo(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: !_isWalkInNow
+                                ? Colors.white
+                                : AppColors.textSecondary(context),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              _buildFooter(),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════
-  // ─── Components ───
-  // ═══════════════════════════════════════════════
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 20, 28, 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
+        if (!_isWalkInNow) ...[
+          const SizedBox(height: AppSpace.md),
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: _inputFillCol,
+              Expanded(
+                child: InkWell(
+                  onTap: _pickDate,
                   borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 11),
+                    decoration: BoxDecoration(
+                      color: AppColors.subtle(context),
+                      borderRadius: BorderRadius.circular(10),
+                      border:
+                          Border.all(color: AppColors.borderSubtle(context)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_month_outlined,
+                            size: 18, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          formattedDate,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                child: Icon(Icons.calendar_today_rounded,
-                    color: _primaryColor, size: 22),
               ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'حجز موعد جديد',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                      color: _textColor,
+              const SizedBox(width: AppSpace.md),
+              Expanded(
+                child: InkWell(
+                  onTap: () async {
+                    final t = await showTimePicker(
+                      context: context,
+                      initialTime: _selectedTime,
+                    );
+                    if (t != null) setState(() => _selectedTime = t);
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 11),
+                    decoration: BoxDecoration(
+                      color: AppColors.subtle(context),
+                      borderRadius: BorderRadius.circular(10),
+                      border:
+                          Border.all(color: AppColors.borderSubtle(context)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.access_time_rounded,
+                            size: 18, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          formattedTime,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary(context),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'اختر المريض والتوقيت المناسب',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: _textSecColor,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
-          Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            child: InkWell(
-              onTap: () => Navigator.pop(context),
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: Border.all(color: _borderCol),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.close_rounded,
-                    color: _textSecColor, size: 18),
-              ),
-            ),
-          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPatientField(AsyncValue<List<PatientModel>> patientsAsync) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildFieldLabel('اسم المريض'),
-        const SizedBox(height: 6),
-        patientsAsync.when(
-          data: (patients) {
-            return Autocomplete<PatientModel>(
-              optionsBuilder: (TextEditingValue textEditingValue) {
-                final query = textEditingValue.text.trim();
-                if (query.isEmpty) {
-                  return const Iterable<PatientModel>.empty();
-                }
-
-                final normQuery = ArabicUtils.normalize(query);
-                final List<PatientModel> matches = [];
-
-                // Fast Stage 1: Fast O(1) String Contains
-                for (var i = 0; i < patients.length; i++) {
-                  final option = patients[i];
-                  final normName = ArabicUtils.normalize(option.fullName);
-                  final phone = option.phone ?? '';
-
-                  if (normName.contains(normQuery) || normQuery.contains(normName) || phone.contains(query)) {
-                    matches.add(option);
-                    if (matches.length >= 6) break;
-                  }
-                }
-
-                // Stage 2: Heavy similarity ONLY if < 6 matches found and query >= 3 chars
-                if (matches.length < 6 && normQuery.length >= 3) {
-                  for (var i = 0; i < patients.length; i++) {
-                    final option = patients[i];
-                    if (matches.contains(option)) continue;
-
-                    final normName = ArabicUtils.normalize(option.fullName);
-                    if (ArabicUtils.tokenSimilarity(normQuery, normName) >= 0.45) {
-                      matches.add(option);
-                      if (matches.length >= 6) break;
-                    }
-                  }
-                }
-
-                if (matches.isEmpty) {
-                  return [
-                    PatientModel(
-                      id: 'ADD_NEW_PATIENT',
-                      clinicId: widget.clinicId,
-                      fullName: textEditingValue.text,
-                      createdAt: DateTime.now(),
-                    )
-                  ];
-                }
-                return matches.take(6);
-              },
-              displayStringForOption: (PatientModel option) => option.fullName,
-              fieldViewBuilder: (BuildContext context,
-                  TextEditingController textEditingController,
-                  FocusNode focusNode,
-                  VoidCallback onFieldSubmitted) {
-                _autocompleteController = textEditingController;
-                
-                // If we have a preselected patient, populate the field
-                if (_selectedPatientId != null && textEditingController.text.isEmpty) {
-                  final matched = patients.firstWhere(
-                    (p) => p.id == _selectedPatientId,
-                    orElse: () => PatientModel(id: '', clinicId: '', fullName: '', createdAt: DateTime.now()),
-                  );
-                  if (matched.id.isNotEmpty) {
-                    textEditingController.text = matched.fullName;
-                  }
-                }
-                
-                return _buildStitchTextField(
-                  controller: textEditingController,
-                  focusNode: focusNode,
-                  hintText: 'ابحث بالاسم أو الهاتف...',
-                  icon: Icons.search_rounded,
-                  validator: (val) {
-                    if (_selectedPatientId == null) return 'يرجى البحث واختيار مريض';
-                    return null;
-                  },
-                );
-              },
-              optionsViewBuilder: (context, onSelected, options) {
-                return Align(
-                  alignment: Alignment.topRight,
-                  child: Material(
-                    elevation: 8,
-                    color: _surfaceCol,
-                    shadowColor: Colors.black.withValues(alpha: 0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: _borderCol),
-                    ),
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 400, maxHeight: 250),
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: options.length,
-                        separatorBuilder: (_, __) =>
-                            Divider(height: 1, color: _borderCol),
-                        itemBuilder: (context, index) {
-                          final option = options.elementAt(index);
-                          final isAddNew = option.id == 'ADD_NEW_PATIENT';
-
-                          if (isAddNew) {
-                            return ListTile(
-                              onTap: () {
-                                onSelected(option);
-                              },
-                              leading: Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: _primaryColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(Icons.person_add_alt_1_rounded, color: _primaryColor),
-                              ),
-                              title: Text(
-                                'إضافة مريض جديد باسم "${option.fullName}"',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: _primaryColor,
-                                ),
-                              ),
-                            );
-                          }
-
-                          return ListTile(
-                            onTap: () => onSelected(option),
-                            leading: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: _inputFillCol,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  option.fullName.isNotEmpty ? option.fullName[0] : '؟',
-                                  style: TextStyle(
-                                    color: _primaryColor,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            title: Text(
-                              option.fullName,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: _textColor,
-                              ),
-                            ),
-                            subtitle: option.phone != null
-                                ? Text(
-                                    option.phone!,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: _textSecColor,
-                                    ),
-                                  )
-                                : null,
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                );
-              },
-              onSelected: (PatientModel selection) {
-                if (selection.id == 'ADD_NEW_PATIENT') {
-                  if (_autocompleteController != null) {
-                    _showAddPatientDialog(context, selection.fullName, _autocompleteController!);
-                  }
-                } else {
-                  setState(() {
-                    _selectedPatientId = selection.id;
-                  });
-                }
-              },
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-          error: (err, _) => Text('خطأ: $err', style: TextStyle(color: _errorColor, fontSize: 11)),
-        ),
       ],
     );
   }
 
-  Widget _buildServiceField(AsyncValue<List<AppointmentTypeModel>> typesAsync) {
+  Widget _buildServicesSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildFieldLabel('نوع الكشف الأساسي'),
-        const SizedBox(height: 6),
-        typesAsync.when(
-          data: (types) {
-            return DropdownButtonFormField<String>(
-              initialValue: _selectedAppointmentTypeId,
-              style: TextStyle(color: _textColor, fontSize: 14),
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                prefixIcon: Icon(Icons.medical_services_outlined, size: 18, color: _textSecColor),
-                filled: true,
-                fillColor: _inputFillCol,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: _borderCol),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: _borderCol),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: _primaryColor, width: 2),
-                ),
-              ),
-              items: types.map((t) {
-                return DropdownMenuItem<String>(
-                  value: t.id,
-                  child: Text(
-                    '${t.name} (${t.price.toStringAsFixed(0)} ج.م)',
-                    style: TextStyle(fontSize: 14, color: _textColor),
-                  ),
-                );
-              }).toList(),
-              onChanged: (val) {
-                setState(() {
-                  _selectedAppointmentTypeId = val;
-                });
-                _updatePrice();
-              },
-              validator: (val) => val == null ? 'يرجى تحديد الكشف' : null,
-            );
-          },
-            loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-            error: (err, _) => Text('خطأ: $err', style: TextStyle(color: _errorColor, fontSize: 11)),
-          ),
-        ],
-    );
-  }
-
-  Widget _buildDateField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildFieldLabel('تاريخ الحجز'),
-        const SizedBox(height: 6),
         Row(
           children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  side: BorderSide(color: _borderCol),
-                  backgroundColor: _inputFillCol,
-                ),
-                icon: Icon(Icons.calendar_month_rounded, color: _primaryColor, size: 20),
-                label: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    intl.DateFormat('EEEE، d MMMM yyyy', 'ar').format(_selectedDate),
-                    style: TextStyle(fontWeight: FontWeight.bold, color: _primaryColor, fontSize: 13.5),
-                  ),
-                ),
-                onPressed: () async {
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedDate,
-                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      _selectedDate = picked;
-                    });
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInlineTimeSlotsSelector(List<AppointmentModel> booked) {
-    final morningSlots = _allTimeSlots.where((slot) {
-      return slot.endsWith('AM') &&
-          !slot.startsWith('12:') &&
-          !slot.startsWith('01:') &&
-          !slot.startsWith('02:');
-    }).toList();
-
-    final eveningSlots = _allTimeSlots.where((slot) {
-      return !morningSlots.contains(slot);
-    }).toList();
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    Widget buildSectionHeader(String title, IconData icon, Color iconColor) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 10, top: 4),
-        child: Row(
-          children: [
-            Icon(icon, size: 14, color: iconColor),
+            const Icon(Icons.medical_services_outlined,
+                size: 18, color: AppColors.primary),
             const SizedBox(width: 6),
             Text(
-              title,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: isDark ? iconColor.withValues(alpha: 0.8) : iconColor,
+              'خدمات إضافية (اختياري)',
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
               ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.sm),
+        AppointmentServicesPicker(
+          clinicId: widget.clinicId,
+          selectedServices: _selectedServices,
+          onServicesChanged: (list) {
+            setState(() {
+              _selectedServices
+                ..clear()
+                ..addAll(list);
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFooter(BuildContext context, bool isMobile) {
+    if (isMobile) {
+      return Container(
+        padding: const EdgeInsets.all(AppSpace.md),
+        decoration: BoxDecoration(
+          color: AppColors.subtle(context).withValues(alpha: 0.3),
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(AppRadii.radiusXl),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'المطلوب تحصيله: ',
+                  style: GoogleFonts.cairo(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary(context),
+                  ),
+                ),
+                Text(
+                  '${_totalPrice.toStringAsFixed(0)} ج.م',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpace.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: AppButton(
+                    label: 'إلغاء',
+                    variant: AppButtonVariant.ghost,
+                    expand: true,
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
+                  ),
+                ),
+                const SizedBox(width: AppSpace.sm),
+                Expanded(
+                  child: AppButton(
+                    label: 'تأكيد الحجز',
+                    icon: Icons.check_rounded,
+                    variant: AppButtonVariant.primary,
+                    expand: true,
+                    loading: _isSaving,
+                    onPressed: _isSaving ? null : _submit,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       );
     }
 
-    Widget buildSlotsGrid(List<String> slots) {
-      final isMobile = MediaQuery.of(context).size.width < 600;
-      final cols = isMobile ? 3 : 5;
-      final ratio = isMobile ? 2.6 : 2.2;
-
-      return GridView.count(
-        crossAxisCount: cols,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: 6,
-        crossAxisSpacing: 6,
-        childAspectRatio: ratio,
-        children: slots.map((slot) => _buildSlotButton(slot, booked)).toList(),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildFieldLabel('الوقت المتاح للحجز'),
-        const SizedBox(height: 8),
-        Container(
-          constraints: const BoxConstraints(maxHeight: 280),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: true),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  buildSectionHeader('صباحاً', Icons.wb_sunny_rounded, Colors.amber.shade700),
-                  buildSlotsGrid(morningSlots),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(height: 1, color: _borderCol.withValues(alpha: 0.3)),
-                  ),
-
-                  buildSectionHeader('مساءً', Icons.nights_stay_rounded, Colors.indigo.shade400),
-                  buildSlotsGrid(eveningSlots),
-                  const SizedBox(height: 4),
-                ],
-              ),
-            ),
-          ),
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? AppSpace.md : AppSpace.xl,
+        vertical: AppSpace.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.subtle(context).withValues(alpha: 0.3),
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(AppRadii.radiusXl),
         ),
-        const SizedBox(height: 10),
-        GestureDetector(
-          onTap: () async {
-            final TimeOfDay? picked = await showTimePicker(
-              context: context,
-              initialTime: _selectedTime,
-            );
-            if (picked != null) {
-              setState(() {
-                _selectedTime = picked;
-                _customTimeController.text = _formatTimeOfDay(picked);
-              });
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50,
+              color: AppColors.primarySubtle,
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2)),
             ),
-            child: Directionality(
-              textDirection: TextDirection.ltr,
-              child: Row(
-                textDirection: TextDirection.rtl,
-                children: [
-                  Icon(Icons.schedule_rounded, size: 15, color: _textSecColor),
-                  const SizedBox(width: 8),
-                  Text(
-                    'وقت مخصص: ${_formatTimeOfDay(_selectedTime)}',
-                    style: TextStyle(color: _textColor, fontSize: 12, fontWeight: FontWeight.w500),
-                  ),
-                  const Spacer(),
-                  Icon(Icons.edit_rounded, color: _primaryColor, size: 15),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAdditionalServices() {
-    return ref.watch(availableServicesProvider(widget.clinicId)).when(
-      data: (services) {
-        if (services.isEmpty) return const SizedBox.shrink();
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _borderCol),
-          ),
-          child: Theme(
-            data: Theme.of(context).copyWith(
-              dividerColor: Colors.transparent,
-            ),
-            child: ExpansionTile(
-              tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-              title: Row(
-                children: [
-                  Icon(Icons.add_circle_outline_rounded, size: 18, color: _primaryColor),
-                  const SizedBox(width: 8),
-                  Text(
-                    'إرفاق خدمات إضافية',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _primaryColor,
-                    ),
-                  ),
-                ],
-              ),
-              children: [
-                Divider(height: 1, color: _borderCol),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  itemCount: services.length,
-                  separatorBuilder: (_, __) => Divider(height: 1, color: _borderCol),
-                  itemBuilder: (context, index) {
-                    final service = services[index];
-                    final isSelected = _selectedServices.any((s) => s.id == service.id);
-
-                    return CheckboxListTile(
-                      controlAffinity: ListTileControlAffinity.trailing,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                      title: Text(
-                        service.name,
-                        style: TextStyle(fontSize: 14, color: _textColor),
-                      ),
-                      subtitle: Text(
-                        '+ ${service.price.toStringAsFixed(0)} ج.م',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _primaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      value: isSelected,
-                      onChanged: (checked) {
-                        setState(() {
-                          if (checked == true) {
-                            _selectedServices.add(service);
-                          } else {
-                            _selectedServices.removeWhere((s) => s.id == service.id);
-                          }
-                        });
-                        _updatePrice();
-                      },
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildFooter() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 480;
-
-        if (isMobile) {
-          return Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            decoration: BoxDecoration(
-              color: _surfaceCol,
-              border: Border(
-                top: BorderSide(color: _borderCol),
-              ),
-            ),
-            child: Column(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'السعر الإجمالي المطلوب:',
-                      style: TextStyle(color: _textSecColor, fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                    Text(
-                      '${_priceCharged.toStringAsFixed(0)} ج.م',
-                      style: GoogleFonts.cairo(
-                        color: _primaryColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
+                Text(
+                  'المطلوب تحصيله: ',
+                  style: GoogleFonts.cairo(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary(context),
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: InkWell(
-                        onTap: () => Navigator.pop(context),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          height: 44,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: _borderCol),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            'إلغاء',
-                            style: TextStyle(
-                              color: _textSecColor,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 2,
-                      child: InkWell(
-                        onTap: _isSaving ? null : _submit,
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          height: 44,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: _isSaving ? Colors.grey : _primaryColor,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: _isSaving ? null : [
-                              BoxShadow(
-                                color: _primaryColor.withValues(alpha: 0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            child: _isSaving
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  )
-                                : const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.save_rounded, size: 18, color: Colors.white),
-                                      SizedBox(width: 6),
-                                      Text(
-                                        'تأكيد وحفظ الحجز',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  '${_totalPrice.toStringAsFixed(0)} ج.م',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
                 ),
               ],
             ),
-          );
-        }
-
-        return Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-          decoration: BoxDecoration(
-            color: _surfaceCol,
-            border: Border(
-              top: BorderSide(color: _borderCol),
+          ),
+          const Spacer(),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.subtle(context),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'Ctrl + Enter للحفظ السريع',
+                style: GoogleFonts.cairo(
+                  fontSize: 11,
+                  color: AppColors.textSecondary(context),
+                ),
+              ),
             ),
+            const SizedBox(width: AppSpace.md),
+          ],
+          AppButton(
+            label: 'إلغاء',
+            variant: AppButtonVariant.ghost,
+            expand: false,
+            onPressed: _isSaving ? null : () => Navigator.pop(context),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'السعر الإجمالي المطلوب',
-                    style: TextStyle(color: _textSecColor, fontSize: 12),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${_priceCharged.toStringAsFixed(0)} ج.م',
-                    style: GoogleFonts.cairo(
-                      color: _primaryColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => Navigator.pop(context),
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: _borderCol),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          'إلغاء',
-                          style: TextStyle(
-                            color: _textSecColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: _isSaving ? null : _submit,
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: _isSaving ? Colors.grey : _primaryColor,
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: _isSaving ? null : [
-                            BoxShadow(
-                              color: _primaryColor.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: _isSaving
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.save_rounded, size: 18, color: Colors.white),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'تأكيد وحفظ الحجز',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          const SizedBox(width: AppSpace.sm),
+          AppButton(
+            label: 'تأكيد الحجز فوراً',
+            icon: Icons.check_rounded,
+            variant: AppButtonVariant.primary,
+            expand: false,
+            loading: _isSaving,
+            onPressed: _isSaving ? null : _submit,
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFieldLabel(String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: _textSecColor,
+        ],
       ),
     );
-  }
-
-  Widget _buildStitchTextField({
-    TextEditingController? controller,
-    FocusNode? focusNode,
-    required String hintText,
-    required IconData icon,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      focusNode: focusNode,
-      onTapOutside: (_) {},
-      style: TextStyle(color: _textColor, fontSize: 14),
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(color: Theme.of(context).hintColor, fontSize: 14),
-        prefixIcon: Icon(icon, size: 18, color: _textSecColor),
-        filled: true,
-        fillColor: _inputFillCol,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: _borderCol),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: _borderCol),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: _primaryColor, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: _errorColor),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-      validator: validator,
-    );
-  }
-
-  void _updatePrice() {
-    double total = 0.0;
-
-    if (_selectedAppointmentTypeId != null) {
-      final typesAsync = ref.read(appointmentTypesProvider);
-      final types = typesAsync.value;
-      if (types != null) {
-        final type = types.firstWhere((t) => t.id == _selectedAppointmentTypeId);
-        total += type.price;
-      }
-    }
-
-    for (final service in _selectedServices) {
-      total += service.price;
-    }
-
-    setState(() {
-      _priceCharged = total;
-    });
   }
 }

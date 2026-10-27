@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+
+import '../../../../core/ui/tokens/colors.dart';
+import '../../../../core/utils/doctor_utils.dart';
 import '../../../patients/domain/patient_model.dart';
 import '../../../patients/data/patient_repository.dart';
 import '../../data/appointment_repository.dart';
 import '../../domain/appointment_model.dart';
 import '../../data/visit_note_repository.dart';
-import 'package:intl/intl.dart';
+import '../../domain/visit_note_model.dart';
 
 final patientAppointmentsProvider = FutureProvider.family<List<AppointmentModel>, String>((ref, patientId) async {
   final all = await ref.watch(appointmentRepositoryProvider).getPatientAppointments(patientId);
@@ -48,9 +52,9 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+        side: BorderSide(color: AppColors.borderSubtle(context)),
       ),
-      color: Theme.of(context).colorScheme.surface,
+      color: AppColors.surface(context),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -62,17 +66,17 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                 Container(
                   width: 56,
                   height: 56,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                  decoration: const BoxDecoration(
+                    color: AppColors.primarySubtle,
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Text(
                       patientName.isNotEmpty ? patientName[0] : '؟',
-                      style: TextStyle(
+                      style: GoogleFonts.cairo(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -84,17 +88,17 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                     children: [
                       Text(
                         patientName,
-                        style: TextStyle(
+                        style: GoogleFonts.cairo(
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
-                          color: Theme.of(context).textTheme.titleLarge?.color,
+                          color: AppColors.textPrimary(context),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       patientAsync.when(
                         data: (patients) {
-                          final sorted = List.from(patients)
+                          final sorted = List<PatientModel>.from(patients)
                             ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
                           final idx = sorted.indexWhere((p) => p.id == patientId);
                           final patient = idx != -1 ? sorted[idx] : null;
@@ -108,7 +112,7 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                                        color: AppColors.primarySubtle,
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
@@ -116,24 +120,41 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                                         style: GoogleFonts.jetBrainsMono(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
-                                            color: Theme.of(context).colorScheme.secondary),
+                                            color: AppColors.primary),
                                       ),
                                     ),
                                   if (idx != -1) const SizedBox(width: 8),
                                   if (patient?.gender != null)
                                     Text(
                                       patient!.gender == 'male' ? 'ذكر' : 'أنثى',
-                                      style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                                      style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary(context)),
                                     ),
-                                  if (patient?.gender != null && patient.birthDate != null)
-                                    Text(' • ', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                                  if (patient?.gender != null && patient?.birthDate != null)
+                                    Text(' • ', style: TextStyle(fontSize: 12, color: AppColors.textMuted(context))),
                                   if (patient?.birthDate != null)
                                     Text(
                                       '${DateTime.now().year - patient!.birthDate!.year} سنة',
-                                      style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                                      style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary(context)),
                                     ),
                                 ],
                               ),
+                              if (patient?.phone != null && patient!.phone!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.phone_outlined, size: 12, color: AppColors.textMuted(context)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      patient.phone!,
+                                      style: GoogleFonts.jetBrainsMono(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary(context),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
                           );
                         },
@@ -145,9 +166,9 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            const Divider(height: 1),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            Divider(height: 1, color: AppColors.borderSubtle(context)),
+            const SizedBox(height: 20),
 
             // ─── Medical History ───
             InkWell(
@@ -157,14 +178,21 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    const Icon(Icons.history_edu_rounded, size: 18),
+                    const Icon(Icons.history_edu_rounded, size: 18, color: AppColors.primary),
                     const SizedBox(width: 8),
-                    const Text('التاريخ المرضي', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    Text(
+                      'التاريخ المرضي',
+                      style: GoogleFonts.cairo(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppColors.textPrimary(context),
+                      ),
+                    ),
                     const Spacer(),
                     Icon(
                       _isHistoryExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                       size: 20,
-                      color: Theme.of(context).hintColor.withValues(alpha: 0.5),
+                      color: AppColors.textMuted(context),
                     ),
                   ],
                 ),
@@ -196,50 +224,83 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                               return Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
-                                children: historyItems.map((mh) => Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3)),
-                                      ),
-                                      child: Text(
-                                        mh,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: Theme.of(context).colorScheme.error,
+                                children: historyItems.map((mh) {
+                                  final isAllergy = mh.contains('حساسية') ||
+                                      mh.toLowerCase().contains('allergy');
+                                  final itemColor = isAllergy ? AppColors.danger : AppColors.textPrimary(context);
+                                  final itemBg = isAllergy
+                                      ? AppColors.dangerSubtle
+                                      : AppColors.subtle(context);
+                                  final itemBorder = isAllergy
+                                      ? AppColors.danger.withValues(alpha: 0.4)
+                                      : AppColors.borderSubtle(context);
+
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: itemBg,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: itemBorder),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (isAllergy) ...[
+                                          const Icon(
+                                            Icons.warning_amber_rounded,
+                                            size: 14,
+                                            color: AppColors.danger,
+                                          ),
+                                          const SizedBox(width: 4),
+                                        ],
+                                        Text(
+                                          mh,
+                                          style: GoogleFonts.cairo(
+                                            fontSize: 12,
+                                            fontWeight: isAllergy ? FontWeight.w700 : FontWeight.w600,
+                                            color: itemColor,
+                                            height: 1.4,
+                                          ),
                                         ),
-                                      ),
-                                    )).toList(),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
                               );
                             } else {
                               return Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).scaffoldBackgroundColor,
+                                  color: AppColors.subtle(context),
                                   borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.borderSubtle(context)),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.check_circle_outline, size: 16, color: Theme.of(context).hintColor),
+                                    Icon(Icons.check_circle_outline, size: 16, color: AppColors.textMuted(context)),
                                     const SizedBox(width: 8),
-                                    Text('لا توجد أمراض مزمنة مسجلة.', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                                    Text(
+                                      'لا توجد أمراض مزمنة مسجلة.',
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary(context),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               );
                             }
                           },
-                          loading: () => const CircularProgressIndicator(),
+                          loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                           error: (_, __) => const SizedBox(),
                         ),
                       ],
                     )
                   : const SizedBox.shrink(),
             ),
-            const SizedBox(height: 24),
-            const Divider(height: 1),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            Divider(height: 1, color: AppColors.borderSubtle(context)),
+            const SizedBox(height: 20),
 
             // ─── Previous Visits ───
             InkWell(
@@ -249,9 +310,16 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    const Icon(Icons.event_note_rounded, size: 18),
+                    const Icon(Icons.event_note_rounded, size: 18, color: AppColors.primary),
                     const SizedBox(width: 8),
-                    const Text('الزيارات السابقة', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    Text(
+                      'الزيارات السابقة',
+                      style: GoogleFonts.cairo(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppColors.textPrimary(context),
+                      ),
+                    ),
                     const Spacer(),
                     TextButton(
                       onPressed: () => setState(() => _isVisitsExpanded = !_isVisitsExpanded),
@@ -259,13 +327,20 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         minimumSize: Size.zero,
                       ),
-                      child: Text(_isVisitsExpanded ? 'إخفاء' : 'عرض الكل', style: const TextStyle(fontSize: 11)),
+                      child: Text(
+                        _isVisitsExpanded ? 'إخفاء' : 'عرض الكل',
+                        style: GoogleFonts.cairo(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 4),
                     Icon(
                       _isVisitsExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                       size: 20,
-                      color: Theme.of(context).hintColor.withValues(alpha: 0.5),
+                      color: AppColors.textMuted(context),
                     ),
                   ],
                 ),
@@ -285,14 +360,21 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                               return Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).scaffoldBackgroundColor,
+                                  color: AppColors.subtle(context),
                                   borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.borderSubtle(context)),
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.info_outline, size: 16, color: Theme.of(context).hintColor),
+                                    Icon(Icons.info_outline, size: 16, color: AppColors.textMuted(context)),
                                     const SizedBox(width: 8),
-                                    Text('لا توجد زيارات سابقة.', style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)),
+                                    Text(
+                                      'لا توجد زيارات سابقة.',
+                                      style: GoogleFonts.cairo(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary(context),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               );
@@ -313,7 +395,13 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                                 
                                 final notesList = patientNotesAsync.value;
                                 if (notesList != null) {
-                                  final note = notesList.cast<dynamic>().firstWhere((n) => n.appointmentId == appt.id, orElse: () => null);
+                                  VisitNoteModel? note;
+                                  for (final n in notesList) {
+                                    if (n.appointmentId == appt.id) {
+                                      note = n;
+                                      break;
+                                    }
+                                  }
                                   if (note != null && note.notes.isNotEmpty) {
                                     final parts = note.notes.split('\n---\n');
                                     if (parts.isNotEmpty) complaint = parts[0].trim();
@@ -381,9 +469,9 @@ class _VisitHistoryItemState extends State<_VisitHistoryItem> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: AppColors.subtle(context),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
+        border: Border.all(color: AppColors.borderSubtle(context)),
       ),
       child: InkWell(
         onTap: () {
@@ -402,11 +490,11 @@ class _VisitHistoryItemState extends State<_VisitHistoryItem> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
+                    decoration: const BoxDecoration(
+                      color: AppColors.primarySubtle,
+                      borderRadius: BorderRadius.all(Radius.circular(6)),
                     ),
-                    child: Icon(Icons.history_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
+                    child: const Icon(Icons.history_rounded, size: 14, color: AppColors.primary),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -415,17 +503,32 @@ class _VisitHistoryItemState extends State<_VisitHistoryItem> {
                       children: [
                         Text(
                           widget.date,
-                          style: TextStyle(
+                          style: GoogleFonts.jetBrainsMono(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                            color: AppColors.textPrimary(context),
                           ),
                         ),
                         if (widget.appt.appointmentTypeName != null) ...[
                           const SizedBox(height: 4),
                           Text(
                             widget.appt.appointmentTypeName!,
-                            style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor, fontWeight: FontWeight.w600),
+                            style: GoogleFonts.cairo(
+                              fontSize: 11,
+                              color: AppColors.textSecondary(context),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                        if (widget.appt.doctorName != null && widget.appt.doctorName!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'الطبيب: ${DoctorUtils.formatTitle(widget.appt.doctorName)}',
+                            style: GoogleFonts.cairo(
+                              fontSize: 10.5,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ],
@@ -434,7 +537,7 @@ class _VisitHistoryItemState extends State<_VisitHistoryItem> {
                   Icon(
                     _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                     size: 20,
-                    color: Theme.of(context).hintColor.withValues(alpha: 0.5)
+                    color: AppColors.textMuted(context),
                   ),
                 ],
               ),
@@ -448,36 +551,103 @@ class _VisitHistoryItemState extends State<_VisitHistoryItem> {
                         margin: const EdgeInsets.only(top: 12),
                         padding: const EdgeInsets.only(top: 12, right: 8, left: 8),
                         decoration: BoxDecoration(
-                          border: Border(top: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.1))),
+                          border: Border(top: BorderSide(color: AppColors.borderSubtle(context))),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (widget.services != null && widget.services!.isNotEmpty) ...[
-                              Text('الخدمات المقدمة:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
+                              Text(
+                                'الخدمات المقدمة:',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                               const SizedBox(height: 4),
-                              Text(widget.services!, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.5)),
+                              Text(
+                                widget.services!,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary(context),
+                                  height: 1.45,
+                                ),
+                              ),
                               const SizedBox(height: 12),
                             ],
                             if (widget.complaint != null && widget.complaint!.isNotEmpty) ...[
-                              Text('الشكوى:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
+                              Text(
+                                'الشكوى:',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                               const SizedBox(height: 4),
-                              Text(widget.complaint!, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.5)),
+                              Text(
+                                widget.complaint!,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textPrimary(context),
+                                  height: 1.45,
+                                ),
+                              ),
                               const SizedBox(height: 12),
                             ],
                             if (widget.diagnosis != null && widget.diagnosis!.isNotEmpty) ...[
-                              Text('التشخيص:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
+                              Text(
+                                'التشخيص:',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                               const SizedBox(height: 4),
-                              Text(widget.diagnosis!, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.5)),
+                              Text(
+                                widget.diagnosis!,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textPrimary(context),
+                                  height: 1.45,
+                                ),
+                              ),
                               const SizedBox(height: 12),
                             ],
                             if (widget.instructions != null && widget.instructions!.isNotEmpty) ...[
-                              Text('التعليمات:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor)),
+                              Text(
+                                'التعليمات:',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                               const SizedBox(height: 4),
-                              Text(widget.instructions!, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.5)),
+                              Text(
+                                widget.instructions!,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textPrimary(context),
+                                  height: 1.45,
+                                ),
+                              ),
                             ],
                             if (!hasDetails) ...[
-                              Text('لا توجد بيانات مسجلة.', style: TextStyle(fontSize: 13, color: Theme.of(context).hintColor.withValues(alpha: 0.7), fontStyle: FontStyle.italic)),
+                              Text(
+                                'لا توجد بيانات مسجلة.',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 13,
+                                  color: AppColors.textMuted(context),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
                             ],
                           ],
                         ),

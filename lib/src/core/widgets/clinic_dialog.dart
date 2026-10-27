@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // ══════════════════════════════════════════════════════════
@@ -90,14 +91,20 @@ class ClinicDialog extends StatelessWidget {
     final iconBg = (iconColor ?? Theme.of(context).colorScheme.primary).withValues(alpha: 0.12);
     final isMobile = MediaQuery.of(context).size.width < 650;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 12 : 24,
-        vertical: isMobile ? 12 : 24,
-      ),
-      child: ConstrainedBox(
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).maybePop(),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 24,
+            vertical: isMobile ? 12 : 24,
+          ),
+          child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -220,6 +227,8 @@ class ClinicDialog extends StatelessWidget {
           ],
         ),
       ),
+        ),
+      ),
     );
   }
 }
@@ -265,11 +274,17 @@ class _ConfirmDialogState extends State<_ConfirmDialog> {
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
-        child: ConstrainedBox(
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).maybePop(false),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+            child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 380),
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -380,6 +395,8 @@ class _ConfirmDialogState extends State<_ConfirmDialog> {
                 ),
               ],
             ),
+          ),
+        ),
           ),
         ),
       ),
@@ -580,3 +597,115 @@ class ClinicFormSection extends StatelessWidget {
     );
   }
 }
+
+/// زر أساسي موحد للحوارات والشاشات
+class ClinicPrimaryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final bool isLoading;
+  final bool isDangerous;
+  final double? height;
+
+  const ClinicPrimaryButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.icon,
+    this.isLoading = false,
+    this.isDangerous = false,
+    this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bgColor = isDangerous ? theme.colorScheme.error : theme.colorScheme.primary;
+
+    return ElevatedButton(
+      onPressed: isLoading ? null : onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: bgColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        minimumSize: Size(88, height ?? 40),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+      child: isLoading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 16),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  label,
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+/// زر ثانوي موحد للحوارات والشاشات
+class ClinicSecondaryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final double? height;
+
+  const ClinicSecondaryButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.icon,
+    this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: Size(72, height ?? 40),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 16),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            label,
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

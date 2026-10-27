@@ -4,14 +4,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/patient_model.dart';
 import '../../../core/utils/arabic_utils.dart';
 
+import '../../auth/presentation/login_controller.dart';
+import '../../clinics/presentation/clinics_controller.dart';
+import '../../../core/demo/demo_clinical_data.dart';
+
 // مزود مستودع المرضى ليكون متاحاً عبر Riverpod
 final patientRepositoryProvider = Provider<PatientRepository>((ref) {
   return PatientRepository(Supabase.instance.client);
 });
 
-// مزود لجلب قائمة جميع المرضى في العيادة الحالية تلقائياً
+// مزود لجلب قائمة جميع المرضى في العيادة والفرع الحالي تلقائياً
 final patientsListProvider = FutureProvider.family<List<PatientModel>, String>((ref, clinicId) async {
-  return ref.watch(patientRepositoryProvider).getPatients(clinicId);
+  if (clinicId == 'demo-clinic-01') {
+    return DemoClinicalData.patients;
+  }
+  final user = ref.watch(currentUserProvider);
+  final selectedBranchId = ref.watch(selectedBranchFilterProvider);
+  // إذا حُدد فرع في الفلتر نستخدمه، وإلا إذا كان المستخدم ليس مالكاً نستخدم فرعه النشط تلقائياً
+  final branchId = selectedBranchId ?? (user?.isOwner == true ? null : user?.activeBranchId);
+  return ref.watch(patientRepositoryProvider).getPatients(clinicId, branchId: branchId);
 });
 
 class PatientRepository {
@@ -19,12 +30,15 @@ class PatientRepository {
 
   PatientRepository(this._supabase);
 
-  // جلب كافة المرضى للعيادة الحالية مرتبين بالأحدث تسجيلاً (تتخطي حد الـ 1000 مريض الخاص بـ PostgREST عبر JSON Aggregation)
-  Future<List<PatientModel>> getPatients(String clinicId) async {
+  // جلب كافة المرضى للعيادة أو الفرع الحالي
+  Future<List<PatientModel>> getPatients(String clinicId, {String? branchId}) async {
     try {
-      // 1) Primary: Call jsonb RPC to completely bypass PostgREST max-rows table limit (returns all 4000+ patients in 1 payload)
+      // 1) Primary: Call jsonb RPC to completely bypass PostgREST max-rows table limit
       final dynamic rpcResponse = await _supabase
-          .rpc('get_all_patients_json', params: {'p_clinic_id': clinicId});
+          .rpc('get_all_patients_json', params: {
+            'p_clinic_id': clinicId,
+            if (branchId != null) 'p_branch_id': branchId,
+          });
 
       if (rpcResponse is List && rpcResponse.isNotEmpty) {
         return rpcResponse
@@ -43,10 +57,16 @@ class PatientRepository {
       bool hasMore = true;
 
       while (hasMore) {
-        final List<dynamic> page = await _supabase
+        var query = _supabase
             .from('patients')
             .select('*')
-            .eq('clinic_id', clinicId)
+            .eq('clinic_id', clinicId);
+
+        if (branchId != null && branchId.isNotEmpty) {
+          query = query.eq('branch_id', branchId);
+        }
+
+        final List<dynamic> page = await query
             .order('created_at', ascending: false)
             .range(from, from + pageSize - 1);
 
@@ -75,11 +95,12 @@ class PatientRepository {
     DateTime? birthDate,
     String? address,
     String? medicalHistory,
+    String? branchId,
   }) async {
     try {
       final trimmedName = fullName.trim();
       final trimmedPhone = (phone != null && phone.trim().isNotEmpty) ? phone.trim() : null;
-      final cleanPhone = trimmedPhone != null ? trimmedPhone.replaceAll(RegExp(r'\D'), '') : null;
+      final cleanPhone = trimmedPhone?.replaceAll(RegExp(r'\D'), '');
 
       // 1) Duplicate check: Reject ONLY if BOTH full_name AND phone match an existing patient in the same clinic
       if (cleanPhone?.isNotEmpty == true && trimmedPhone != null) {
@@ -108,6 +129,7 @@ class PatientRepository {
             if (birthDate != null) 'birth_date': birthDate.toIso8601String().substring(0, 10),
             if (address != null && address.isNotEmpty) 'address': address,
             if (medicalHistory != null && medicalHistory.isNotEmpty) 'medical_history': medicalHistory,
+            if (branchId != null && branchId.isNotEmpty) 'branch_id': branchId,
           })
           .select()
           .single();
@@ -161,88 +183,76 @@ class PatientRepository {
     }
   }
 
-  // البحث السريع والمحسن فائقاً عن المرضى بنظام الفهرسة ثنائي المنسوب (2-Stage Fast Filtering)
-  Future<List<PatientModel>> searchPatients(String clinicId, String query) async {
-    try {
-      final trimmed = query.trim();
-      if (trimmed.isEmpty) {
-        return getPatients(clinicId);
+  // البحث عن المرضى — فلترة نقية على القائمة المحمّلة في الذاكرة (صفر طلبات شبكة)
+  List<PatientModel> searchPatients(List<PatientModel> allPatients, String query) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      return allPatients;
+    }
+
+    final normQuery = ArabicUtils.normalize(trimmed);
+    final List<PatientModel> fastMatches = [];
+    final Set<String> matchedIds = {};
+
+    // Stage 1: مطابقة الاسم/الهاتف/العنوان مباشرة
+    for (final patient in allPatients) {
+      final normName = ArabicUtils.normalize(patient.fullName);
+      final phone = patient.phone ?? '';
+      final address = patient.address ?? '';
+
+      if (normName.contains(normQuery) ||
+          phone.contains(trimmed) ||
+          (address.isNotEmpty && address.contains(trimmed))) {
+        fastMatches.add(patient);
+        matchedIds.add(patient.id);
       }
+    }
 
-      final allPatients = await getPatients(clinicId);
-      final normQuery = ArabicUtils.normalize(trimmed);
-      final List<PatientModel> fastMatches = [];
-      final Set<String> matchedIds = {};
+    // Stage 2: مطابقة تقريبية (tokenSimilarity) فقط إذا كانت النتائج قليلة والاستعلام >= 3 حروف
+    if (fastMatches.length < 15 && normQuery.length >= 3) {
+      for (final patient in allPatients) {
+        if (matchedIds.contains(patient.id)) continue;
 
-      // Stage 1: Fast O(1) String Contains & Phone Contains
-      for (var i = 0; i < allPatients.length; i++) {
-        final patient = allPatients[i];
         final normName = ArabicUtils.normalize(patient.fullName);
-        final phone = patient.phone ?? '';
-        final address = patient.address ?? '';
-
-        if (normName.contains(normQuery) ||
-            phone.contains(trimmed) ||
-            (address.isNotEmpty && address.contains(trimmed))) {
+        if (ArabicUtils.tokenSimilarity(normQuery, normName) >= 0.5) {
           fastMatches.add(patient);
           matchedIds.add(patient.id);
+          if (fastMatches.length >= 30) break;
         }
       }
-
-      // Stage 2: Heavy tokenSimilarity Fuzzy Matching ONLY if Stage 1 found < 15 matches and query is >= 3 chars
-      if (fastMatches.length < 15 && normQuery.length >= 3) {
-        for (var i = 0; i < allPatients.length; i++) {
-          final patient = allPatients[i];
-          if (matchedIds.contains(patient.id)) continue;
-
-          final normName = ArabicUtils.normalize(patient.fullName);
-          if (ArabicUtils.tokenSimilarity(normQuery, normName) >= 0.5) {
-            fastMatches.add(patient);
-            matchedIds.add(patient.id);
-            if (fastMatches.length >= 30) break;
-          }
-        }
-      }
-
-      return fastMatches;
-    } catch (e) {
-      rethrow;
     }
+
+    return fastMatches;
   }
 
-  // البحث الذكي عن المرضى المشابهين (Fuzzy Matching) للتحذير ومنع التكرار
-  Future<List<PatientModel>> findSimilarPatients(String clinicId, String name, String? phone) async {
-    try {
-      final allPatients = await getPatients(clinicId);
-      final normInputName = ArabicUtils.normalize(name);
-      final cleanPhone = (phone != null && phone.trim().isNotEmpty) ? phone.replaceAll(RegExp(r'\D'), '') : null;
+  // البحث الذكي عن المرضى المشابهين (Fuzzy Matching) للتحذير ومنع التكرار — فلترة نقية بدون طلبات شبكة
+  List<PatientModel> findSimilarPatients(List<PatientModel> allPatients, String name, String? phone) {
+    final normInputName = ArabicUtils.normalize(name);
+    final cleanPhone = (phone != null && phone.trim().isNotEmpty) ? phone.replaceAll(RegExp(r'\D'), '') : null;
 
-      final List<PatientModel> matches = [];
+    final List<PatientModel> matches = [];
 
-      for (var patient in allPatients) {
-        final normPatientName = ArabicUtils.normalize(patient.fullName);
+    for (final patient in allPatients) {
+      final normPatientName = ArabicUtils.normalize(patient.fullName);
 
-        // Check similarity (>= 0.65) or substring token match
-        final similarity = ArabicUtils.tokenSimilarity(normInputName, normPatientName);
-        final isSimilarName = similarity >= 0.65 || (normInputName.length >= 3 && (normPatientName.contains(normInputName) || normInputName.contains(normPatientName)));
+      // Check similarity (>= 0.65) or substring token match
+      final similarity = ArabicUtils.tokenSimilarity(normInputName, normPatientName);
+      final isSimilarName = similarity >= 0.65 || (normInputName.length >= 3 && (normPatientName.contains(normInputName) || normInputName.contains(normPatientName)));
 
-        // Check phone match
-        bool isPhoneMatch = false;
-        if (cleanPhone != null && cleanPhone.isNotEmpty && patient.phone != null) {
-          final pCleanPhone = patient.phone!.replaceAll(RegExp(r'\D'), '');
-          if (pCleanPhone == cleanPhone || (cleanPhone.length >= 8 && pCleanPhone.endsWith(cleanPhone.substring(cleanPhone.length - 8)))) {
-            isPhoneMatch = true;
-          }
-        }
-
-        if (isSimilarName || isPhoneMatch) {
-          matches.add(patient);
+      // Check phone match
+      bool isPhoneMatch = false;
+      if (cleanPhone != null && cleanPhone.isNotEmpty && patient.phone != null) {
+        final pCleanPhone = patient.phone!.replaceAll(RegExp(r'\D'), '');
+        if (pCleanPhone == cleanPhone || (cleanPhone.length >= 8 && pCleanPhone.endsWith(cleanPhone.substring(cleanPhone.length - 8)))) {
+          isPhoneMatch = true;
         }
       }
 
-      return matches;
-    } catch (e) {
-      return [];
+      if (isSimilarName || isPhoneMatch) {
+        matches.add(patient);
+      }
     }
+
+    return matches;
   }
 }

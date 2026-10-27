@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/ui/tokens/colors.dart';
 import '../../domain/service_model.dart';
+import 'clinical_vitals_ribbon.dart';
 
 class ExaminationForm extends StatelessWidget {
   final bool isDoctor;
@@ -10,6 +13,8 @@ class ExaminationForm extends StatelessWidget {
   final AsyncValue<List<ServiceModel>> availableServicesAsync;
   final List<ServiceModel> selectedServices;
   final void Function(ServiceModel, bool) onServiceToggled;
+  final ClinicalVitalsData? vitals;
+  final ValueChanged<ClinicalVitalsData>? onVitalsChanged;
 
   const ExaminationForm({
     super.key,
@@ -20,6 +25,8 @@ class ExaminationForm extends StatelessWidget {
     required this.availableServicesAsync,
     required this.selectedServices,
     required this.onServiceToggled,
+    this.vitals,
+    this.onVitalsChanged,
   });
 
   @override
@@ -29,9 +36,9 @@ class ExaminationForm extends StatelessWidget {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+        side: BorderSide(color: AppColors.borderSubtle(context)),
       ),
-      color: Theme.of(context).colorScheme.surface,
+      color: AppColors.surface(context),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: LayoutBuilder(
@@ -43,44 +50,82 @@ class ExaminationForm extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.edit_document, size: 20, color: Theme.of(context).colorScheme.primary),
+                    const Icon(Icons.edit_document,
+                        size: 20,
+                        color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
-                      'تقرير الجلسة',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.titleLarge?.color,
+                      'تقرير الجلسة والفحص الطبي',
+                      style: GoogleFonts.cairo(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary(context),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
+
+                // ─── شريط المؤشرات الحيوية ───
+                if (vitals != null && onVitalsChanged != null) ...[
+                  ClinicalVitalsRibbon(
+                    vitals: vitals!,
+                    onChanged: onVitalsChanged!,
+                    readOnly: !isDoctor,
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
                 _buildFormField(
                   context,
-                  label: 'الشكوى الرئيسية',
-                  hint: 'ما الذي يشكو منه المريض؟',
+                  label: 'الشكوى الرئيسية والأعراض (Chief Complaint)',
+                  hint: 'ما الذي يشكو منه المريض بالتفصيل؟',
                   controller: complaintController,
                   readOnly: !isDoctor,
                   icon: Icons.record_voice_over_outlined,
+                  quickChips: const [
+                    'ألم حاد في المعدة',
+                    'حموضة وارتجاع',
+                    'حرارة مرتفعة',
+                    'صداع مستمر',
+                    'سعال وكحة',
+                    'غثيان وقيء',
+                    'إرهاق ودوخة',
+                  ],
                 ),
                 const SizedBox(height: 20),
                 _buildFormField(
                   context,
-                  label: 'التشخيص الطبي',
-                  hint: 'التشخيص الطبي للحالة...',
+                  label: 'التشخيص الطبي (Diagnosis)',
+                  hint: 'التشخيص الطبي المحدد للحالة...',
                   controller: diagnosisController,
                   readOnly: !isDoctor,
                   icon: Icons.medical_information_outlined,
+                  quickChips: const [
+                    'التهاب حاد بالمعدة (Gastritis)',
+                    'ارتجاع مريئي (GERD)',
+                    'نزلة معوية حادة',
+                    'التهاب الحلق واللوزتين',
+                    'نزلة برد حادة',
+                    'ارتفاع ضغط الدم',
+                  ],
                 ),
                 const SizedBox(height: 20),
                 _buildFormField(
                   context,
-                  label: 'تعليمات للمريض',
-                  hint: 'أدوية، نصائح، أو مواعيد المراجعة...',
+                  label: 'الروشتة وخطة العلاج (Prescription & Plan)',
+                  hint: 'الأدوية الموصوفة والجرعات ومواعيد المتابعة...',
                   controller: instructionsController,
                   readOnly: !isDoctor,
                   icon: Icons.receipt_long_outlined,
+                  quickChips: const [
+                    'قرص قبل الإفطار بنصف ساعة',
+                    'قرص بعد الوجبات',
+                    'مرتين يومياً لمدة ٥ أيام',
+                    'كل ٨ ساعات عند اللزوم',
+                    'راحة تامة وسوائل دافئة',
+                    'إعادة الفحص بعد أسبوع',
+                  ],
                 ),
               ],
             );
@@ -90,14 +135,16 @@ class ExaminationForm extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.medical_services_outlined, size: 18, color: Theme.of(context).colorScheme.secondary),
+                    const Icon(Icons.medical_services_outlined,
+                        size: 18,
+                        color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text(
                       'الخدمات المقدمة',
-                      style: TextStyle(
+                      style: GoogleFonts.cairo(
                         fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: Theme.of(context).textTheme.titleMedium?.color,
+                        fontSize: 14,
+                        color: AppColors.textPrimary(context),
                       ),
                     ),
                   ],
@@ -108,82 +155,114 @@ class ExaminationForm extends StatelessWidget {
                     if (services.isEmpty) {
                       return Text(
                         'لا توجد خدمات مضافة بعد.',
-                        style: TextStyle(fontSize: 13, color: Theme.of(context).hintColor),
+                        style: GoogleFonts.cairo(
+                          fontSize: 13,
+                          color: AppColors.textSecondary(context),
+                        ),
                       );
                     }
                     return Wrap(
                       spacing: 10,
                       runSpacing: 10,
                       children: services.map((service) {
-                        final isSelected = selectedServices.any((s) => s.id == service.id);
+                        final isSelected =
+                            selectedServices.any((s) => s.id == service.id);
                         return FilterChip(
                           selected: isSelected,
-                          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                          selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-                          checkmarkColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor: AppColors.subtle(context),
+                          selectedColor: AppColors.primarySubtle,
+                          checkmarkColor: AppColors.primary,
                           side: BorderSide(
                             color: isSelected
-                                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)
-                                : Theme.of(context).dividerColor.withValues(alpha: 0.1),
-                            width: 1.5,
+                                ? AppColors.primary
+                                : AppColors.borderSubtle(context),
+                            width: isSelected ? 1.5 : 1.0,
                           ),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          label: Text(
-                            '${service.name} — ${service.price.toStringAsFixed(0)} ج.م',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).textTheme.bodyMedium?.color,
-                            ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          onSelected: isDoctor ? (selected) => onServiceToggled(service, selected) : null,
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                service.name,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 13,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.textPrimary(context),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.primary.withValues(alpha: 0.12)
+                                      : AppColors.borderSubtle(context),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '${service.price.toStringAsFixed(0)} ج.م',
+                                  style: GoogleFonts.jetBrainsMono(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.textSecondary(context),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          onSelected: isDoctor
+                              ? (selected) =>
+                                  onServiceToggled(service, selected)
+                              : null,
                         );
                       }).toList(),
                     );
                   },
-                  loading: () => const SizedBox(height: 40, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
-                  error: (err, _) => Text('خطأ: $err', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Text(
+                    'خطأ في تحميل الخدمات: $e',
+                    style: GoogleFonts.cairo(
+                      fontSize: 13,
+                      color: AppColors.danger,
+                    ),
+                  ),
                 ),
               ],
             );
 
             if (isWide) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    flex: 13,
-                    child: reportSection,
-                  ),
-                  const SizedBox(width: 32),
-                  Expanded(
-                    flex: 9,
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
-                      ),
-                      child: servicesSection,
-                    ),
-                  ),
+                  reportSection,
+                  const SizedBox(height: 32),
+                  Divider(height: 1, color: AppColors.borderSubtle(context)),
+                  const SizedBox(height: 24),
+                  servicesSection,
+                ],
+              );
+            } else {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  reportSection,
+                  const SizedBox(height: 24),
+                  Divider(height: 1, color: AppColors.borderSubtle(context)),
+                  const SizedBox(height: 20),
+                  servicesSection,
                 ],
               );
             }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                reportSection,
-                const SizedBox(height: 32),
-                const Divider(height: 1),
-                const SizedBox(height: 24),
-                servicesSection,
-              ],
-            );
           },
         ),
       ),
@@ -197,58 +276,107 @@ class ExaminationForm extends StatelessWidget {
     required TextEditingController controller,
     required bool readOnly,
     required IconData icon,
+    List<String>? quickChips,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, size: 16, color: Theme.of(context).hintColor),
-            const SizedBox(width: 8),
+            Icon(icon,
+                size: 16,
+                color: AppColors.primary),
+            const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(
+              style: GoogleFonts.cairo(
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
+                color: AppColors.textPrimary(context),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
-        TextFormField(
+        if (quickChips != null && quickChips.isNotEmpty && !readOnly) ...[
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 5,
+            children: quickChips.map((chip) {
+              return InkWell(
+                onTap: () {
+                  final cur = controller.text.trim();
+                  if (cur.isEmpty) {
+                    controller.text = chip;
+                  } else if (!cur.contains(chip)) {
+                    controller.text = '$cur\n• $chip';
+                  }
+                },
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                  decoration: BoxDecoration(
+                    color: AppColors.subtle(context),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: AppColors.borderSubtle(context),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.add_rounded, size: 12, color: AppColors.primary),
+                      const SizedBox(width: 3),
+                      Text(
+                        chip,
+                        style: GoogleFonts.cairo(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+        const SizedBox(height: 8),
+        TextField(
           controller: controller,
           readOnly: readOnly,
-          maxLines: 4,
+          maxLines: null,
           minLines: 3,
-          style: TextStyle(
+          style: GoogleFonts.cairo(
             fontSize: 14,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-            height: 1.5,
+            height: 1.45,
+            color: AppColors.textPrimary(context),
           ),
           decoration: InputDecoration(
-            hintText: readOnly ? (controller.text.isEmpty ? 'لا توجد بيانات مدخلة.' : '') : hint,
-            hintStyle: TextStyle(fontSize: 13, color: Theme.of(context).hintColor),
+            hintText: hint,
+            hintStyle: GoogleFonts.cairo(
+              fontSize: 13.5,
+              color: AppColors.textMuted(context),
+            ),
             filled: true,
-            fillColor: Theme.of(context).scaffoldBackgroundColor,
+            fillColor: AppColors.subtle(context),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
-                width: 1,
+                color: AppColors.borderSubtle(context),
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
-                width: 1,
+                color: AppColors.borderSubtle(context),
               ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
               borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.primary,
+                color: AppColors.primary,
                 width: 1.5,
               ),
             ),

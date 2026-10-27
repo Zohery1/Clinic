@@ -2,13 +2,19 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/presentation/login_controller.dart';
+import '../../auth/domain/user_model.dart';
+import '../../clinics/presentation/clinics_controller.dart';
 import '../data/appointment_repository.dart';
 import '../domain/appointment_model.dart';
 import '../domain/appointment_service_model.dart';
 import '../../reports/presentation/reports_controller.dart';
+import '../../../core/demo/demo_clinical_data.dart';
 
 // مزود لجلب الخدمات المقدمة لحجز معين
 final appointmentServicesProvider = FutureProvider.family<List<AppointmentServiceModel>, String>((ref, appointmentId) async {
+  if (appointmentId.startsWith('appt-')) {
+    return DemoClinicalData.demoServices;
+  }
   final repository = ref.watch(appointmentRepositoryProvider);
   return repository.getAppointmentServices(appointmentId);
 });
@@ -19,25 +25,53 @@ final selectedDateProvider = StateProvider<DateTime>((ref) {
   return DateTime(now.year, now.month, now.day);
 });
 
-// مزود لجلب المواعيد للتاريخ المحدد تلقائياً
+// مزود لتحديد الطبيب المختار لفلترة المواعيد (null = الكل أو الطبيب الافتراضي)
+final selectedDoctorFilterProvider = StateProvider<String?>((ref) => null);
+
+// دالة مساعدة لتحديد الطبيب المطبق على استعلام المواعيد
+String? getEffectiveDoctorIdForAppointments(Ref ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return null;
+  final filter = ref.watch(selectedDoctorFilterProvider);
+  if (filter != null) {
+    return filter.isEmpty ? null : filter;
+  }
+  // إذا كان المستخدم طبيب عادي ولا يملك صلاحية رؤية التقارير/الطابور العام
+  if (user.role == UserRole.doctor && !user.isOwner && !user.canViewReports) {
+    return user.id;
+  }
+  return null;
+}
+
+// مزود لجلب المواعيد للتاريخ المحدد تلقائياً مع دعم فلتر الطبيب والفرع
 final todayAppointmentsProvider = FutureProvider<List<AppointmentModel>>((ref) async {
   // مراقبة المستخدم الحالي لجلب معرف العيادة الخاصة به تلقائياً
   final user = ref.watch(currentUserProvider);
   if (user == null) {
     return [];
   }
+  if (user.clinicId == 'demo-clinic-01') {
+    return DemoClinicalData.appointments;
+  }
 
   final selectedDate = ref.watch(selectedDateProvider);
   final repository = ref.watch(appointmentRepositoryProvider);
-  return repository.getAppointmentsByDate(user.clinicId, selectedDate);
+  final doctorId = getEffectiveDoctorIdForAppointments(ref);
+  final branchId = ref.watch(selectedBranchFilterProvider);
+  return repository.getAppointmentsByDate(user.clinicId, selectedDate, doctorId: doctorId, branchId: branchId);
 });
 
 // مزود لجلب مواعيد تاريخ محدد (لتجنب حجز المواعيد المتعارضة)
 final appointmentsForDateProvider = FutureProvider.family<List<AppointmentModel>, DateTime>((ref, date) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
+  if (user.clinicId == 'demo-clinic-01') {
+    return DemoClinicalData.appointments;
+  }
   final repository = ref.watch(appointmentRepositoryProvider);
-  return repository.getAppointmentsByDate(user.clinicId, date);
+  final doctorId = getEffectiveDoctorIdForAppointments(ref);
+  final branchId = ref.watch(selectedBranchFilterProvider);
+  return repository.getAppointmentsByDate(user.clinicId, date, doctorId: doctorId, branchId: branchId);
 });
 
 // مزود لتخزين فلتر قائمة المرضى المحدد حالياً

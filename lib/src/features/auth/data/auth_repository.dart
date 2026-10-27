@@ -54,8 +54,10 @@ class AuthRepository {
     required String fullName,
     required String role, // 'doctor' or 'secretary'
     String? phone,
-    String? clinicName,   // required if doctor
-    String? inviteCode,   // required if secretary
+    String? clinicName,   // if creating clinic
+    String? branchName,   // main branch name
+    List<Map<String, String>>? extraBranches, // additional branches
+    String? inviteCode,   // if joining clinic
   }) async {
     try {
       final String? formattedPhone = _formatE164Phone(phone);
@@ -68,6 +70,8 @@ class AuthRepository {
           'role': role,
           if (formattedPhone != null) 'phone': formattedPhone,
           if (clinicName != null) 'clinic_name': clinicName,
+          if (branchName != null && branchName.trim().isNotEmpty) 'branch_name': branchName.trim(),
+          if (extraBranches != null && extraBranches.isNotEmpty) 'extra_branches': extraBranches,
           if (inviteCode != null) 'invite_code': inviteCode,
         },
       );
@@ -203,12 +207,31 @@ class AuthRepository {
   }
 
   // جلب كافة الموظفين في نفس العيادة (للطبيب لإدارة الصلاحيات)
-  Future<List<UserModel>> getClinicStaff(String clinicId) async {
-    final response = await _supabase
+  Future<List<UserModel>> getClinicStaff(String clinicId, {String? branchId}) async {
+    try {
+      final dynamic rpcResponse = await _supabase.rpc('get_branch_staff', params: {
+        'p_clinic_id': clinicId,
+        if (branchId != null && branchId.isNotEmpty) 'p_branch_id': branchId,
+      });
+      if (rpcResponse != null && rpcResponse is List) {
+        return rpcResponse
+            .map((json) => UserModel.fromJson(Map<String, dynamic>.from(json as Map)))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('get_branch_staff RPC fallback: $e');
+    }
+
+    var query = _supabase
         .from('users')
         .select()
-        .eq('clinic_id', clinicId)
-        .order('created_at', ascending: true);
+        .eq('clinic_id', clinicId);
+
+    if (branchId != null && branchId.isNotEmpty) {
+      query = query.eq('active_branch_id', branchId);
+    }
+
+    final response = await query.order('created_at', ascending: true);
     return (response as List).map((json) => UserModel.fromJson(json)).toList();
   }
 

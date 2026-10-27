@@ -2,35 +2,31 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-
-import '../../../../main.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/layout/auth_shell.dart';
+import '../../../core/ui/primitives/app_button.dart';
+import '../../../core/ui/tokens/colors.dart';
+import '../../../core/ui/tokens/spacing.dart';
+import '../../../core/ui/tokens/shadows.dart';
+import '../../../core/ui/tokens/typography.dart';
 import '../../../core/widgets/clinic_toast.dart';
+import '../../../../main.dart';
 import '../data/auth_repository.dart';
 import 'login_controller.dart';
 
-/// شاشة التحقق من رمز OTP المكون من 6 أرقام عبر الإيميل
 class VerifyOtpScreen extends ConsumerStatefulWidget {
   final String email;
-
-  const VerifyOtpScreen({
-    super.key,
-    required this.email,
-  });
-
+  const VerifyOtpScreen({super.key, required this.email});
   @override
   ConsumerState<VerifyOtpScreen> createState() => _VerifyOtpScreenState();
 }
 
 class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
-  final List<TextEditingController> _controllers =
-      List.generate(6, (_) => TextEditingController());
+  final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   bool _isLoading = false;
   bool _isResending = false;
-  int _countdownSeconds = 60;
+  int _countdownSeconds = 30;
   Timer? _timer;
 
   @override
@@ -52,13 +48,11 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   }
 
   void _startResendTimer() {
-    setState(() => _countdownSeconds = 60);
+    setState(() => _countdownSeconds = 30);
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_countdownSeconds > 0) {
-        if (mounted) {
-          setState(() => _countdownSeconds--);
-        }
+        if (mounted) setState(() => _countdownSeconds--);
       } else {
         timer.cancel();
       }
@@ -73,17 +67,13 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
       ClinicToast.showError(context, 'يرجى إدخال رمز التحقق المكون من 6 أرقام كاملة');
       return;
     }
-
     setState(() => _isLoading = true);
-
     try {
       final authRepo = ref.read(authRepositoryProvider);
       await authRepo.verifyEmailOtp(email: widget.email, token: otp);
       await ref.read(loginControllerProvider.notifier).tryAutoLogin();
-
       if (mounted) {
-        ClinicToast.showSuccess(context, 'تم التحقق من الرمز بنجاح! ⚡');
-        // الانتقال الفوري لبوابة AuthGate التي تفتح شاشة انتظار التفعيل تلقائياً
+        ClinicToast.showSuccess(context, 'تم التحقق من الرمز بنجاح!');
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const AuthGate()),
           (route) => false,
@@ -92,252 +82,147 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ClinicToast.showError(context, 'فشل التحقق: ${e.toString().replaceAll('Exception: ', '')}');
+        ClinicToast.showError(context, 'فشل التحقق: رمز غير صحيح');
       }
     }
   }
 
   Future<void> _resendCode() async {
     if (_countdownSeconds > 0 || _isResending) return;
-
     setState(() => _isResending = true);
     try {
       final authRepo = ref.read(authRepositoryProvider);
       await authRepo.resendEmailOtp(widget.email);
-
       if (mounted) {
         ClinicToast.showSuccess(context, 'تم إعادة إرسال رمز التحقق إلى بريدك الإلكتروني');
         _startResendTimer();
       }
     } catch (e) {
-      if (mounted) {
-        ClinicToast.showError(context, 'فشل إرسال الرمز: ${e.toString().replaceAll('Exception: ', '')}');
-      }
+      if (mounted) ClinicToast.showError(context, 'فشل إرسال الرمز. حاول مرة أخرى بعد قليل.');
     } finally {
-      if (mounted) {
-        setState(() => _isResending = false);
+      if (mounted) setState(() => _isResending = false);
+    }
+  }
+
+  void _onOtpChanged(int index, String value) {
+    if (value.isNotEmpty) {
+      if (index < 5) {
+        _focusNodes[index + 1].requestFocus();
+      } else {
+        _focusNodes[index].unfocus();
+        _verifyOtp();
       }
+    } else if (index > 0) {
+      _focusNodes[index - 1].requestFocus();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+    return AuthShell(
+      heroTitle: 'تحقق من بريدك',
+      heroSubtitle: 'أدخل الرمز المرسل لبريدك الإلكتروني لتفعيل حسابك وبدء استخدام عيادتي.',
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
               child: Container(
-                constraints: const BoxConstraints(maxWidth: 460),
-                padding: const EdgeInsets.all(32),
-                decoration: AppTheme.cardDecorationFlat(context),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Icon Logo Header
-                    Center(
-                      child: Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary,
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primary.withValues(alpha: 0.25),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            )
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.mark_email_read_rounded,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Title
-                    Text(
-                      'أدخل رمز التحقق (OTP)',
-                      style: GoogleFonts.cairo(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: Theme.of(context).textTheme.titleLarge?.color,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Subtitle
-                    RichText(
-                      textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: GoogleFonts.cairo(
-                          fontSize: 13,
-                          color: Theme.of(context).hintColor,
-                          height: 1.6,
-                        ),
-                        children: [
-                          const TextSpan(text: 'تم إرسال رمز تأكيد مكون من 6 أرقام إلى البريد الإلكتروني:\n'),
-                          TextSpan(
-                            text: widget.email,
-                            style: GoogleFonts.cairo(
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // 6 OTP Input Boxes
-                    Directionality(
-                      textDirection: TextDirection.ltr,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: List.generate(6, (index) {
-                          return SizedBox(
-                            width: 46,
-                            height: 56,
-                            child: TextField(
-                              controller: _controllers[index],
-                              focusNode: _focusNodes[index],
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              maxLength: 1,
-                              style: GoogleFonts.cairo(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                color: AppTheme.primary,
-                              ),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              decoration: InputDecoration(
-                                counterText: '',
-                                contentPadding: EdgeInsets.zero,
-                                filled: true,
-                                fillColor: Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade900
-                                    : Colors.grey.shade100,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: BorderSide(color: Colors.grey.shade300),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: const BorderSide(color: AppTheme.primary, width: 2),
-                                ),
-                              ),
-                              onChanged: (value) {
-                                if (value.isNotEmpty) {
-                                  if (index < 5) {
-                                    _focusNodes[index + 1].requestFocus();
-                                  } else {
-                                    _focusNodes[index].unfocus();
-                                    _verifyOtp();
-                                  }
-                                } else {
-                                  if (index > 0) {
-                                    _focusNodes[index - 1].requestFocus();
-                                  }
-                                }
-                              },
-                            ),
-                          );
-                        }),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Confirm Button
-                    SizedBox(
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _verifyOtp,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                'تأكيد الرمز والتسجيل ⚡',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Resend Timer & Button
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'لم يصلك الرمز؟ ',
-                          style: GoogleFonts.cairo(
-                            fontSize: 13,
-                            color: Theme.of(context).hintColor,
-                          ),
-                        ),
-                        if (_countdownSeconds > 0)
-                          Text(
-                            'إعادة الإرسال بعد ($_countdownSecondsث)',
-                            style: GoogleFonts.cairo(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.primary,
-                            ),
-                          )
-                        else
-                          TextButton(
-                            onPressed: _isResending ? null : _resendCode,
-                            child: Text(
-                              _isResending ? 'جاري الإرسال...' : 'إعادة إرسال الرمز الآن',
-                              style: GoogleFonts.cairo(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.primary,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: AppRadii.brMd,
+                  boxShadow: AppShadows.sm(context),
                 ),
+                child: const Icon(Icons.mark_email_read_rounded, color: Colors.white, size: 32),
               ),
             ),
-          ),
+            const SizedBox(height: AppSpace.lg),
+            Text(
+              'أدخل رمز التحقق (OTP)',
+              textAlign: TextAlign.center,
+              style: AppTypography.headingLg(AppColors.textPrimary(context)),
+            ),
+            const SizedBox(height: AppSpace.sm),
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: AppTypography.bodyMd(AppColors.textSecondary(context)),
+                children: [
+                  const TextSpan(text: 'تم إرسال رمز تأكيد مكون من 6 أرقام إلى البريد الإلكتروني:\n'),
+                  TextSpan(
+                    text: widget.email,
+                    style: AppTypography.bodySm(AppColors.primary).copyWith(fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpace.xxl),
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(6, (index) {
+                  return SizedBox(
+                    width: 46,
+                    height: 56,
+                    child: TextField(
+                      controller: _controllers[index],
+                      focusNode: _focusNodes[index],
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      maxLength: 1,
+                      style: AppTypography.numericMd(AppColors.primary),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        counterText: '',
+                        contentPadding: EdgeInsets.zero,
+                        filled: true,
+                        fillColor: AppColors.subtle(context),
+                        border: OutlineInputBorder(
+                          borderRadius: AppRadii.brSm,
+                          borderSide: BorderSide(color: AppColors.borderSubtle(context)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: AppRadii.brSm,
+                          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                        ),
+                      ),
+                      onChanged: (v) => _onOtpChanged(index, v),
+                    ),
+                  );
+                }),
+              ),
+            ),
+            const SizedBox(height: AppSpace.xxl),
+            AppButton(
+              label: 'تأكيد الرمز والمتابعة',
+              icon: Icons.bolt_rounded,
+              onPressed: _isLoading ? null : _verifyOtp,
+              loading: _isLoading,
+            ),
+            const SizedBox(height: AppSpace.lg),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('لم يصلك الرمز؟ ', style: AppTypography.bodySm(AppColors.textSecondary(context))),
+                if (_countdownSeconds > 0)
+                  Text(' إعادة الإرسال بعد ($_countdownSecondsث)', style: AppTypography.bodySm(AppColors.primary).copyWith(fontWeight: FontWeight.w700))
+                else
+                  TextButton(
+                    onPressed: _isResending ? null : _resendCode,
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                    child: Text(
+                      _isResending ? 'جاري الإرسال...' : 'إعادة إرسال الرمز الآن',
+                      style: AppTypography.bodySm(AppColors.primary).copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

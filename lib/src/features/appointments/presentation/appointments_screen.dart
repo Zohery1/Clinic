@@ -1,26 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart' as intl;
-import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/clinic_dialog.dart';
-import '../../../core/widgets/clinic_toast.dart';
+
+import '../../auth/domain/user_model.dart';
 import '../../auth/presentation/login_controller.dart';
-import '../domain/appointment_model.dart';
 import 'appointments_controller.dart';
-import '../data/appointment_repository.dart';
-import '../../reports/presentation/reports_controller.dart';
 import 'book_appointment_dialog.dart';
-import 'widgets/queue_board.dart';
-import 'widgets/queue_card.dart';
-import '../../dashboard/presentation/notifications_controller.dart';
-import '../../auth/presentation/subscription_status_sheet.dart';
+import 'widgets/appointments_desktop_view.dart';
+import 'widgets/appointments_mobile_view.dart';
+import '../../../core/ui/tokens/colors.dart';
 
-/// شاشة المواعيد — مطابقة لتصميم Stitch
-/// شريط أيام أفقي + بطاقات مواعيد بتأثير waterfall
-part 'appointments_screen_parts.dart';
-
-class AppointmentsScreen extends ConsumerStatefulWidget {
+/// Content-only widget for the Appointments tab. The parent [AppShell]
+/// (hosted by [DashboardScreen]) provides the sidebar, top bar, and
+/// navigation. This screen renders only the inner appointments views.
+class AppointmentsScreen extends ConsumerWidget {
   final DateTime? subscriptionEndDate;
   final String? inviteCode;
   final String? clinicName;
@@ -35,63 +27,64 @@ class AppointmentsScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<AppointmentsScreen> createState() => _AppointmentsScreenState();
-}
-
-class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen> {
-  int _selectedMobileTab = 0;
-
-  String _getShortDayName(String label) {
-    if (label.startsWith('ال')) {
-      return label.substring(2);
-    }
-    return label;
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final appointmentsAsync = ref.watch(todayAppointmentsProvider);
     final selectedDate = ref.watch(selectedDateProvider);
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
-
     if (user == null) {
-      return Center(
-        child: Text('يرجى تسجيل الدخول أولاً',
-            style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
+      return const Directionality(
+        textDirection: TextDirection.rtl,
+        child: Center(child: Text('يرجى تسجيل الدخول أولاً')),
       );
     }
 
-    // Watch notifications
-    final notificationsState = ref.watch(notificationsProvider);
-    final unreadCount = notificationsState.notifications.where((n) => !n.isRead).length;
-
-    if (isDesktop) {
-      return _buildDesktopLayout(context, ref, user, appointmentsAsync, selectedDate);
-    } else {
-      return _buildMobileLayout(context, ref, user, appointmentsAsync, selectedDate, unreadCount);
-    }
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth >= 900;
+          if (isDesktop) {
+            return Scaffold(
+              backgroundColor: AppColors.canvas(context),
+              body: AppointmentsDesktopView(
+                user: user,
+                appointmentsAsync: appointmentsAsync,
+                selectedDate: selectedDate,
+              ),
+            );
+          }
+          return AppointmentsMobileView(
+            user: user,
+            appointmentsAsync: appointmentsAsync,
+            selectedDate: selectedDate,
+          );
+        },
+      ),
+    );
   }
+}
 
-  String _formatTimeAgo(DateTime dateTime) {
-    final diff = DateTime.now().difference(dateTime);
-    if (diff.inMinutes < 1) {
-      return 'الآن';
-    } else if (diff.inMinutes < 60) {
-      return 'منذ ${diff.inMinutes} دقيقة';
-    } else if (diff.inHours < 24) {
-      return 'منذ ${diff.inHours} ساعة';
-    } else {
-      return 'منذ ${diff.inDays} يوم';
-    }
+/// Top-bar action used by the dashboard to open the booking dialog.
+class AppointmentsBookingAction extends ConsumerWidget {
+  final UserModel user;
+  const AppointmentsBookingAction({super.key, required this.user});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return IconButton(
+      tooltip: 'حجز جديد',
+      onPressed: () {
+        showDialog<void>(
+          context: context,
+          builder: (_) =>
+              BookAppointmentDialog(clinicId: user.clinicId),
+        );
+      },
+      icon: const Icon(Icons.add_rounded),
+      style: IconButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
+      ),
+    );
   }
-
-  // ═══════════════════════════════════════════════
-  // ─── Desktop Layout (2/3 area inside dashboard) ───
-  // ═══════════════════════════════════════════════
-
-  // ═══════════════════════════════════════════════
-  // ─── Calendar Strip — Stitch: 7 أيام + أيقونة تقويم ───
-  // ═══════════════════════════════════════════════
-
 }

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
 import 'login_controller.dart';
 import 'login_screen.dart';
 
@@ -210,7 +211,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: AppColors.canvas(context),
       body: Directionality(
         textDirection: TextDirection.rtl,
         child: SelectionArea(
@@ -338,6 +339,10 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                   ],
                 ),
               ),
+              if (!canClose) ...[
+                const SizedBox(width: 8),
+                const ClinicSwitcherButton(isCompact: true),
+              ],
               if (canClose) ...[
                 const SizedBox(width: 4),
                 IconButton(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
@@ -17,6 +18,8 @@ import 'src/features/auth/presentation/register_screen.dart';
 import 'src/core/utils/invite_utils.dart';
 import 'src/features/auth/domain/user_model.dart';
 import 'src/features/dashboard/presentation/dashboard_screen.dart';
+import 'src/features/appointments/presentation/patient_queue_tracking_screen.dart';
+import 'src/core/demo/demo_clinical_data.dart';
 
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -53,9 +56,49 @@ class MyApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
+      locale: const Locale('ar', 'EG'),
+      supportedLocales: const [
+        Locale('ar', 'EG'),
+        Locale('ar'),
+        Locale('en'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       onGenerateRoute: (settings) {
         final name = settings.name ?? '/';
         final inviteCode = InviteUtils.extractInviteCode(routeName: name);
+
+        if (name.contains('/track') || name.contains('/queue')) {
+          String? apptId;
+          try {
+            final parsedUri = Uri.parse(name);
+            apptId = parsedUri.queryParameters['id'];
+          } catch (_) {}
+
+          if (apptId == null || apptId.isEmpty) {
+            try {
+              apptId = Uri.base.queryParameters['id'];
+            } catch (_) {}
+          }
+
+          if (apptId == null || apptId.isEmpty) {
+            try {
+              final frag = Uri.base.fragment;
+              if (frag.contains('id=')) {
+                final fragUri = Uri.parse(frag.startsWith('/') ? frag : '/$frag');
+                apptId = fragUri.queryParameters['id'];
+              }
+            } catch (_) {}
+          }
+
+          return MaterialPageRoute(
+            builder: (context) => PatientQueueTrackingScreen(appointmentId: apptId ?? ''),
+            settings: settings,
+          );
+        }
 
         if (name.contains('/reset')) {
           return MaterialPageRoute(
@@ -67,6 +110,13 @@ class MyApp extends ConsumerWidget {
         if (name.contains('/register') || (inviteCode != null && inviteCode.isNotEmpty)) {
           return MaterialPageRoute(
             builder: (context) => RegisterScreen(initialInviteCode: inviteCode),
+            settings: settings,
+          );
+        }
+
+        if (name.contains('/preview') || name.contains('/demo')) {
+          return MaterialPageRoute(
+            builder: (context) => const PreviewGate(),
             settings: settings,
           );
         }
@@ -83,6 +133,34 @@ class MyApp extends ConsumerWidget {
           settings: settings,
         );
       },
+    );
+  }
+}
+
+/// بوابة المعاينة السريرية المتقدمة (Instant Clinical Preview Gate)
+class PreviewGate extends ConsumerStatefulWidget {
+  const PreviewGate({super.key});
+
+  @override
+  ConsumerState<PreviewGate> createState() => _PreviewGateState();
+}
+
+class _PreviewGateState extends ConsumerState<PreviewGate> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(currentUserProvider.notifier).state = DemoClinicalData.doctorUser;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardScreen(
+      clinicName: 'مستشفى وعيادات الأمل التخصصية',
+      clinicId: 'demo-clinic-01',
+      inviteCode: 'AMAL-2026',
+      subscriptionEndDate: DateTime.now().add(const Duration(days: 365)),
     );
   }
 }
@@ -197,6 +275,9 @@ class _AuthGateState extends ConsumerState<AuthGate> {
 
   void _listenToClinicRealtime(String clinicId) {
     _clinicStreamSubscription?.cancel();
+    if (clinicId == 'demo-clinic-01' || !clinicId.contains('-') || clinicId.length < 30) {
+      return;
+    }
     _clinicStreamSubscription = Supabase.instance.client
         .from('clinics')
         .stream(primaryKey: ['id'])
@@ -227,13 +308,28 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   Future<void> _verifySubscription() async {
     try {
       final user = ref.read(currentUserProvider);
-      if (user != null && user.clinicId.isNotEmpty) {
-        _clinicId = user.clinicId;
-        _listenToClinicRealtime(user.clinicId);
+      final targetClinicId = user?.activeClinicId ?? user?.clinicId;
+      if (user != null && targetClinicId != null && targetClinicId.isNotEmpty) {
+        _clinicId = targetClinicId;
+        if (targetClinicId == 'demo-clinic-01') {
+          if (mounted) {
+            setState(() {
+              _clinicName = 'مستشفى وعيادات الأمل التخصصية';
+              _inviteCode = 'AMAL-2026';
+              _isClinicActive = true;
+              _subscriptionEndDate = DateTime.now().add(const Duration(days: 365));
+              _subscriptionStatus = 'active';
+            });
+          }
+          _scheduleExpirationTimer();
+          return;
+        }
+
+        _listenToClinicRealtime(targetClinicId);
         final res = await Supabase.instance.client
             .from('clinics')
             .select('name, invite_code, is_active, subscription_end_date, subscription_status')
-            .eq('id', user.clinicId)
+            .eq('id', targetClinicId)
             .maybeSingle();
 
         if (res != null) {
@@ -314,6 +410,16 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         ),
       );
     }
+
+    ref.listen<UserModel?>(currentUserProvider, (previous, next) {
+      if (next != null) {
+        final prevClinicId = previous?.activeClinicId ?? previous?.clinicId;
+        final nextClinicId = next.activeClinicId ?? next.clinicId;
+        if (prevClinicId != nextClinicId) {
+          _verifySubscription();
+        }
+      }
+    });
 
     if (_isLoggedIn) {
       final currentUser = ref.watch(currentUserProvider);

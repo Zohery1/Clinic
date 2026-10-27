@@ -4,13 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:uuid/uuid.dart';
-import 'dart:js_interop';
+import '../../../core/utils/web_audio_helper.dart';
 import '../domain/notification_model.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
-
-@JS('playNotificationChime')
-external void _jsPlayNotificationChime();
 
 class NotificationsState {
   final List<NotificationModel> notifications;
@@ -112,7 +109,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
   static void _playNotificationSound() {
     if (kIsWeb) {
       try {
-        _jsPlayNotificationChime();
+        playWebNotificationChime();
       } catch (_) {}
     }
     try {

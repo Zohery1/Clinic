@@ -1,3 +1,10 @@
+// ============================================================================
+// DEPRECATED — kept only for backwards compatibility with code paths that
+// still import FinancialPanel. The new dashboard composes its own weekly
+// chart (DashboardWeeklyChart) and transactions list
+// (DashboardRecentTransactions) directly in dashboard_screen.dart.
+// This file is scheduled for removal in a future cleanup phase.
+// ============================================================================
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
