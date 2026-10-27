@@ -142,8 +142,8 @@ class _ActionTileState extends State<_ActionTile> {
     final isDark = AppColors.isDark(context);
 
     final border = _hovered
-        ? action.color.withValues(alpha: isDark ? 0.55 : 0.4)
-        : AppColors.borderSubtle(context);
+        ? action.color.withValues(alpha: isDark ? 0.65 : 0.45)
+        : (isDark ? const Color(0xFF1E2E4A) : AppColors.borderSubtle(context));
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -153,15 +153,30 @@ class _ActionTileState extends State<_ActionTile> {
         duration: AppMotion.fast,
         curve: AppMotion.easeOutCubic,
         decoration: BoxDecoration(
-          color: AppColors.surface(context),
-          borderRadius: AppRadii.brMd,
+          color: isDark ? const Color(0xFF0E1626) : AppColors.surface(context),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: border, width: 1),
-          boxShadow:
-              _hovered ? AppShadows.md(context) : AppShadows.sm(context),
+          boxShadow: _hovered
+              ? [
+                  BoxShadow(
+                    color: action.color.withValues(alpha: isDark ? 0.22 : 0.12),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : (isDark
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x22000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ]
+                  : AppShadows.sm(context)),
         ),
         child: Material(
           type: MaterialType.transparency,
-          borderRadius: AppRadii.brMd,
+          borderRadius: BorderRadius.circular(16),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: action.onTap,
@@ -182,7 +197,11 @@ class _ActionTileState extends State<_ActionTile> {
                     decoration: BoxDecoration(
                       color: action.color
                           .withValues(alpha: isDark ? 0.18 : 0.10),
-                      borderRadius: AppRadii.brSm,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: action.color.withValues(alpha: isDark ? 0.25 : 0.15),
+                        width: 1,
+                      ),
                     ),
                     child: Icon(action.icon, size: 20, color: action.color),
                   ),

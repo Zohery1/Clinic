@@ -98,7 +98,15 @@ class ClinicDialog extends StatelessWidget {
       child: Focus(
         autofocus: true,
         child: Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E2E4A)
+                  : const Color(0xFFE2E8F0),
+              width: 1.2,
+            ),
+          ),
           backgroundColor: Theme.of(context).colorScheme.surface,
           insetPadding: EdgeInsets.symmetric(
             horizontal: isMobile ? 12 : 24,
@@ -281,7 +289,15 @@ class _ConfirmDialogState extends State<_ConfirmDialog> {
         child: Focus(
           autofocus: true,
           child: Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1E2E4A)
+                    : const Color(0xFFE2E8F0),
+                width: 1.2,
+              ),
+            ),
             backgroundColor: Theme.of(context).colorScheme.surface,
             insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
             child: ConstrainedBox(

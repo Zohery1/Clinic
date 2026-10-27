@@ -96,11 +96,11 @@ class _AppSidebarState extends State<AppSidebar> {
       duration: AppMotion.normal,
       curve: AppMotion.easeOutCubic,
       width: width,
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
+      decoration: const BoxDecoration(
+        color: AppColors.obsidianShell,
         border: Border(
           left: BorderSide(
-            color: AppColors.borderSubtle(context),
+            color: AppColors.obsidianBorder,
             width: 1,
           ),
         ),
@@ -129,13 +129,13 @@ class _AppSidebarState extends State<AppSidebar> {
                         badgeCount: item.badge ? widget.unreadCount : 0,
                         onTap: () => widget.onNavigate(item.route),
                       ),
-                      const SizedBox(height: AppSpace.xs),
+                      const SizedBox(height: AppSpace.xs + 2),
                     ],
                   ],
                 ),
               ),
             ),
-            const Divider(height: 1, thickness: 1),
+            const Divider(height: 1, thickness: 1, color: AppColors.obsidianBorder),
             _SidebarFooter(
               expanded: widget.expanded,
               isDark: widget.isDark,
@@ -172,21 +172,29 @@ class _SidebarHeader extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
-                  colors: [AppColors.primary, AppColors.primaryDark],
+                  colors: [Color(0xFF2563EB), Color(0xFF1D4ED8), Color(0xFF0F172A)],
                 ),
-                borderRadius: AppRadii.brSm,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0x4038BDF8), width: 1.2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x3338BDF8),
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
               alignment: Alignment.center,
               child: const Icon(
-                Icons.medical_services_rounded,
-                size: 18,
-                color: AppColors.onPrimary,
+                Icons.local_hospital_rounded,
+                size: 20,
+                color: Colors.white,
               ),
             ),
             if (expanded) ...[
@@ -196,24 +204,61 @@ class _SidebarHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      'عيادتي',
-                      style: GoogleFonts.cairo(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary(context),
-                        height: 1.1,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'عيادتي',
+                          style: GoogleFonts.cairo(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: -0.3,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: const Color(0x2210B981),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: const Color(0x4410B981), width: 0.8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 4.5,
+                                height: 4.5,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF10B981),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                'سحابي',
+                                style: GoogleFonts.cairo(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF34D399),
+                                  height: 1.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      clinicName ?? 'لوحة الإدارة',
+                      clinicName ?? 'المنظومة السريرية الذكية',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.cairo(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textMuted(context),
+                        color: const Color(0xFF94A3B8),
                         height: 1.1,
                       ),
                     ),
@@ -252,22 +297,24 @@ class _NavTileState extends State<_NavTile> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.isDark(context);
     final active = widget.active;
     final expanded = widget.expanded;
 
-    final baseBg = active
-        ? AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10)
-        : Colors.transparent;
-    final hoverBg = isDark ? AppColors.darkSubtle : AppColors.lightSubtle;
     final bg = active
-        ? baseBg
-        : (_hovered ? hoverBg.withValues(alpha: 0.7) : Colors.transparent);
+        ? const Color(0x2238BDF8)
+        : (_hovered ? const Color(0xFF141F33) : Colors.transparent);
 
-    final iconColor =
-        active ? AppColors.primary : AppColors.textSecondary(context);
-    final textColor =
-        active ? AppColors.primary : AppColors.textSecondary(context);
+    final borderColor = active
+        ? const Color(0x6638BDF8)
+        : (_hovered ? const Color(0xFF1E2E4A) : Colors.transparent);
+
+    final iconColor = active
+        ? const Color(0xFF38BDF8)
+        : (_hovered ? Colors.white : const Color(0xFF8899AC));
+
+    final textColor = active
+        ? Colors.white
+        : (_hovered ? Colors.white : const Color(0xFF94A3B8));
 
     final icon = Icon(widget.spec.icon, size: 20, color: iconColor);
 
@@ -276,7 +323,8 @@ class _NavTileState extends State<_NavTile> {
       curve: AppMotion.easeOutCubic,
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: AppRadii.brSm,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: borderColor, width: 1),
       ),
       padding: const EdgeInsetsDirectional.only(
         start: AppSpace.md,
@@ -289,14 +337,21 @@ class _NavTileState extends State<_NavTile> {
         children: [
           if (active)
             PositionedDirectional(
-              start: -AppSpace.md + 2,
-              top: 6,
-              bottom: 6,
+              start: -AppSpace.md + 1,
+              top: 5,
+              bottom: 5,
               child: Container(
-                width: 3,
+                width: 3.5,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: const Color(0xFF38BDF8),
                   borderRadius: BorderRadius.circular(2),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x9938BDF8),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -312,7 +367,7 @@ class _NavTileState extends State<_NavTile> {
                     style: GoogleFonts.cairo(
                       fontSize: 13.5,
                       fontWeight:
-                          active ? FontWeight.w700 : FontWeight.w600,
+                          active ? FontWeight.w800 : FontWeight.w600,
                       color: textColor,
                       height: 1.2,
                     ),
@@ -330,7 +385,7 @@ class _NavTileState extends State<_NavTile> {
     final tappable = Material(
       type: MaterialType.transparency,
       child: InkWell(
-        borderRadius: AppRadii.brSm,
+        borderRadius: BorderRadius.circular(9),
         onTap: widget.onTap,
         onHover: (v) => setState(() => _hovered = v),
         child: inner,
@@ -357,8 +412,9 @@ class _BadgePill extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 20, minHeight: 18),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.danger,
+        color: const Color(0xFF2563EB),
         borderRadius: BorderRadius.circular(AppRadii.radiusFull),
+        border: Border.all(color: const Color(0x6638BDF8), width: 1),
       ),
       alignment: Alignment.center,
       child: Text(
@@ -366,7 +422,7 @@ class _BadgePill extends StatelessWidget {
         style: GoogleFonts.cairo(
           fontSize: 10.5,
           fontWeight: FontWeight.w800,
-          color: AppColors.onPrimary,
+          color: Colors.white,
           height: 1.0,
         ),
       ),
@@ -442,7 +498,7 @@ class _UserRow extends StatelessWidget {
         child: AppTooltip(
           message: '${user.fullName} · $roleLabel',
           waitDuration: Duration.zero,
-      child: InkWell(
+          child: InkWell(
             onTap: onTap,
             borderRadius: AppRadii.brFull,
             child: avatar,
@@ -451,53 +507,60 @@ class _UserRow extends StatelessWidget {
       );
     }
 
-    return Material(
-      type: MaterialType.transparency,
-      child: InkWell(
-        borderRadius: AppRadii.brSm,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.xs),
-          child: Row(
-            children: [
-              avatar,
-              const SizedBox(width: AppSpace.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      user.fullName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.cairo(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary(context),
-                        height: 1.2,
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E1626),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF1E2E4A), width: 1),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              children: [
+                avatar,
+                const SizedBox(width: AppSpace.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        user.fullName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.cairo(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          height: 1.2,
+                        ),
                       ),
-                    ),
-                    Text(
-                      user.isOwner ? 'مالك · $roleLabel' : roleLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.cairo(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textMuted(context),
-                        height: 1.2,
+                      Text(
+                        user.isOwner ? 'مالك المركز · $roleLabel' : roleLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.cairo(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF94A3B8),
+                          height: 1.2,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.expand_more_rounded,
-                size: 18,
-                color: AppColors.textMuted(context),
-              ),
-            ],
+                const Icon(
+                  Icons.unfold_more_rounded,
+                  size: 18,
+                  color: Color(0xFF64748B),
+                ),
+              ],
+            ),
           ),
         ),
       ),

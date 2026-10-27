@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../features/auth/domain/user_model.dart';
 import '../tokens/colors.dart';
@@ -217,7 +218,7 @@ class _BottomTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final fg = active ? AppColors.primary : AppColors.textSecondary(context);
     final pillBg = AppColors.primary.withValues(
-      alpha: isDark ? 0.18 : 0.10,
+      alpha: isDark ? 0.20 : 0.12,
     );
 
     return Material(
@@ -230,11 +231,17 @@ class _BottomTile extends StatelessWidget {
           curve: AppMotion.easeOutCubic,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpace.sm,
-            vertical: AppSpace.sm,
+            vertical: AppSpace.xs + 2,
           ),
           decoration: BoxDecoration(
             color: active ? pillBg : Colors.transparent,
             borderRadius: BorderRadius.circular(AppRadii.radiusMd),
+            border: active
+                ? Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    width: 1,
+                  )
+                : null,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -249,8 +256,8 @@ class _BottomTile extends StatelessWidget {
                 item.label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10.5,
+                style: GoogleFonts.cairo(
+                  fontSize: 11,
                   fontWeight: active ? FontWeight.w800 : FontWeight.w600,
                   color: fg,
                   height: 1.1,

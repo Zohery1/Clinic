@@ -36,29 +36,42 @@ class ClinicToast {
       ..clearSnackBars()
       ..showSnackBar(
         SnackBar(
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
           dismissDirection: DismissDirection.up,
           margin: EdgeInsets.only(
-            bottom: 20,
+            bottom: 24,
             left: horizontalMargin,
             right: horizontalMargin,
           ),
-          backgroundColor: color,
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          backgroundColor: const Color(0xFF0B1324),
+          elevation: 10,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: color.withValues(alpha: 0.45), width: 1.2),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           content: Row(
             children: [
-              Icon(icon, color: Colors.white, size: 20),
-              const SizedBox(width: 10),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: color.withValues(alpha: 0.4), width: 1),
+                ),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   message,
                   style: GoogleFonts.cairo(
                     color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     fontSize: 13,
+                    height: 1.25,
                   ),
                 ),
               ),

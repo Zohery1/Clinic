@@ -75,17 +75,23 @@ class DashboardGreetingHero extends ConsumerWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: AppRadii.brLg,
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: isDark
+              ? [const Color(0xFF0E1626), const Color(0xFF0A0F1D)]
+              : [Colors.white, const Color(0xFFF8FAFC)],
+        ),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.borderSubtle(context),
-          width: 1.2,
+          color: isDark ? const Color(0xFF1E2E4A) : const Color(0xFFE2E8F0),
+          width: 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),

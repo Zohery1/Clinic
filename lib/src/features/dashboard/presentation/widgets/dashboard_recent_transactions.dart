@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/data/app_section.dart';
 import '../../../../core/ui/feedback/app_empty_state.dart';
 import '../../../../core/ui/feedback/app_skeleton.dart';
-import '../../../../core/ui/tokens/colors.dart';
-import '../../../../core/ui/tokens/spacing.dart';
 import '../../../../core/widgets/app_status_badge.dart';
 import '../../../appointments/presentation/appointments_controller.dart';
 import '../../../patients/presentation/patient_details_dialog.dart';
@@ -31,6 +30,7 @@ class DashboardRecentTransactions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(todayAppointmentsProvider);
+    final isDark = AppColors.isDark(context);
 
     Widget body;
     if (async.isLoading && async.value == null) {
@@ -49,12 +49,8 @@ class DashboardRecentTransactions extends ConsumerWidget {
         );
       } else {
         body = Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface(context),
-            borderRadius: AppRadii.brMd,
-            border:
-                Border.all(color: AppColors.borderSubtle(context), width: 1),
-          ),
+          decoration: AppTheme.clinicalBentoDecoration(context, radius: 16),
+          clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
               for (int i = 0; i < list.length; i++) ...[
@@ -62,7 +58,7 @@ class DashboardRecentTransactions extends ConsumerWidget {
                   Divider(
                     height: 1,
                     thickness: 1,
-                    color: AppColors.borderSubtle(context),
+                    color: isDark ? const Color(0xFF1E2E4A) : AppColors.borderSubtle(context),
                   ),
                 _TransactionRow(
                   timeLabel: _formatTime(list[i].appointmentDate),
@@ -94,12 +90,9 @@ class DashboardRecentTransactions extends ConsumerWidget {
   }
 
   Widget _skeletonList(BuildContext context) {
+    final isDark = AppColors.isDark(context);
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: AppRadii.brMd,
-        border: Border.all(color: AppColors.borderSubtle(context), width: 1),
-      ),
+      decoration: AppTheme.clinicalBentoDecoration(context, radius: 16),
       child: Column(
         children: [
           for (int i = 0; i < 4; i++) ...[
@@ -107,7 +100,7 @@ class DashboardRecentTransactions extends ConsumerWidget {
               Divider(
                 height: 1,
                 thickness: 1,
-                color: AppColors.borderSubtle(context),
+                color: isDark ? const Color(0xFF1E2E4A) : AppColors.borderSubtle(context),
               ),
             const Padding(
               padding: EdgeInsets.symmetric(

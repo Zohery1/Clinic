@@ -67,6 +67,33 @@ class AppTheme {
     );
   }
 
+  static BoxDecoration clinicalBentoDecoration(
+    BuildContext context, {
+    Color? accentGlow,
+    bool isHighlighted = false,
+    double radius = AppRadii.radiusLg,
+  }) {
+    final isDark = AppColors.isDark(context);
+    final bg = isDark ? const Color(0xFF0E1626) : Colors.white;
+    final borderColor = isHighlighted
+        ? (accentGlow ?? AppColors.primary).withValues(alpha: 0.5)
+        : (isDark ? const Color(0xFF1E2E4A) : const Color(0xFFE2E8F0));
+
+    return BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: borderColor, width: isHighlighted ? 1.5 : 1.0),
+      boxShadow: [
+        BoxShadow(
+          color: (accentGlow ?? (isDark ? Colors.black : const Color(0xFF0F172A)))
+              .withValues(alpha: isHighlighted ? 0.16 : (isDark ? 0.25 : 0.04)),
+          blurRadius: isHighlighted ? 20 : 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    );
+  }
+
   static BoxDecoration statusDecoration(Color color) => BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppRadii.radiusFull),

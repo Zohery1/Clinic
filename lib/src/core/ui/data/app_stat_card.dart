@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../primitives/app_badge.dart';
 import '../tokens/colors.dart';
 import '../tokens/motion.dart';
-import '../tokens/shadows.dart';
 import '../tokens/spacing.dart';
 
 /// Trend descriptor for a KPI card.
@@ -59,7 +58,7 @@ class _AppStatCardState extends State<AppStatCard> {
     final bg = AppColors.surface(context);
     final borderColor = _hovered && isInteractive
         ? widget.color.withValues(alpha: isDark ? 0.60 : 0.45)
-        : AppColors.borderSubtle(context);
+        : (isDark ? const Color(0xFF1E2E4A) : const Color(0xFFE2E8F0));
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -70,7 +69,7 @@ class _AppStatCardState extends State<AppStatCard> {
         curve: AppMotion.easeOutCubic,
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: AppRadii.brMd,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: borderColor,
             width: _hovered && isInteractive ? 1.2 : 1.0,
@@ -78,19 +77,25 @@ class _AppStatCardState extends State<AppStatCard> {
           boxShadow: _hovered && isInteractive
               ? [
                   BoxShadow(
-                    color: widget.color.withValues(alpha: isDark ? 0.12 : 0.07),
-                    blurRadius: 12,
-                    offset: const Offset(0, 3),
+                    color: widget.color.withValues(alpha: isDark ? 0.16 : 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
                   ),
                 ]
-              : AppShadows.sm(context),
+              : [
+                  BoxShadow(
+                    color: isDark ? Colors.black.withValues(alpha: 0.25) : const Color(0xFF0F172A).withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Material(
           type: MaterialType.transparency,
-          borderRadius: AppRadii.brMd,
+          borderRadius: BorderRadius.circular(16),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            borderRadius: AppRadii.brMd,
+            borderRadius: BorderRadius.circular(16),
             onTap: widget.onTap,
             splashColor: widget.color.withValues(alpha: 0.08),
             highlightColor: widget.color.withValues(alpha: 0.04),
@@ -112,7 +117,7 @@ class _AppStatCardState extends State<AppStatCard> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.cairo(
-                            fontSize: 12.5,
+                            fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textSecondary(context),
                             height: 1.3,
@@ -121,15 +126,19 @@ class _AppStatCardState extends State<AppStatCard> {
                       ),
                       const SizedBox(width: AppSpace.sm),
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 34,
+                        height: 34,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: widget.color
-                              .withValues(alpha: isDark ? 0.16 : 0.08),
-                          borderRadius: BorderRadius.circular(8),
+                              .withValues(alpha: isDark ? 0.18 : 0.10),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: widget.color.withValues(alpha: isDark ? 0.35 : 0.20),
+                            width: 1.0,
+                          ),
                         ),
-                        child: Icon(widget.icon, size: 16, color: widget.color),
+                        child: Icon(widget.icon, size: 17, color: widget.color),
                       ),
                     ],
                   ),

@@ -36,12 +36,19 @@ class UserProfileHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpace.xl),
       decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        borderRadius: AppRadii.brLg,
+        color: isDark ? const Color(0xFF0E1626) : AppColors.surface(context),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.borderSubtle(context),
+          color: isDark ? const Color(0xFF1E2E4A) : AppColors.borderSubtle(context),
           width: 1.0,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [

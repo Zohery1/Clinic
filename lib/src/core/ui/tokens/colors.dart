@@ -57,6 +57,18 @@ class AppColors {
   static const Color darkBorder = Color(0xFF374151);
   static const Color darkBorderStrong = Color(0xFF4B5563);
 
+  // Elite Obsidian Command Console Tokens (Linear / Epic Clinical Cockpit)
+  static const Color obsidianShell = Color(0xFF080D1A);
+  static const Color obsidianCard = Color(0xFF0E1626);
+  static const Color obsidianCardHover = Color(0xFF172338);
+  static const Color obsidianBorder = Color(0xFF1E2E4A);
+  static const Color obsidianHairline = Color(0x26FFFFFF); // 15% white hairline
+  static const Color obsidianTextPrimary = Color(0xFFF8FAFC);
+  static const Color obsidianTextSecondary = Color(0xFF94A3B8);
+  static const Color obsidianTextMuted = Color(0xFF64748B);
+  static const Color obsidianActiveGlow = Color(0xFF38BDF8); // Cyan pulse
+  static const Color obsidianActiveBg = Color(0x2438BDF8); // 14% cyan fill
+
   // Text — Light (Warm clinical slate per DESIGN.md)
   static const Color lightTextPrimary = Color(0xFF1E293B); // Slate 800
   static const Color lightTextSecondary = Color(0xFF64748B); // Slate 500
