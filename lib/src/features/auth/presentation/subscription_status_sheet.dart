@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/ui/tokens/colors.dart';
+import '../../../core/ui/tokens/spacing.dart';
 import 'top_up_subscription_screen.dart';
 
 class SubscriptionStatusSheet extends StatefulWidget {
@@ -41,7 +43,6 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
       _fetchClinicData();
     }
 
-    // مؤقت فوري كل ثانية لتحديث العداد بانتظام بالوقت الحقيقي
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
         setState(() {});
@@ -86,7 +87,6 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final now = DateTime.now();
     final endDate = _endDate ?? now.add(const Duration(days: 30));
     final diff = endDate.difference(now);
@@ -100,12 +100,24 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
 
     final formattedEndDate = intl.DateFormat('d MMMM yyyy - hh:mm a', 'ar').format(endDate.toLocal());
 
+    final statusColor = isExpired
+        ? AppColors.danger
+        : (isExpiringSoon ? AppColors.warning : AppColors.success);
+
+    final statusBg = isExpired
+        ? AppColors.dangerSubtle
+        : (isExpiringSoon ? AppColors.warningSubtle : AppColors.successSubtle);
+
+    final statusLabel = isExpired
+        ? 'الاشتراك منتهي'
+        : (isExpiringSoon ? 'ينتهي قريباً' : 'الاشتراك نشط');
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Container(
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          color: AppColors.surface(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
@@ -115,30 +127,30 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
             // Handle Bar for Bottom Sheet
             Center(
               child: Container(
-                width: 40,
+                width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.hintColor.withValues(alpha: 0.2),
+                  color: AppColors.borderSubtle(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16),
 
-            // Header Title with Receipt Icon
+            // Header Title
             Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7ED),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFEA580C).withValues(alpha: 0.3)),
+                    color: statusBg,
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.receipt_long_rounded,
-                    color: Color(0xFFEA580C),
-                    size: 24,
+                    color: statusColor,
+                    size: 22,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -149,28 +161,25 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
                       Text(
                         'حالة الاشتراك والتجديد',
                         style: GoogleFonts.cairo(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: theme.textTheme.titleLarge?.color,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                       Text(
                         _clinicName.isNotEmpty ? _clinicName : 'العيادة',
                         style: GoogleFonts.cairo(
                           fontSize: 12,
-                          color: theme.hintColor,
+                          color: AppColors.textSecondary(context),
                         ),
                       ),
                     ],
                   ),
                 ),
-                // Close button
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded),
-                  style: IconButton.styleFrom(
-                    backgroundColor: theme.scaffoldBackgroundColor,
-                  ),
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  color: AppColors.textMuted(context),
                 ),
               ],
             ),
@@ -185,27 +194,13 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
                 ),
               )
             else ...[
-              // Main Status & Countdown Card
+              // Main Status Card
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(AppSpace.lg),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isExpired
-                        ? [const Color(0xFFFEF2F2), const Color(0xFFFEE2E2)]
-                        : isExpiringSoon
-                            ? [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)]
-                            : [const Color(0xFFF0FDF4), const Color(0xFFDCFCE7)],
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isExpired
-                        ? const Color(0xFFEF4444).withValues(alpha: 0.3)
-                        : isExpiringSoon
-                            ? const Color(0xFFF97316).withValues(alpha: 0.4)
-                            : const Color(0xFF22C55E).withValues(alpha: 0.3),
-                  ),
+                  color: AppColors.subtle(context),
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   children: [
@@ -213,14 +208,9 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 4,
-                          ),
-                        ],
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(AppRadii.full),
+                        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -228,31 +218,17 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
                           Icon(
                             isExpired
                                 ? Icons.error_outline_rounded
-                                : isExpiringSoon
-                                    ? Icons.flash_on_rounded
-                                    : Icons.check_circle_rounded,
+                                : (isExpiringSoon ? Icons.flash_on_rounded : Icons.check_circle_rounded),
                             size: 14,
-                            color: isExpired
-                                ? const Color(0xFFEF4444)
-                                : isExpiringSoon
-                                    ? const Color(0xFFF97316)
-                                    : const Color(0xFF16A34A),
+                            color: statusColor,
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            isExpired
-                                ? 'الاشتراك منتهي'
-                                : isExpiringSoon
-                                    ? 'ينتهي قريباً ⚡'
-                                    : 'الاشتراك نشط وساري ✅',
+                            statusLabel,
                             style: GoogleFonts.cairo(
                               fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: isExpired
-                                  ? const Color(0xFFEF4444)
-                                  : isExpiringSoon
-                                      ? const Color(0xFFF97316)
-                                      : const Color(0xFF16A34A),
+                              fontWeight: FontWeight.w700,
+                              color: statusColor,
                             ),
                           ),
                         ],
@@ -261,13 +237,12 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
 
                     const SizedBox(height: 16),
 
-                    // Countdown Timer (دقيقة على اليمين - يوم على اليسار)
                     if (!isExpired) ...[
                       Text(
                         'الوقت المتبقي على انتهاء الفترة',
                         style: GoogleFonts.cairo(
                           fontSize: 12,
-                          color: Colors.black54,
+                          color: AppColors.textSecondary(context),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -275,48 +250,48 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildTimeUnit(minutesLeft.toString().padLeft(2, '0'), 'دقيقة'),
-                          _buildTimeSeparator(),
-                          _buildTimeUnit(hoursLeft.toString().padLeft(2, '0'), 'ساعة'),
-                          _buildTimeSeparator(),
-                          _buildTimeUnit(daysLeft.toString(), 'يوم'),
+                          _buildTimeUnit(context, minutesLeft.toString().padLeft(2, '0'), 'دقيقة'),
+                          _buildTimeSeparator(context),
+                          _buildTimeUnit(context, hoursLeft.toString().padLeft(2, '0'), 'ساعة'),
+                          _buildTimeSeparator(context),
+                          _buildTimeUnit(context, daysLeft.toString(), 'يوم'),
                         ],
                       ),
                     ] else ...[
                       Text(
                         'انتهت فترة اشتراك العيادة',
                         style: GoogleFonts.cairo(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFFDC2626),
+                          color: AppColors.danger,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'يرجى التجديد الآن لمتابعة استغلال كافة ميزات النظام',
+                        'يرجى التجديد الآن لمتابعة العمل على النظام.',
                         style: GoogleFonts.cairo(
                           fontSize: 12,
-                          color: Colors.black54,
+                          color: AppColors.textSecondary(context),
                         ),
                       ),
                     ],
 
                     const SizedBox(height: 16),
-                    const Divider(height: 1, color: Colors.black12),
+                    Divider(height: 1, color: AppColors.borderSubtle(context)),
                     const SizedBox(height: 12),
 
                     // Expiration Date Text
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.event_rounded, size: 14, color: Colors.black54),
+                        Icon(Icons.event_rounded, size: 14, color: AppColors.textMuted(context)),
                         const SizedBox(width: 6),
                         Text(
                           'ينتهي في: $formattedEndDate',
                           style: GoogleFonts.cairo(
                             fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black87,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary(context),
                           ),
                         ),
                       ],
@@ -332,17 +307,21 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: theme.scaffoldBackgroundColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
+                    color: AppColors.subtle(context),
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
+                    border: Border.all(color: AppColors.borderSubtle(context)),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.qr_code_rounded, size: 20, color: theme.colorScheme.primary),
+                      const Icon(Icons.qr_code_rounded, size: 20, color: AppColors.primary),
                       const SizedBox(width: 10),
                       Text(
                         'كود تفعيل العيادة:',
-                        style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.w600),
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary(context),
+                        ),
                       ),
                       const Spacer(),
                       SelectableText(
@@ -350,7 +329,7 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
+                          color: AppColors.primary,
                         ),
                       ),
                     ],
@@ -359,17 +338,17 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
 
               const SizedBox(height: 20),
 
-              // Renewal CTA Button (زر التجديد)
+              // Renewal CTA Button
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close status sheet
+                  Navigator.pop(context);
                   showDialog(
                     context: context,
                     builder: (ctx) => Dialog(
                       insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(16),
                         child: Container(
                           constraints: const BoxConstraints(maxWidth: 650, maxHeight: 680),
                           child: TopUpSubscriptionScreen(
@@ -386,23 +365,23 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEA580C),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
                   ),
-                  elevation: 3,
+                  elevation: 0,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.flash_on_rounded, size: 20),
+                    const Icon(Icons.flash_on_rounded, size: 18),
                     const SizedBox(width: 8),
                     Text(
-                      'تجديد الاشتراك الآن ⚡',
+                      'تجديد الاشتراك الآن',
                       style: GoogleFonts.cairo(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -416,28 +395,22 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
     );
   }
 
-  Widget _buildTimeUnit(String value, String label) {
+  Widget _buildTimeUnit(BuildContext context, String value, String label) {
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: AppColors.surface(context),
+            borderRadius: BorderRadius.circular(AppRadii.sm),
+            border: Border.all(color: AppColors.borderSubtle(context)),
           ),
           child: Text(
             value,
             style: GoogleFonts.jetBrainsMono(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF1E293B),
+              color: AppColors.textPrimary(context),
             ),
           ),
         ),
@@ -446,7 +419,7 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
           label,
           style: GoogleFonts.cairo(
             fontSize: 10.5,
-            color: Colors.black54,
+            color: AppColors.textSecondary(context),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -454,7 +427,7 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
     );
   }
 
-  Widget _buildTimeSeparator() {
+  Widget _buildTimeSeparator(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
       child: Text(
@@ -462,7 +435,7 @@ class _SubscriptionStatusSheetState extends State<SubscriptionStatusSheet> {
         style: GoogleFonts.jetBrainsMono(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Colors.black45,
+          color: AppColors.textMuted(context),
         ),
       ),
     );

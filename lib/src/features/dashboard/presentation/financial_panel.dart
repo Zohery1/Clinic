@@ -1,11 +1,19 @@
+// ============================================================================
+// DEPRECATED — kept only for backwards compatibility with code paths that
+// still import FinancialPanel. The new dashboard composes its own weekly
+// chart (DashboardWeeklyChart) and transactions list
+// (DashboardRecentTransactions) directly in dashboard_screen.dart.
+// This file is scheduled for removal in a future cleanup phase.
+// ============================================================================
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
-import '../../reports/presentation/reports_controller.dart';
-import '../../appointments/presentation/appointments_controller.dart';
+import '../../../core/routing/routing.dart';
+import '../../../core/ui/tokens/colors.dart';
 import '../../appointments/domain/appointment_model.dart';
-import '../../patients/presentation/patient_details_dialog.dart';
+import '../../appointments/presentation/appointments_controller.dart';
+import '../../reports/presentation/reports_controller.dart';
 
 /// لوحة الإحصائيات المالية الجانبية للكمبيوتر (1/3 من الداشبورد)
 /// تحتوي على رسم بياني مصغر للإيراد الأسبوعي وجدول المعاملات المالية الأخيرة
@@ -323,9 +331,8 @@ class FinancialPanel extends ConsumerWidget {
 
   Widget _buildTransactionRow(BuildContext context, AppointmentModel appt) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final successColor = isDark ? const Color(0xFF34D399) : const Color(0xFF059669);
-    final warningColor = isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
+    const successColor = AppColors.success;
+    const warningColor = AppColors.warning;
 
     final isCompleted = appt.status == 'completed';
     final isCancelled = appt.status.startsWith('cancelled');
@@ -348,15 +355,11 @@ class FinancialPanel extends ConsumerWidget {
           Expanded(
             flex: 2,
             child: InkWell(
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => PatientDetailsDialog(
-                    clinicId: appt.clinicId,
-                    patient: appt.toPatientModel(),
-                  ),
-                );
-              },
+              onTap: () => AppNavigation.showPatientDetails(
+                context,
+                clinicId: appt.clinicId,
+                patient: appt.toPatientModel(),
+              ),
               borderRadius: BorderRadius.circular(4),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

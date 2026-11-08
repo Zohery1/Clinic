@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/ui/tokens/colors.dart';
 import '../../../core/widgets/clinic_dialog.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
@@ -72,14 +73,15 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
         _selectedServices.isNotEmpty;
 
     if (!hasContent) {
-      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        SnackBar(duration: const Duration(seconds: 2), 
-          content: const Text('يرجى كتابة التقرير الطبي أو اختيار خدمة واحدة على الأقل'),
-          backgroundColor: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFFF59E0B)
-              : const Color(0xFFD97706),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            duration: Duration(seconds: 2),
+            content: Text('يرجى كتابة التقرير الطبي أو اختيار خدمة واحدة على الأقل'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
       return;
     }
 
@@ -112,24 +114,28 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
       ref.invalidate(todayRevenueProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(seconds: 2), 
-            content: Text(hasExisting ? 'تم تحديث التقرير والخدمات بنجاح' : 'تم حفظ التقرير والخدمات بنجاح'),
-            backgroundColor: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF34D399)
-                : const Color(0xFF10B981),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(seconds: 2),
+              content: Text(hasExisting ? 'تم تحديث التقرير والخدمات بنجاح' : 'تم حفظ التقرير والخدمات بنجاح'),
+              backgroundColor: AppColors.success,
+            ),
+          );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(seconds: 2), 
-            content: Text('حدث خطأ أثناء الحفظ: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(seconds: 2),
+              content: const Text('تعذر حفظ التقرير الطبي، يرجى إعادة المحاولة'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -154,22 +160,28 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
       ref.invalidate(todayRevenueProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(seconds: 2), 
-            content: const Text('تم حذف التقرير والخدمات بنجاح'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(seconds: 2),
+              content: const Text('تم حذف التقرير والخدمات بنجاح'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(duration: const Duration(seconds: 2), 
-            content: Text('حدث خطأ أثناء الحذف: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              duration: const Duration(seconds: 2),
+              content: const Text('تعذر حذف التقرير الطبي، يرجى إعادة المحاولة'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
       }
     } finally {
       if (mounted) setState(() => _isDeleting = false);
@@ -182,7 +194,7 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
     final appServicesAsync = ref.watch(appointmentServicesProvider(widget.appointmentId));
     final availableServicesAsync = ref.watch(availableServicesProvider(widget.clinicId));
     final historyAsync = ref.watch(patientVisitNotesProvider(widget.patientId));
-    
+
     final currentUser = ref.watch(currentUserProvider);
     final isDoctor = currentUser?.role == UserRole.doctor;
     final canEdit = isDoctor || (currentUser?.canEditMedicalNotes ?? false);
@@ -223,7 +235,7 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
           // ─── محتويات الجلسة الطبية الحالية ───
           final currentSessionChildren = [
             const SizedBox(height: 8),
-            
+
             // 1. الشكوى المرضية والأعراض
             Row(
               children: [
@@ -313,7 +325,7 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textSecondaryColor),
             ),
             const SizedBox(height: 10),
-            
+
             // قائمة الخدمات المتاحة
             availableServicesAsync.when(
               data: (availableList) {
@@ -405,7 +417,7 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
                 ),
               ),
               error: (err, _) => Text(
-                'خطأ في تحميل الخدمات: $err',
+                'تعذر تحميل الخدمات الطبية',
                 style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
               ),
             ),
@@ -445,9 +457,7 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
                     Container(
                       height: 340,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark 
-                            ? const Color(0xFF1E293B) 
-                            : const Color(0xFFF8FAFC),
+                        color: AppColors.subtle(context),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: historyAsync.when(
@@ -561,7 +571,7 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
                           );
                         },
                         loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                        error: (err, _) => Center(child: Text('خطأ: $err', style: const TextStyle(fontSize: 11, color: Colors.red))),
+                        error: (err, _) => const Center(child: Text('تعذر تحميل سجل الملاحظات الطبية', style: TextStyle(fontSize: 11, color: Colors.red))),
                       ),
                     ),
                   ],
@@ -633,11 +643,11 @@ class _VisitNotesDialogState extends ConsumerState<VisitNotesDialog> {
             ),
           ),
         ),
-        error: (err, _) => Dialog(
+        error: (err, _) => const Dialog(
           child: SizedBox(
             height: 100,
             child: Center(
-              child: Text('خطأ في تحميل الملاحظات: $err', style: const TextStyle(color: Colors.red)),
+              child: Text('تعذر تحميل التقرير الطبي، يرجى إعادة المحاولة', style: TextStyle(color: Colors.red)),
             ),
           ),
         ),

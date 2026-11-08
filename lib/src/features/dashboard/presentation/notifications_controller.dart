@@ -4,13 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:uuid/uuid.dart';
-import 'dart:js_interop';
+import '../../../core/utils/web_audio_helper.dart';
 import '../domain/notification_model.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
-
-@JS('playNotificationChime')
-external void _jsPlayNotificationChime();
 
 class NotificationsState {
   final List<NotificationModel> notifications;
@@ -44,16 +41,8 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
   void _init() {
     final user = _ref.read(currentUserProvider);
     if (user == null) return;
-    
-    // 1. Wipe all old notifications from the database (As requested by the user to start clean)
-    try {
-      Supabase.instance.client
-          .from('notifications')
-          .delete()
-          .eq('clinic_id', user.clinicId);
-    } catch (_) {}
 
-    // 2. Subscribe to Ephemeral Broadcasts (No DB persistence)
+    // Subscribe to Ephemeral Broadcasts (No DB persistence)
     _subscribeToBroadcasts(user);
   }
 
@@ -112,7 +101,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
   static void _playNotificationSound() {
     if (kIsWeb) {
       try {
-        _jsPlayNotificationChime();
+        playWebNotificationChime();
       } catch (_) {}
     }
     try {
@@ -135,9 +124,11 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
     final user = _ref.read(currentUserProvider);
     if (user == null) return;
 
-    Supabase.instance.client
-        .channel('clinic_notifications_${user.clinicId}')
-        .sendBroadcastMessage(
+    final channel = _subscription ??
+        Supabase.instance.client
+            .channel('clinic_notifications_${user.clinicId}');
+
+    channel.sendBroadcastMessage(
       event: 'notification',
       payload: {
         'sender_id': user.id,

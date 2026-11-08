@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/layout/auth_shell.dart';
+import '../../../core/ui/primitives/app_button.dart';
+import '../../../core/ui/primitives/app_input.dart';
+import '../../../core/ui/tokens/colors.dart';
+import '../../../core/ui/tokens/spacing.dart';
+import '../../../core/ui/tokens/typography.dart';
 import '../data/auth_repository.dart';
+import '../../../core/routing/routing.dart';
 import 'login_controller.dart';
-import 'login_screen.dart';
 
 class JoinClinicScreen extends ConsumerStatefulWidget {
   final String userName;
@@ -35,22 +39,21 @@ class _JoinClinicScreenState extends ConsumerState<JoinClinicScreen> {
     await Supabase.instance.client.auth.signOut();
     ref.read(currentUserProvider.notifier).state = null;
     if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      AppNavigation.toLogin(context, clearStack: true);
     }
   }
 
   void _joinClinic() async {
     final code = _inviteCodeController.text.trim();
     if (code.isEmpty) {
-      ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-        const SnackBar(
-          content: Text('يرجى إدخال كود العيادة الجديد (رمز الدعوة)'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('أدخل كود الدعوة للمتابعة', style: Theme.of(context).textTheme.bodyMedium),
+            backgroundColor: AppColors.warning,
+          ),
+        );
       return;
     }
 
@@ -59,7 +62,6 @@ class _JoinClinicScreenState extends ConsumerState<JoinClinicScreen> {
     if (mounted) {
       setState(() => _isJoining = false);
       if (res['success'] == true) {
-        // تحديث بروفايل المستخدم فوراً في Riverpod لتفادي الحاجة لأي Refresh
         final sessionUser = Supabase.instance.client.auth.currentUser;
         if (sessionUser != null) {
           final updatedProfile = await ref.read(authRepositoryProvider).getUserProfile(sessionUser.id);
@@ -68,243 +70,135 @@ class _JoinClinicScreenState extends ConsumerState<JoinClinicScreen> {
         }
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(
-            content: Text(res['message'] ?? 'تم الانضمام للعيادة بنجاح'),
-            backgroundColor: const Color(0xFF10B981),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(res['message'] ?? 'تم الانضمام للعيادة بنجاح', style: Theme.of(context).textTheme.bodyMedium),
+              backgroundColor: AppColors.success,
+            ),
+          );
         widget.onRefresh();
       } else {
-        ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-          SnackBar(
-            content: Text(res['message'] ?? 'كود العيادة غير صحيح'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(res['message'] ?? 'كود الدعوة غير صالح أو منتهي الصلاحية', style: Theme.of(context).textTheme.bodyMedium),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final greeting = widget.userName.isNotEmpty ? 'أهلاً ${widget.userName}' : 'مرحباً بك';
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Directionality(
+    return AuthShell(
+      heroTitle: 'الانضمام لعيادة',
+      heroSubtitle: 'أدخل كود الدعوة للانضمام إلى طاقم العيادة.',
+      child: Directionality(
         textDirection: TextDirection.rtl,
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 480),
-              padding: const EdgeInsets.all(32.0),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header icon
+              Center(
+                child: Container(
+                  width: 84,
+                  height: 84,
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySubtle,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
                   ),
-                ],
-                border: Border.all(
-                  color: isDark ? Colors.white10 : Colors.black12,
+                  child: const Icon(
+                    Icons.add_business_rounded,
+                    size: 42,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // الأيقونة المضيئة للاختيار والربط بالعيادة
-                  Container(
-                    width: 84,
-                    height: 84,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                        width: 2,
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.add_business_rounded,
-                      size: 42,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // العنوان الرئيسي
-                  Text(
-                    'الانضمام لعيادة جديدة',
-                    style: GoogleFonts.cairo(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: theme.textTheme.titleLarge?.color,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-
-                  // الترحيب باسم المساعد
-                  Text(
-                    widget.userName.isNotEmpty
-                        ? 'أهلاً بك يا ${widget.userName} 👋'
-                        : 'أهلاً بك عزيزي المساعد / السكرتير 👋',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.primary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // كارت التعليمات
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.04)
-                          : Colors.black.withValues(alpha: 0.03),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark ? Colors.white10 : Colors.black12,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline_rounded,
-                            size: 20, color: theme.colorScheme.primary),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'للبدء في استخدام النظام مع عيادتك الجديدة، يرجى كتابة كود العيادة (رمز الدعوة) المعطى لك من قبل الطبيب.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              height: 1.5,
-                              color: theme.textTheme.bodyMedium?.color,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // حقل كتابة كود العيادة
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'كود العيادة (رمز الدعوة):',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: theme.textTheme.titleMedium?.color,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _inviteCodeController,
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'أدخل الرمز هنا (مثال: CL-9X28)',
-                          hintStyle: GoogleFonts.cairo(
-                            fontSize: 13,
-                            fontWeight: FontWeight.normal,
-                            letterSpacing: 0,
-                          ),
-                          prefixIcon: Icon(Icons.vpn_key_rounded,
-                              color: theme.colorScheme.primary),
-                          filled: true,
-                          fillColor: theme.colorScheme.surface,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.dividerColor),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: theme.colorScheme.primary,
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-
-                  // أزرار الانضمام والخروج
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: _isJoining ? null : _joinClinic,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        icon: _isJoining
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.login_rounded, size: 20),
-                        label: Text(
-                          _isJoining
-                              ? 'جاري الربط بالعيادة...'
-                              : 'الانضمام للعيادة والبدء',
-                          style: GoogleFonts.cairo(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _handleLogout,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.error,
-                          side: const BorderSide(color: AppTheme.error),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        icon: const Icon(Icons.logout_rounded, size: 20),
-                        label: Text(
-                          'تسجيل الخروج من الحساب',
-                          style: GoogleFonts.cairo(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              const SizedBox(height: AppSpace.lg),
+              Text(
+                'الانضمام لعيادة',
+                textAlign: TextAlign.center,
+                style: AppTypography.headingLg(AppColors.textPrimary(context)),
               ),
-            ),
+              const SizedBox(height: AppSpace.sm),
+              Text(
+                greeting,
+                textAlign: TextAlign.center,
+                style: AppTypography.bodyMd(AppColors.primary).copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: AppSpace.xxl),
+
+              // Info banner
+              Container(
+                padding: const EdgeInsets.all(AppSpace.md),
+                decoration: BoxDecoration(
+                  color: AppColors.infoSubtle,
+                  borderRadius: AppRadii.brMd,
+                  border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline_rounded, size: 20, color: AppColors.info),
+                    const SizedBox(width: AppSpace.sm),
+                    Expanded(
+                      child: Text(
+                        'أدخل كود الدعوة المستلم من إدارة العيادة للانضمام إلى طاقم العمل.',
+                        style: AppTypography.bodyMd(AppColors.textPrimary(context)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpace.xxl),
+
+              // Invite code input
+              AppTextField(
+                controller: _inviteCodeController,
+                label: 'كود الدعوة',
+                hint: 'مثال: CL-9X28',
+                keyboardType: TextInputType.text,
+                prefixIcon: const Icon(Icons.vpn_key_rounded, size: 20),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return 'كود الدعوة مطلوب';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: AppSpace.xl),
+
+              // Join button
+              AppButton(
+                label: 'الانضمام للعيادة',
+                icon: Icons.login_rounded,
+                onPressed: _isJoining ? null : _joinClinic,
+                loading: _isJoining,
+                size: AppButtonSize.lg,
+              ),
+              const SizedBox(height: AppSpace.md),
+
+              // Logout button
+              AppButton(
+                label: 'تسجيل الخروج',
+                icon: Icons.logout_rounded,
+                onPressed: _handleLogout,
+                size: AppButtonSize.lg,
+                variant: AppButtonVariant.secondary,
+              ),
+            ],
           ),
         ),
       ),

@@ -110,7 +110,9 @@ class LoginController extends StateNotifier<LoginState> {
         );
       } else {
         final displayMsg = e is AuthException
-            ? 'خطأ في بيانات الدخول: ${e.message}'
+            ? (e.message.toLowerCase().contains('invalid login') || e.message.toLowerCase().contains('credentials')
+                ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+                : 'تعذر تسجيل الدخول، يرجى التحقق من البيانات المدخلة.')
             : 'كلمة المرور أو البريد الإلكتروني غير صحيح.';
         state = state.copyWith(
           isLoading: false,
@@ -129,6 +131,8 @@ class LoginController extends StateNotifier<LoginState> {
     required String role,
     String? phone,
     String? clinicName,
+    String? branchName,
+    List<Map<String, String>>? extraBranches,
     String? inviteCode,
   }) async {
     if (email.trim().isEmpty || password.trim().isEmpty || fullName.trim().isEmpty) {
@@ -139,12 +143,11 @@ class LoginController extends StateNotifier<LoginState> {
       state = LoginState(errorMessage: 'يرجى إدخال رقم الهاتف للتواصل');
       return;
     }
-    if (role == 'doctor' && (clinicName == null || clinicName.trim().isEmpty)) {
-      state = LoginState(errorMessage: 'يرجى إدخال اسم العيادة لتسجيل حساب طبيب');
-      return;
-    }
-    if (role == 'secretary' && (inviteCode == null || inviteCode.trim().isEmpty)) {
-      state = LoginState(errorMessage: 'يرجى إدخال كود الدعوة للانضمام للعيادة');
+    final isCreatingClinic = clinicName != null && clinicName.trim().isNotEmpty;
+    final isJoiningClinic = inviteCode != null && inviteCode.trim().isNotEmpty;
+
+    if (!isCreatingClinic && !isJoiningClinic) {
+      state = LoginState(errorMessage: 'يرجى إدخال اسم العيادة لتأسيسها أو كود الدعوة للانضمام');
       return;
     }
 
@@ -158,6 +161,8 @@ class LoginController extends StateNotifier<LoginState> {
         role: role,
         phone: phone?.trim(),
         clinicName: clinicName?.trim(),
+        branchName: branchName?.trim(),
+        extraBranches: extraBranches,
         inviteCode: inviteCode?.trim(),
       );
 
@@ -177,11 +182,17 @@ class LoginController extends StateNotifier<LoginState> {
         );
       }
     } catch (e) {
+      final errStr = e.toString().toLowerCase();
+      final cleanMsg = errStr.contains('already registered') || errStr.contains('already in use')
+          ? 'البريد الإلكتروني مسجل بالفعل، يرجى تسجيل الدخول.'
+          : errStr.contains('network') || errStr.contains('socket')
+              ? 'تعذر الاتصال بالخادم، يرجى التحقق من اتصال الإنترنت.'
+              : 'تعذر إنشاء الحساب، يرجى مراجعة البيانات المدخلة.';
       state = state.copyWith(
         isLoading: false,
         isSuccess: false,
         isEmailVerificationRequired: false,
-        errorMessage: 'فشل إنشاء الحساب: ${e.toString().replaceAll('Exception:', '')}',
+        errorMessage: cleanMsg,
       );
     }
   }
@@ -194,7 +205,7 @@ class LoginController extends StateNotifier<LoginState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        errorMessage: 'فشل تسجيل الدخول باستخدام Google: ${e.toString().replaceAll('Exception:', '')}',
+        errorMessage: 'تعذر تسجيل الدخول باستخدام حساب Google، يرجى المحاولة لاحقاً.',
       );
     }
   }

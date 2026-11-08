@@ -1,4 +1,7 @@
 {
+  "framework": null,
+  "buildCommand": "bash build.sh",
+  "outputDirectory": "build/web",
   "headers": [
     {
       "source": "/(.*).(js|css|wasm|png|jpg|jpeg|gif|svg|ico|otf|ttf|woff|woff2|json)",

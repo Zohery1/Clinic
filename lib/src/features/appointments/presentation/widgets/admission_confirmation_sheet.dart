@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../../core/ui/tokens/colors.dart';
 import '../../domain/appointment_model.dart';
 
-/// نافذة تأكيد سفلية قبل تغيير حالة المريض
+/// نافذة تأكيد سفلية قبل تغيير حالة المريض (Admission & Status Confirmation Sheet).
+/// تدعم كافة التحولات السريرية (دخول الطبيب، إتمام الكشف، الإلغاء من العيادة، اعتذار المريض، أو إعادة للانتظار).
 class AdmissionConfirmationSheet extends StatelessWidget {
   final AppointmentModel appointment;
   final String targetStatus;
@@ -17,14 +21,16 @@ class AdmissionConfirmationSheet extends StatelessWidget {
   String get _actionTitle {
     switch (targetStatus) {
       case 'pending':
-        return 'إدخال المريض للطبيب؟';
+        return 'دخول المريض لغرفة الكشف؟';
       case 'completed':
-        return 'إنهاء الكشف؟';
+        return 'إنهاء جلسة الكشف؟';
       case 'cancelled':
       case 'cancelled_by_clinic':
-        return 'إلغاء من قبل العيادة؟';
+        return 'إلغاء الموعد؟';
       case 'cancelled_by_patient':
-        return 'إلغاء / عدم حضور المريض؟';
+        return 'تسجيل اعتذار المريض؟';
+      case 'confirmed':
+        return 'إعادة المريض للانتظار؟';
       default:
         return 'تأكيد الإجراء';
     }
@@ -33,30 +39,34 @@ class AdmissionConfirmationSheet extends StatelessWidget {
   String get _actionDescription {
     switch (targetStatus) {
       case 'pending':
-        return 'سيتم نقل المريض من طابور الانتظار إلى عيادة الطبيب.';
+        return 'سينتقل المريض إلى حالة "قيد الكشف" في غرفة الطبيب.';
       case 'completed':
-        return 'سيتم تسجيل الكشف كمكتمل. يمكن التراجع لمدة 5 ثوانٍ.';
+        return 'سيتم تسجيل الكشف كمكتمل ونقله للأرشيف الطبي للعيادة.';
       case 'cancelled':
       case 'cancelled_by_clinic':
-        return 'سيتم إلغاء الموعد من طرف الطبيب/العيادة نهائياً.';
+        return 'سيتم إلغاء الموعد وإزالته من طابور اليوم.';
       case 'cancelled_by_patient':
-        return 'سيتم تسجيل الموعد كملغي بسبب عدم حضور المريض أو اعتذاره.';
+        return 'سيتم تسجيل اعتذار المريض عن عدم الحضور لهذا الموعد.';
+      case 'confirmed':
+        return 'سيتم إعادة المريض لطابور الانتظار بالعيادة.';
       default:
-        return 'هل أنت متأكد من هذا الإجراء؟';
+        return 'هل تريد تنفيذ هذا الإجراء؟';
     }
   }
 
   String get _confirmLabel {
     switch (targetStatus) {
       case 'pending':
-        return 'إدخال الآن';
+        return 'بدء الكشف';
       case 'completed':
         return 'إنهاء الكشف';
       case 'cancelled':
       case 'cancelled_by_clinic':
-        return 'إلغاء الموعد';
+        return 'تأكيد الإلغاء';
       case 'cancelled_by_patient':
-        return 'تأكيد عدم الحضور';
+        return 'تسجيل الاعتذار';
+      case 'confirmed':
+        return 'إعادة للانتظار';
       default:
         return 'تأكيد';
     }
@@ -64,71 +74,92 @@ class AdmissionConfirmationSheet extends StatelessWidget {
 
   bool get _isDangerous => targetStatus.startsWith('cancelled');
 
+  IconData get _actionIcon {
+    switch (targetStatus) {
+      case 'pending':
+        return Icons.person_search_rounded;
+      case 'completed':
+        return Icons.check_circle_outline_rounded;
+      case 'cancelled_by_clinic':
+      case 'cancelled':
+        return Icons.domain_disabled_rounded;
+      case 'cancelled_by_patient':
+        return Icons.person_off_outlined;
+      case 'confirmed':
+        return Icons.replay_rounded;
+      default:
+        return Icons.arrow_forward_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final actionColor = _isDangerous
+        ? (targetStatus == 'cancelled_by_patient'
+            ? AppColors.warning
+            : AppColors.danger)
+        : AppColors.primary;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: AppColors.surface(context),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ─── Handle ───
+            // Handle
             Center(
               child: Container(
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).dividerColor,
+                  color: AppColors.border(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            // ─── أيقونة + عنوان ───
+            const SizedBox(height: 16),
+
+            // أيقونة + عنوان
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
-                    color: _isDangerous
-                        ? Theme.of(context).colorScheme.error.withValues(alpha: 0.1)
-                        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    color: actionColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
-                    _isDangerous ? Icons.cancel_outlined : Icons.arrow_forward_rounded,
-                    color: _isDangerous
-                        ? Theme.of(context).colorScheme.error
-                        : Theme.of(context).colorScheme.primary,
+                    _actionIcon,
+                    color: actionColor,
                     size: 20,
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         _actionTitle,
-                        style: TextStyle(
-                          fontSize: 16,
+                        style: GoogleFonts.cairo(
+                          fontSize: 14.5,
                           fontWeight: FontWeight.w700,
-                          color: Theme.of(context).textTheme.titleMedium?.color,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'المريض: ${appointment.patient.fullName}',
-                        style: TextStyle(
-                          fontSize: 13,
+                        style: GoogleFonts.cairo(
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: AppColors.primary,
                         ),
                       ),
                     ],
@@ -136,63 +167,77 @@ class AdmissionConfirmationSheet extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            // ─── وصف الإجراء ───
+            const SizedBox(height: 12),
+
+            // وصف الإجراء
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: _isDangerous
-                    ? Theme.of(context).colorScheme.error.withValues(alpha: 0.05)
-                    : Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: BorderRadius.circular(10),
-                // removed border
+                    ? (targetStatus == 'cancelled_by_patient'
+                        ? AppColors.warningSubtle
+                        : AppColors.dangerSubtle)
+                    : AppColors.subtle(context),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 _actionDescription,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                style: GoogleFonts.cairo(
+                  fontSize: 12,
+                  color: AppColors.textSecondary(context),
                   height: 1.5,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            // ─── أزرار ───
+            const SizedBox(height: 16),
+
+            // أزرار الإجراء
             Row(
               children: [
                 Expanded(
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      foregroundColor: Theme.of(context).textTheme.bodyMedium?.color,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      foregroundColor: AppColors.textSecondary(context),
                     ),
-                    child: const Text('إلغاء', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      'تراجع',
+                      style: GoogleFonts.cairo(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12.5,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   flex: 2,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.pop(context);
+                      }
                       onConfirm();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isDangerous
-                          ? Theme.of(context).colorScheme.error
-                          : Theme.of(context).colorScheme.primary,
+                      backgroundColor: actionColor,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     child: Text(
                       _confirmLabel,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      style: GoogleFonts.cairo(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ),
