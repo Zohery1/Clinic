@@ -40,8 +40,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       return const AppStatusPage(
         icon: Icons.lock_outline_rounded,
         iconColor: AppColors.warning,
-        title: 'يرجى تسجيل الدخول أولاً',
-        message: 'قم بتسجيل الدخول للوصول إلى التقارير.',
+        title: 'تسجيل الدخول مطلوب',
+        message: 'يرجى تسجيل الدخول للوصول إلى تقارير العيادة.',
         compact: true,
       );
     }
@@ -49,9 +49,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       return const AppStatusPage(
         icon: Icons.lock_outline_rounded,
         iconColor: AppColors.danger,
-        title: 'هذه الصفحة متاحة لمدير العيادة فقط',
-        message:
-            'يرجى التواصل مع مدير العيادة لطلب صلاحية الوصول إلى التقارير والبيانات المالية.',
+        title: 'صلاحية وصول محدودة',
+        message: 'عرض التقارير والبيانات المالية مخصص لمدير العيادة فقط.',
         compact: true,
       );
     }
@@ -107,9 +106,9 @@ class _SubTabsInline extends StatelessWidget {
   Widget build(BuildContext context) {
     const labels = [
       'نظرة عامة',
-      'السجلات اليومية',
-      'السجلات الشهرية',
-      'تقفيل الخزينة والدرج',
+      'حركات اليوم',
+      'التحليل الشهري',
+      'تقفيل الخزينة',
     ];
 
     return Container(

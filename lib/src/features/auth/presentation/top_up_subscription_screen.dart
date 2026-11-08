@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/ui/tokens/colors.dart';
+import '../../../core/ui/tokens/spacing.dart';
 import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
+import '../../../core/routing/routing.dart';
 import 'login_controller.dart';
-import 'login_screen.dart';
 
 class TopUpSubscriptionScreen extends ConsumerStatefulWidget {
   final String clinicName;
@@ -87,7 +88,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
             ),
           ],
         ),
-        backgroundColor: AppTheme.success,
+        backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -170,10 +171,10 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
-              'تم إرسال طلب التجديد لخطة (${plan['title']}) للإدارة بنجاح. يمكنك مواصلة عملك بشكل طبيعي لحين مراجعة الإدارة وتمديد الاشتراك.',
+              'تم تسجيل طلب تجديد الباقة (${plan['title']}) بنجاح. جاري مراجعة التحويل وتمديد الاشتراك.',
               style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
             ),
-            backgroundColor: AppTheme.success,
+            backgroundColor: AppColors.success,
             duration: const Duration(seconds: 4),
             behavior: SnackBarBehavior.floating,
           ));
@@ -185,8 +186,8 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('حدث خطأ، حاول مرة أخرى', style: GoogleFonts.cairo()),
-          backgroundColor: AppTheme.error,
+          content: Text('تعذر إرسال طلب التجديد حالياً، يرجى المحاولة لاحقاً أو التواصل مع الدعم الفني.', style: GoogleFonts.cairo()),
+          backgroundColor: AppColors.danger,
         ));
       }
     } finally {
@@ -198,18 +199,12 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     await Supabase.instance.client.auth.signOut();
     ref.read(currentUserProvider.notifier).state = null;
     if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      AppNavigation.toLogin(context, clearStack: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Scaffold(
       backgroundColor: AppColors.canvas(context),
       body: Directionality(
@@ -230,22 +225,22 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _header(theme, isDark),
+                          _header(),
                           const SizedBox(height: 8),
 
                           if (isWide)
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(flex: 5, child: _plansSection(theme, isDark)),
+                                Expanded(flex: 5, child: _plansSection()),
                                 const SizedBox(width: 16),
-                                Expanded(flex: 6, child: _paymentAndActions(theme, isDark)),
+                                Expanded(flex: 6, child: _paymentAndActions()),
                               ],
                             )
                           else ...[
-                            _plansSection(theme, isDark),
+                            _plansSection(),
                             const SizedBox(height: 8),
-                            _paymentAndActions(theme, isDark),
+                            _paymentAndActions(),
                           ],
 
                           if (!Navigator.canPop(context)) ...[
@@ -254,7 +249,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                               child: TextButton.icon(
                                 onPressed: _handleLogout,
                                 style: TextButton.styleFrom(
-                                  foregroundColor: AppTheme.error,
+                                  foregroundColor: AppColors.danger,
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                 ),
                                 icon: const Icon(Icons.logout_rounded, size: 16),
@@ -278,22 +273,16 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     );
   }
 
-  Widget _header(ThemeData theme, bool isDark) {
+  Widget _header() {
     final displayCode = _inviteCode.isNotEmpty ? _inviteCode : widget.inviteCode;
     final canClose = Navigator.canPop(context);
 
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(AppSpace.md),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-              : [Colors.white, const Color(0xFFF8FAFC)],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(color: AppColors.borderSubtle(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,12 +294,8 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.orange.shade400, Colors.orange.shade700],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(AppRadii.sm),
                 ),
                 child: const Icon(Icons.cloud_upload_rounded, size: 20, color: Colors.white),
               ),
@@ -324,14 +309,14 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                       style: GoogleFonts.cairo(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppTheme.textPrimary,
+                        color: AppColors.textPrimary(context),
                       ),
                     ),
                     Text(
                       'اختر الخطة المناسبة للاستمرار في خدمات العيادة',
                       style: GoogleFonts.cairo(
                         fontSize: 10.5,
-                        color: isDark ? Colors.white70 : AppTheme.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -350,8 +335,8 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                   icon: const Icon(Icons.close_rounded, size: 18),
                   tooltip: 'إغلاق',
                   style: IconButton.styleFrom(
-                    backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06),
-                    foregroundColor: isDark ? Colors.white : Colors.black87,
+                    backgroundColor: AppColors.subtle(context),
+                    foregroundColor: AppColors.textPrimary(context),
                     padding: const EdgeInsets.all(6),
                   ),
                 ),
@@ -363,20 +348,20 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: isDark ? 0.15 : 0.06),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.primary.withValues(alpha: isDark ? 0.3 : 0.15)),
+                color: AppColors.primarySubtle,
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.qr_code_rounded, color: AppTheme.primary, size: 16),
+                  const Icon(Icons.qr_code_rounded, color: AppColors.primary, size: 16),
                   const SizedBox(width: 6),
                   Text(
                     'كود العيادة:',
                     style: GoogleFonts.cairo(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.primary,
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -384,17 +369,15 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                     const SizedBox(
                       width: 14,
                       height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                     )
                   else
                     SelectableText(
                       displayCode,
-                      style: const TextStyle(
+                      style: GoogleFonts.jetBrainsMono(
                         fontSize: 13,
                         fontWeight: FontWeight.w900,
-                        color: AppTheme.primary,
-                        letterSpacing: 1.0,
-                        fontFamilyFallback: ['monospace', 'sans-serif'],
+                        color: AppColors.primary,
                       ),
                     ),
                   const Spacer(),
@@ -402,12 +385,12 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                     SelectionContainer.disabled(
                       child: InkWell(
                         onTap: () => _copy(displayCode, 'كود العيادة'),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(AppRadii.xs),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppTheme.primary,
-                            borderRadius: BorderRadius.circular(6),
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(AppRadii.xs),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -436,21 +419,21 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     );
   }
 
-  Widget _plansSection(ThemeData theme, bool isDark) {
+  Widget _plansSection() {
     final isMobile = MediaQuery.of(context).size.width < 500;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.card_membership_rounded, color: AppTheme.primary, size: 16),
+            const Icon(Icons.card_membership_rounded, color: AppColors.primary, size: 16),
             const SizedBox(width: 6),
             Text(
               'اختر خطة الاشتراك:',
               style: GoogleFonts.cairo(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : AppTheme.textPrimary,
+                color: AppColors.textPrimary(context),
               ),
             ),
           ],
@@ -471,18 +454,18 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
             final sel = _selectedPlanIndex == i;
             return InkWell(
               onTap: () => setState(() => _selectedPlanIndex = i),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadii.sm),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
                   color: sel
-                      ? AppTheme.primary.withValues(alpha: isDark ? 0.2 : 0.08)
-                      : (isDark ? const Color(0xFF1E293B) : theme.colorScheme.surface),
-                  borderRadius: BorderRadius.circular(10),
+                      ? AppColors.primarySubtle
+                      : AppColors.surface(context),
+                  borderRadius: BorderRadius.circular(AppRadii.sm),
                   border: Border.all(
-                    color: sel ? AppTheme.primary : (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.08)),
-                    width: sel ? 2 : 1,
+                    color: sel ? AppColors.primary : AppColors.borderSubtle(context),
+                    width: sel ? 1.5 : 1.0,
                   ),
                 ),
                 child: Stack(
@@ -499,7 +482,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                                 style: GoogleFonts.cairo(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : AppTheme.textPrimary,
+                                  color: AppColors.textPrimary(context),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -507,7 +490,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                             ),
                             Icon(
                               sel ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-                              color: sel ? AppTheme.primary : Colors.grey,
+                              color: sel ? AppColors.primary : AppColors.textMuted(context),
                               size: 15,
                             ),
                           ],
@@ -522,11 +505,10 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                             children: [
                               Text(
                                 p['price']!,
-                                style: const TextStyle(
+                                style: GoogleFonts.jetBrainsMono(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w900,
-                                  color: AppTheme.primary,
-                                  fontFamilyFallback: ['monospace', 'sans-serif'],
+                                  color: AppColors.primary,
                                 ),
                               ),
                               const SizedBox(width: 2),
@@ -535,7 +517,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                                 style: GoogleFonts.cairo(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.primary,
+                                  color: AppColors.primary,
                                 ),
                               ),
                             ],
@@ -545,7 +527,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                           p['period']!,
                           style: GoogleFonts.cairo(
                             fontSize: 9.5,
-                            color: isDark ? Colors.white54 : AppTheme.textSecondary,
+                            color: AppColors.textSecondary(context),
                           ),
                         ),
                       ],
@@ -557,12 +539,8 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: i == 1
-                                  ? [Colors.orange.shade700, Colors.amber.shade700]
-                                  : [AppTheme.success, Colors.teal.shade600],
-                            ),
-                            borderRadius: BorderRadius.circular(4),
+                            color: i == 1 ? AppColors.warning : AppColors.success,
+                            borderRadius: BorderRadius.circular(AppRadii.xs),
                           ),
                           child: Text(
                             p['badge']!,
@@ -584,20 +562,20 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     );
   }
 
-  Widget _paymentAndActions(ThemeData theme, bool isDark) {
+  Widget _paymentAndActions() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.primary, size: 16),
+            const Icon(Icons.account_balance_wallet_rounded, color: AppColors.primary, size: 16),
             const SizedBox(width: 6),
             Text(
               'بيانات تحويل المبلغ:',
               style: GoogleFonts.cairo(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : AppTheme.textPrimary,
+                color: AppColors.textPrimary(context),
               ),
             ),
           ],
@@ -608,18 +586,18 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
         Container(
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(10),
+            color: AppColors.subtle(context),
+            borderRadius: BorderRadius.circular(AppRadii.sm),
           ),
           child: Row(
             children: [
               Expanded(
                 child: _paymentTabBtn(
-                  title: 'إينستاباي (InstaPay)',
+                  title: 'إنستاباي (InstaPay)',
                   icon: Icons.flash_on_rounded,
                   isSelected: _selectedPaymentMethod == 0,
                   onTap: () => setState(() => _selectedPaymentMethod = 0),
-                  activeColor: Colors.purple.shade700,
+                  activeColor: AppColors.primary,
                 ),
               ),
               const SizedBox(width: 4),
@@ -629,7 +607,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                   icon: Icons.phone_android_rounded,
                   isSelected: _selectedPaymentMethod == 1,
                   onTap: () => setState(() => _selectedPaymentMethod = 1),
-                  activeColor: AppTheme.primary,
+                  activeColor: AppColors.primary,
                 ),
               ),
             ],
@@ -640,27 +618,25 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
         if (_selectedPaymentMethod == 0)
           _paymentInfoCard(
             icon: Icons.flash_on_rounded,
-            iconBg: Colors.purple.withValues(alpha: 0.12),
-            iconColor: Colors.purple.shade700,
+            iconBg: AppColors.primarySubtle,
+            iconColor: AppColors.primary,
             title: 'حساب إنستاباي (InstaPay)',
-            subtitle: 'قم بتحويل قيمة الاشتراك إلى رقم الحساب:',
+            subtitle: 'حوّل قيمة الباقة إلى حساب إنستاباي:',
             items: [
               {'number': '01090671474', 'label': 'رقم InstaPay'}
             ],
-            isDark: isDark,
           )
         else
           _paymentInfoCard(
             icon: Icons.phone_android_rounded,
-            iconBg: Colors.green.withValues(alpha: 0.12),
-            iconColor: Colors.green.shade700,
+            iconBg: AppColors.successSubtle,
+            iconColor: AppColors.success,
             title: 'محافظ فودافون / اتصالات / أورنج',
-            subtitle: 'قم بتحويل قيمة الاشتراك إلى أحد الأرقام:',
+            subtitle: 'حوّل قيمة الباقة إلى أحد أرقام المحافظ:',
             items: [
               {'number': '01090671474', 'label': 'فودافون كاش'},
               {'number': '01107432010', 'label': 'اتصالات كاش'}
             ],
-            isDark: isDark,
           ),
 
         const SizedBox(height: 8),
@@ -669,9 +645,9 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF25D366).withValues(alpha: isDark ? 0.12 : 0.07),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.25)),
+            color: AppColors.successSubtle,
+            borderRadius: BorderRadius.circular(AppRadii.sm),
+            border: Border.all(color: AppColors.success.withValues(alpha: 0.25)),
           ),
           child: Column(
             children: [
@@ -680,7 +656,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                 style: GoogleFonts.cairo(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.green.shade300 : Colors.green.shade900,
+                  color: AppColors.success,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -691,11 +667,11 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                 child: ElevatedButton.icon(
                   onPressed: _openWhatsApp,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF25D366),
+                    backgroundColor: AppColors.success,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.xs)),
                   ),
                   icon: const Icon(Icons.send_rounded, size: 16),
                   label: FittedBox(
@@ -718,10 +694,10 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
           child: ElevatedButton.icon(
             onPressed: _isSubmitting ? null : _confirmTransfer,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
             ),
             icon: _isSubmitting
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
@@ -729,7 +705,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
             label: FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
-                _isSubmitting ? 'جاري التسجيل...' : 'تأكيد إرسال التحويل / تفعيل الاشتراك',
+                _isSubmitting ? 'جاري تأكيد الطلب...' : 'تأكيد التحويل وإرسال طلب التفعيل',
                 style: GoogleFonts.cairo(fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ),
@@ -748,18 +724,18 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppRadii.xs),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? activeColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadii.xs),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 14, color: isSelected ? Colors.white : Colors.grey.shade600),
+            Icon(icon, size: 14, color: isSelected ? Colors.white : AppColors.textMuted(context)),
             const SizedBox(width: 4),
             Flexible(
               child: FittedBox(
@@ -769,7 +745,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                   style: GoogleFonts.cairo(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : Colors.grey.shade700,
+                    color: isSelected ? Colors.white : AppColors.textSecondary(context),
                   ),
                 ),
               ),
@@ -787,14 +763,13 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
     required String title,
     required String subtitle,
     required List<Map<String, String>> items,
-    required bool isDark,
   }) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(AppSpace.sm),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06)),
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+        border: Border.all(color: AppColors.borderSubtle(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -805,7 +780,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: iconBg,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppRadii.xs),
                 ),
                 child: Icon(icon, color: iconColor, size: 16),
               ),
@@ -819,14 +794,14 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                       style: GoogleFonts.cairo(
                         fontSize: 12.5,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppTheme.textPrimary,
+                        color: AppColors.textPrimary(context),
                       ),
                     ),
                     Text(
                       subtitle,
                       style: GoogleFonts.cairo(
                         fontSize: 10,
-                        color: isDark ? Colors.white60 : AppTheme.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -845,10 +820,10 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppColors.subtle(context),
+                  borderRadius: BorderRadius.circular(AppRadii.xs),
                   border: Border.all(
-                    color: isDark ? Colors.blue.withValues(alpha: 0.15) : AppTheme.primary.withValues(alpha: 0.1),
+                    color: AppColors.borderSubtle(context),
                   ),
                 ),
                 child: Row(
@@ -857,7 +832,7 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: iconColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(5),
+                        borderRadius: BorderRadius.circular(AppRadii.xs),
                       ),
                       child: Text(
                         labelStr,
@@ -875,12 +850,11 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                         alignment: Alignment.centerRight,
                         child: SelectableText(
                           numStr,
-                          style: TextStyle(
+                          style: GoogleFonts.jetBrainsMono(
                             fontSize: 15,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1.0,
-                            color: isDark ? Colors.white : AppTheme.textPrimary,
-                            fontFamilyFallback: const ['monospace', 'Roboto', 'sans-serif'],
+                            color: AppColors.textPrimary(context),
                           ),
                         ),
                       ),
@@ -889,12 +863,12 @@ class _TopUpSubscriptionScreenState extends ConsumerState<TopUpSubscriptionScree
                     SelectionContainer.disabled(
                       child: InkWell(
                         onTap: () => _copy(numStr, labelStr),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(AppRadii.xs),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppTheme.primary,
-                            borderRadius: BorderRadius.circular(6),
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(AppRadii.xs),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,

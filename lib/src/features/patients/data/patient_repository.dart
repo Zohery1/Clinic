@@ -28,60 +28,76 @@ final patientsListProvider = FutureProvider.family<List<PatientModel>, String>((
 class PatientRepository {
   final SupabaseClient _supabase;
 
+  // ذاكرة استجابة مؤقتة لتجنب تكرار تنزيل 192KB عبر الشبكة عند كل تنقل
+  List<PatientModel>? _cachedPatients;
+  String? _cachedClinicId;
+  String? _cachedBranchId;
+  DateTime? _cacheTime;
+  static const Duration _cacheTtl = Duration(seconds: 45);
+
   PatientRepository(this._supabase);
 
-  // جلب كافة المرضى للعيادة أو الفرع الحالي
-  Future<List<PatientModel>> getPatients(String clinicId, {String? branchId}) async {
-    try {
-      // 1) Primary: Call jsonb RPC to completely bypass PostgREST max-rows table limit
-      final dynamic rpcResponse = await _supabase
-          .rpc('get_all_patients_json', params: {
-            'p_clinic_id': clinicId,
-            if (branchId != null) 'p_branch_id': branchId,
-          });
+  void invalidateCache() {
+    _cachedPatients = null;
+    _cacheTime = null;
+  }
 
-      if (rpcResponse is List && rpcResponse.isNotEmpty) {
-        return rpcResponse
-            .map((item) => PatientModel.fromJson(item as Map<String, dynamic>))
-            .toList();
-      }
-    } catch (e) {
-      debugPrint('getPatients RPC fallback: $e');
+  // جلب كافة المرضى للعيادة أو الفرع الحالي
+  Future<List<PatientModel>> getPatients(String clinicId, {String? branchId, bool forceRefresh = false}) async {
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _cachedPatients != null &&
+        _cachedClinicId == clinicId &&
+        _cachedBranchId == branchId &&
+        _cacheTime != null &&
+        now.difference(_cacheTime!) < _cacheTtl) {
+      return _cachedPatients!;
     }
 
-    // 2) Fallback: Range chunking loop
+    // 1) Primary for whole clinic: Call jsonb RPC if branchId is null
+    if (branchId == null || branchId.isEmpty) {
+      try {
+        final dynamic rpcResponse = await _supabase
+            .rpc('get_all_patients_json', params: {'p_clinic_id': clinicId});
+
+        if (rpcResponse is List && rpcResponse.isNotEmpty) {
+          final result = rpcResponse
+              .map((item) => PatientModel.fromJson(item as Map<String, dynamic>))
+              .toList();
+          _cachedPatients = result;
+          _cachedClinicId = clinicId;
+          _cachedBranchId = branchId;
+          _cacheTime = DateTime.now();
+          return result;
+        }
+      } catch (e) {
+        debugPrint('getPatients RPC fallback: $e');
+      }
+    }
+
+    // 2) Standard optimized query
     try {
-      final List<dynamic> allPatients = [];
-      int from = 0;
-      const int pageSize = 1000;
-      bool hasMore = true;
+      var query = _supabase
+          .from('patients')
+          .select('*')
+          .eq('clinic_id', clinicId);
 
-      while (hasMore) {
-        var query = _supabase
-            .from('patients')
-            .select('*')
-            .eq('clinic_id', clinicId);
-
-        if (branchId != null && branchId.isNotEmpty) {
-          query = query.eq('branch_id', branchId);
-        }
-
-        final List<dynamic> page = await query
-            .order('created_at', ascending: false)
-            .range(from, from + pageSize - 1);
-
-        allPatients.addAll(page);
-
-        if (page.length < pageSize) {
-          hasMore = false;
-        } else {
-          from += pageSize;
-        }
+      if (branchId != null && branchId.isNotEmpty) {
+        query = query.eq('branch_id', branchId);
       }
 
-      return allPatients
+      final List<dynamic> response = await query
+          .order('created_at', ascending: false)
+          .limit(500);
+
+      final result = response
           .map((item) => PatientModel.fromJson(item as Map<String, dynamic>))
           .toList();
+      _cachedPatients = result;
+      _cachedClinicId = clinicId;
+      _cachedBranchId = branchId;
+      _cacheTime = DateTime.now();
+      return result;
     } catch (e) {
       rethrow;
     }
@@ -134,6 +150,7 @@ class PatientRepository {
           .select()
           .single();
 
+      invalidateCache();
       return PatientModel.fromJson(response);
     } catch (e) {
       rethrow;
@@ -165,6 +182,7 @@ class PatientRepository {
           .select()
           .single();
 
+      invalidateCache();
       return PatientModel.fromJson(response);
     } catch (e) {
       rethrow;
@@ -178,6 +196,7 @@ class PatientRepository {
           .from('patients')
           .delete()
           .eq('id', id);
+      invalidateCache();
     } catch (e) {
       rethrow;
     }

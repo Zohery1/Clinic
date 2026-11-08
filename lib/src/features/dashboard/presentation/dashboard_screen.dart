@@ -5,10 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/feedback/app_status_page.dart';
 import '../../../core/ui/layout/app_shell.dart';
+import '../../../core/ui/layout/app_top_bar.dart';
+import '../../../core/ui/layout/lazy_indexed_stack.dart';
+import '../../../core/routing/routing.dart';
 import '../../appointments/presentation/appointments_controller.dart';
 import '../../appointments/presentation/appointments_screen.dart';
-import '../../appointments/presentation/book_appointment_dialog.dart';
-import '../../appointments/presentation/examination_screen.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/presentation/top_up_subscription_screen.dart';
 import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
@@ -24,6 +25,7 @@ import 'widgets/dashboard_stats_row.dart';
 import 'widgets/dashboard_today_appointments.dart';
 import 'widgets/dashboard_weekly_chart.dart';
 
+/// Clinical Bento Executive Dashboard. Direct, glanceable, and authoritative.
 class DashboardScreen extends ConsumerStatefulWidget {
   final DateTime? subscriptionEndDate;
   final String? inviteCode;
@@ -100,8 +102,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           icon: Icons.event_busy_rounded,
           iconColor: AppColors.danger,
           title: 'انتهى الاشتراك',
-          message:
-              'يرجى تجديد اشتراك العيادة للاستمرار في استخدام النظام والوصول إلى بياناتك.',
+          message: 'يرجى تجديد الاشتراك للمتابعة في استخدام النظام.',
           primaryAction: StatusAction(
             label: 'تجديد الاشتراك',
             icon: Icons.refresh_rounded,
@@ -109,16 +110,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               showDialog(
                 context: context,
                 builder: (ctx) => Dialog(
-                  insetPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 24),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: AppRadii.brXl,
-                  ),
+                  insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.lg)),
                   child: ClipRRect(
-                    borderRadius: AppRadii.brXl,
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
                     child: Container(
-                      constraints: const BoxConstraints(
-                          maxWidth: 700, maxHeight: 750),
+                      constraints: const BoxConstraints(maxWidth: 700, maxHeight: 750),
                       child: TopUpSubscriptionScreen(
                         clinicName: widget.clinicName ?? 'العيادة',
                         inviteCode: widget.inviteCode ?? '',
@@ -146,43 +143,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         .where((n) => !n.isRead)
         .length;
 
-    final tabs = <Widget>[
-      _HomeTab(
-        clinicId: widget.clinicId,
-        clinicName: widget.clinicName,
-        onNavigateToTab: _navigateToTab,
-      ),
-      AppointmentsScreen(
-        subscriptionEndDate: widget.subscriptionEndDate,
-        inviteCode: widget.inviteCode,
-        clinicName: widget.clinicName,
-        clinicId: widget.clinicId,
-      ),
-      const PatientsPage(),
-      if (isOwner) const ReportsScreen(),
-      const SettingsScreen(),
-    ];
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: CallbackShortcuts(
         bindings: <ShortcutActivator, VoidCallback>{
           const SingleActivator(LogicalKeyboardKey.keyN, control: true): () {
-            BookAppointmentDialog.show(
-              context: context,
+            AppNavigation.showBookAppointment(
+              context,
               clinicId: user.clinicId,
             );
           },
           const SingleActivator(LogicalKeyboardKey.keyN, meta: true): () {
-            BookAppointmentDialog.show(
-              context: context,
+            AppNavigation.showBookAppointment(
+              context,
               clinicId: user.clinicId,
             );
           },
-          const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
-              _navigateToTab(2),
-          const SingleActivator(LogicalKeyboardKey.keyK, meta: true): () =>
-              _navigateToTab(2),
           const SingleActivator(LogicalKeyboardKey.digit1, control: true): () =>
               _navigateToTab(0),
           const SingleActivator(LogicalKeyboardKey.digit2, control: true): () =>
@@ -193,30 +169,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               _navigateToTab(3),
           const SingleActivator(LogicalKeyboardKey.digit5, control: true): () =>
               _navigateToTab(4),
-          const SingleActivator(LogicalKeyboardKey.keyE, control: true): () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ExaminationScreen(
-                  clinicId: user.clinicId,
-                  appointmentId: 'appt-01',
-                  patientId: 'pat-01',
-                  patientName: 'أحمد محمود عبد العزيز',
-                ),
-              ),
-            );
-          },
-          const SingleActivator(LogicalKeyboardKey.keyE, meta: true): () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ExaminationScreen(
-                  clinicId: user.clinicId,
-                  appointmentId: 'appt-01',
-                  patientId: 'pat-01',
-                  patientName: 'أحمد محمود عبد العزيز',
-                ),
-              ),
-            );
-          },
         },
         child: Focus(
           autofocus: true,
@@ -224,18 +176,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             currentRoute: _getRoutes(isOwner)[_effectiveIndex],
             onNavigate: _onNavigate,
             user: user,
-            title: _resolveTitle(_getRoutes(isOwner)[_effectiveIndex], widget.clinicName),
+            title: _resolveTitle(_getRoutes(isOwner)[_effectiveIndex]),
             subtitle: _resolveSubtitle(_getRoutes(isOwner)[_effectiveIndex]),
+            breadcrumbs: <AppBreadcrumbItem>[
+              AppBreadcrumbItem(label: widget.clinicName ?? 'عيادتي'),
+            ],
+            onUserTap: () => _onNavigate('/settings'),
             unreadCount: unreadCount,
             onNotificationsTap: () =>
                 DashboardNotificationsDialog.show(context),
-            onSearchTap: () => _navigateToTab(2),
             actions: const <Widget>[
               ClinicSwitcherButton(isCompact: true),
             ],
-            child: IndexedStack(
+            child: LazyIndexedStack(
               index: _effectiveIndex,
-              children: tabs,
+              itemBuilders: [
+                (ctx) => _HomeTab(
+                      clinicId: widget.clinicId,
+                      clinicName: widget.clinicName,
+                      onNavigateToTab: _navigateToTab,
+                    ),
+                (ctx) => AppointmentsScreen(
+                      subscriptionEndDate: widget.subscriptionEndDate,
+                      inviteCode: widget.inviteCode,
+                      clinicName: widget.clinicName,
+                      clinicId: widget.clinicId,
+                    ),
+                (ctx) => const PatientsPage(),
+                if (isOwner) (ctx) => const ReportsScreen(),
+                (ctx) => const SettingsScreen(),
+              ],
             ),
           ),
         ),
@@ -243,10 +213,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  String _resolveTitle(String route, String? clinicName) {
+  String _resolveTitle(String route) {
     switch (route) {
       case '/home':
-        return clinicName ?? 'لوحة الإدارة';
+        return 'الرئيسية';
       case '/appointments':
         return 'المواعيد';
       case '/patients':
@@ -256,22 +226,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       case '/settings':
         return 'الإعدادات';
       default:
-        return clinicName ?? 'لوحة الإدارة';
+        return 'الرئيسية';
     }
   }
 
   String? _resolveSubtitle(String route) {
     switch (route) {
       case '/home':
-        return 'نظرة عامة على عيادتك اليوم';
+        return 'نظرة عامة على العيادة اليوم';
       case '/appointments':
-        return 'كل حجوزاتك في مكان واحد';
+        return 'جدول مواعيد العيادة';
       case '/patients':
-        return 'سجل المرضى والمتابعة';
+        return 'سجل وبيانات المرضى';
       case '/reports':
-        return 'أداء العيادة والمؤشرات المالية';
+        return 'إحصائيات وأرقام العيادة';
       case '/settings':
-        return 'إعدادات الحساب والعيادة';
+        return 'إعدادات النظام والعيادة';
       default:
         return null;
     }
@@ -291,26 +261,34 @@ class _HomeTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final width = MediaQuery.of(context).size.width;
-    final stacked = width < 1100;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = constraints.maxWidth < 980;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpace.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DashboardGreetingHero(onNavigateToTab: onNavigateToTab),
-          const SizedBox(height: AppSpace.xl),
-          DashboardStatsRow(onNavigateToTab: onNavigateToTab),
-          const SizedBox(height: AppSpace.xl),
-          DashboardQuickActions(onNavigateToTab: onNavigateToTab),
-          const SizedBox(height: AppSpace.xxl),
-          if (stacked)
-            _stackedContent()
-          else
-            _twoColumnContent(),
-        ],
-      ),
+        return SingleChildScrollView(
+          padding: EdgeInsets.zero,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1480),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DashboardGreetingHero(onNavigateToTab: onNavigateToTab),
+                  const SizedBox(height: AppSpace.md),
+                  DashboardStatsRow(onNavigateToTab: onNavigateToTab),
+                  const SizedBox(height: AppSpace.md),
+                  DashboardQuickActions(onNavigateToTab: onNavigateToTab),
+                  const SizedBox(height: AppSpace.lg),
+                  if (stacked)
+                    _stackedContent()
+                  else
+                    _twoColumnContent(),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -318,10 +296,10 @@ class _HomeTab extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const DashboardWeeklyChart(),
-        const SizedBox(height: AppSpace.xl),
         DashboardTodayList(onNavigateToTab: onNavigateToTab),
-        const SizedBox(height: AppSpace.xl),
+        const SizedBox(height: AppSpace.md),
+        const DashboardWeeklyChart(),
+        const SizedBox(height: AppSpace.md),
         const DashboardRecentTransactions(),
       ],
     );
@@ -331,21 +309,24 @@ class _HomeTab extends ConsumerWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Primary operational column (Today's queue & appointments)
         Expanded(
           flex: 3,
+          child: DashboardTodayList(onNavigateToTab: onNavigateToTab),
+        ),
+        const SizedBox(width: AppSpace.md),
+
+        // Supporting financial & analytics column
+        const Expanded(
+          flex: 2,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const DashboardWeeklyChart(),
-              const SizedBox(height: AppSpace.xl),
-              DashboardTodayList(onNavigateToTab: onNavigateToTab),
+              DashboardWeeklyChart(),
+              SizedBox(height: AppSpace.md),
+              DashboardRecentTransactions(),
             ],
           ),
-        ),
-        const SizedBox(width: AppSpace.xl),
-        const Expanded(
-          flex: 2,
-          child: DashboardRecentTransactions(),
         ),
       ],
     );

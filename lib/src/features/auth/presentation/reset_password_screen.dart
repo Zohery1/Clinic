@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/ui/layout/auth_shell.dart';
 import '../../../core/ui/primitives/app_button.dart';
@@ -7,11 +6,13 @@ import '../../../core/ui/primitives/app_input.dart';
 import '../../../core/ui/tokens/colors.dart';
 import '../../../core/ui/tokens/spacing.dart';
 import '../../../core/ui/tokens/typography.dart';
-import 'login_screen.dart';
+import '../../../core/routing/routing.dart';
 
+/// Clinical Utility Reset Password Screen.
 class ResetPasswordScreen extends StatefulWidget {
   final bool isUpdateMode;
   const ResetPasswordScreen({super.key, this.isUpdateMode = false});
+
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
@@ -52,10 +53,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       await Supabase.instance.client.auth.signOut();
     } catch (_) {}
     if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      AppNavigation.toLogin(context, clearStack: true);
     }
   }
 
@@ -71,14 +69,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       await Supabase.instance.client.auth.signInWithOtp(email: email, shouldCreateUser: false);
       setState(() {
         _step = 1;
-        _successMessage = 'تم إرسال رمز التحقق إلى بريدك الإلكتروني: $email';
+        _successMessage = 'تم إرسال رمز التحقق إلى بريدك الإلكتروني بنجاح.';
       });
     } catch (e) {
-      String errStr = e.toString().replaceAll('Exception:', '').trim();
-      if (errStr.contains('User not found') || errStr.contains('user_not_found')) {
-        errStr = 'البريد الإلكتروني غير مسجل بالمنظومة.';
-      }
-      setState(() => _errorMessage = 'فشل إرسال رمز التحقق: $errStr');
+      setState(() => _errorMessage = 'تعذر إرسال رمز التحقق، يرجى التأكد من صحة البريد الإلكتروني.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -105,10 +99,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       }
       setState(() {
         _step = 2;
-        _successMessage = 'تم التحقق من رمز OTP بنجاح! أدخل كلمة المرور الجديدة الآن.';
+        _successMessage = 'تم التحقق من الرمز بنجاح. أدخل كلمة المرور الجديدة.';
       });
     } catch (e) {
-      setState(() => _errorMessage = 'رمز التحقق (OTP) غير صحيح أو انتهت صلاحيته.');
+      setState(() => _errorMessage = 'رمز التحقق غير صحيح أو انتهت صلاحيته.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -125,9 +119,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     try {
       await Supabase.instance.client.auth.signInWithOtp(email: email, shouldCreateUser: false);
       _otpController.clear();
-      setState(() => _successMessage = 'تم إعادة إرسال رمز التحقق إلى بريدك: $email');
+      setState(() => _successMessage = 'تم إعادة إرسال رمز التحقق.');
     } catch (e) {
-      setState(() => _errorMessage = 'فشل إعادة إرسال الرمز. حاول مرة أخرى بعد قليل.');
+      setState(() => _errorMessage = 'تعذر إعادة إرسال الرمز، يرجى المحاولة لاحقاً.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -145,66 +139,28 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       await Supabase.instance.client.auth.updateUser(UserAttributes(password: newPass));
       await Supabase.instance.client.auth.signOut();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('تم تغيير كلمة المرور بنجاح! يرجى تسجيل الدخول بكلمة المرور الجديدة.', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-          backgroundColor: AppColors.success,
-          duration: const Duration(seconds: 4),
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم تعيين كلمة المرور الجديدة بنجاح.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
         _navigateToLogin();
       }
     } catch (e) {
-      setState(() => _errorMessage = 'فشل تحديث كلمة المرور: ${e.toString().replaceAll('Exception:', '')}');
+      setState(() => _errorMessage = 'تعذر تحديث كلمة المرور، يرجى إعادة المحاولة.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Widget _banner(BuildContext context, IconData icon, Color color, String text) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpace.md),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: AppRadii.brSm,
-        border: Border.all(color: color.withValues(alpha: 0.30)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(width: AppSpace.sm),
-          Expanded(
-            child: Text(text, style: AppTypography.bodySm(color).copyWith(fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    String titleText = widget.isUpdateMode ? 'تعيين كلمة مرور جديدة' : 'استعادة كلمة المرور';
-    String subtitleText;
-    IconData headerIcon;
-
-    if (_step == 0) {
-      subtitleText = 'أدخل بريدك الإلكتروني المكتوب في المنظومة وسنرسل لك رمز تحقق.';
-      headerIcon = Icons.lock_reset_rounded;
-    } else if (_step == 1) {
-      subtitleText = 'يرجى كتابة رمز التحقق المكون من 6 أرقام الذي وصلك على البريد الإلكتروني.';
-      headerIcon = Icons.mark_email_read_rounded;
-    } else {
-      subtitleText = 'يرجى كتابة كلمة مرور قوية تحتوي على أرقام وحروف ولا تقل عن 8 أحرف.';
-      headerIcon = Icons.lock_open_rounded;
-    }
-
-    final heroTitle = widget.isUpdateMode ? 'كلمة مرور جديدة' : 'استعادة كلمة المرور';
-    final heroSubtitle = widget.isUpdateMode
-        ? 'اختر كلمة مرور قوية لحماية حسابك وعيادتك.'
-        : 'أعد تعيين كلمة المرور بسهولة عبر رمز تحقق يُرسل إلى بريدك الإلكتروني.';
+    String titleText = widget.isUpdateMode ? 'تغيير كلمة المرور' : 'استعادة كلمة المرور';
 
     return AuthShell(
-      heroTitle: heroTitle,
-      heroSubtitle: heroSubtitle,
+      heroTitle: 'عيادتي',
+      heroSubtitle: 'تعيين كلمة مرور جديدة لحسابك الطبي.',
       child: Directionality(
         textDirection: TextDirection.rtl,
         child: Form(
@@ -213,75 +169,98 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primarySubtle,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(headerIcon, size: 32, color: AppColors.primary),
-                ),
-              ),
-              const SizedBox(height: AppSpace.lg),
               Text(
                 titleText,
-                textAlign: TextAlign.center,
-                style: AppTypography.headingLg(AppColors.textPrimary(context)),
+                style: AppTypography.headingMd(AppColors.textPrimary(context)),
               ),
-              const SizedBox(height: AppSpace.sm),
+              const SizedBox(height: AppSpace.xs),
               Text(
-                subtitleText,
-                textAlign: TextAlign.center,
-                style: AppTypography.bodyMd(AppColors.textSecondary(context)),
+                _step == 0
+                    ? 'أدخل بريدك الإلكتروني لاستلام رمز التحقق'
+                    : _step == 1
+                        ? 'أدخل رمز التحقق المرسل لبريدك الإلكتروني'
+                        : 'اكتب كلمة المرور الجديدة',
+                style: AppTypography.bodySm(AppColors.textSecondary(context)),
               ),
-              const SizedBox(height: AppSpace.xxl),
+              const SizedBox(height: AppSpace.lg),
+
               if (_successMessage != null) ...[
-                _banner(context, Icons.check_circle_outline_rounded, AppColors.success, _successMessage!),
-                const SizedBox(height: AppSpace.lg),
+                Container(
+                  padding: const EdgeInsets.all(AppSpace.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.successSubtle,
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
+                    border: Border.all(color: AppColors.successBorder),
+                  ),
+                  child: Text(
+                    _successMessage!,
+                    style: AppTypography.bodySm(AppColors.success),
+                  ),
+                ),
+                const SizedBox(height: AppSpace.md),
               ],
+
               if (_errorMessage != null) ...[
-                _banner(context, Icons.error_outline_rounded, AppColors.danger, _errorMessage!),
-                const SizedBox(height: AppSpace.lg),
+                Container(
+                  padding: const EdgeInsets.all(AppSpace.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.dangerSubtle,
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
+                    border: Border.all(color: AppColors.dangerBorder),
+                  ),
+                  child: Text(
+                    _errorMessage!,
+                    style: AppTypography.bodySm(AppColors.danger),
+                  ),
+                ),
+                const SizedBox(height: AppSpace.md),
               ],
+
               if (_step == 0) ...[
                 AppTextField(
                   controller: _emailController,
                   label: 'البريد الإلكتروني',
-                  hint: 'example@clinic.com',
+                  hint: 'name@clinic.com',
                   keyboardType: TextInputType.emailAddress,
-                  prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                  prefixIcon: const Icon(Icons.mail_outline_rounded, size: 18),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'يرجى إدخال البريد الإلكتروني';
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v.trim())) {
-                      return 'صيغة البريد الإلكتروني غير صحيحة';
-                    }
+                    if (v == null || v.trim().isEmpty) return 'أدخل البريد الإلكتروني المسجل';
                     return null;
                   },
                 ),
-                const SizedBox(height: AppSpace.xl),
-                AppButton(label: 'إرسال رمز التحقق', onPressed: _isLoading ? null : _sendResetOtp, loading: _isLoading),
+                const SizedBox(height: AppSpace.lg),
+                AppButton(
+                  label: 'إرسال رمز التحقق',
+                  icon: Icons.send_rounded,
+                  onPressed: _isLoading ? null : _sendResetOtp,
+                  loading: _isLoading,
+                  size: AppButtonSize.md,
+                ),
               ] else if (_step == 1) ...[
                 AppTextField(
                   controller: _otpController,
                   label: 'رمز التحقق (OTP)',
                   hint: '123456',
                   keyboardType: TextInputType.number,
-                  prefixIcon: const Icon(Icons.pin_outlined, size: 20),
+                  prefixIcon: const Icon(Icons.pin_outlined, size: 18),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'يرجى إدخال رمز التحقق';
-                    if (v.trim().length < 6) return 'يجب أن يتكون الرمز من 6 أرقام';
+                    if (v == null || v.trim().isEmpty) return 'أدخل رمز التحقق (OTP)';
                     return null;
                   },
                 ),
-                const SizedBox(height: AppSpace.xl),
-                AppButton(label: 'تأكيد الرمز والمتابعة', onPressed: _isLoading ? null : _verifyOtp, loading: _isLoading),
-                const SizedBox(height: AppSpace.md),
+                const SizedBox(height: AppSpace.lg),
+                AppButton(
+                  label: 'تأكيد الرمز والمتابعة',
+                  icon: Icons.check_rounded,
+                  onPressed: _isLoading ? null : _verifyOtp,
+                  loading: _isLoading,
+                  size: AppButtonSize.md,
+                ),
+                const SizedBox(height: AppSpace.xs),
                 Center(
                   child: TextButton(
                     onPressed: _isLoading ? null : _resendOtp,
-                    child: Text('لم يصلك الرمز؟ إعادة الإرسال', style: AppTypography.bodySm(AppColors.primary).copyWith(fontWeight: FontWeight.w800)),
+                    child: Text('إعادة إرسال الرمز', style: AppTypography.caption(AppColors.primary)),
                   ),
                 ),
               ] else ...[
@@ -289,42 +268,49 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   controller: _newPasswordController,
                   label: 'كلمة المرور الجديدة',
                   obscure: !_isPasswordVisible,
-                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18),
                   suffixIcon: IconButton(
-                    icon: Icon(_isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20),
+                    icon: Icon(_isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18),
                     onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'يرجى إدخال كلمة المرور';
-                    if (v.length < 8) return 'يجب ألا تقل كلمة المرور عن 8 أحرف';
-                    if (!RegExp(r'^(?=.*[A-Za-z])(?=.*\d)').hasMatch(v)) return 'كلمة المرور ضعيفة (يجب أن تحتوي على حروف وأرقام)';
+                    if (v == null || v.length < 6) return 'كلمة المرور يجب ألا تقل عن 6 خانات';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: AppSpace.md),
+                AppTextField(
+                  controller: _confirmPasswordController,
+                  label: 'تأكيد كلمة المرور',
+                  obscure: !_isConfirmVisible,
+                  prefixIcon: const Icon(Icons.lock_reset_rounded, size: 18),
+                  suffixIcon: IconButton(
+                    icon: Icon(_isConfirmVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18),
+                    onPressed: () => setState(() => _isConfirmVisible = !_isConfirmVisible),
+                  ),
+                  validator: (v) {
+                    if (v != _newPasswordController.text) return 'كلمتا المرور غير متطابقتين';
                     return null;
                   },
                 ),
                 const SizedBox(height: AppSpace.lg),
-                AppTextField(
-                  controller: _confirmPasswordController,
-                  label: 'تأكيد كلمة المرور الجديدة',
-                  obscure: !_isConfirmVisible,
-                  prefixIcon: const Icon(Icons.lock_reset_rounded, size: 20),
-                  suffixIcon: IconButton(
-                    icon: Icon(_isConfirmVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20),
-                    onPressed: () => setState(() => _isConfirmVisible = !_isConfirmVisible),
-                  ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'يرجى تأكيد كلمة المرور';
-                    if (v != _newPasswordController.text) return 'تأكيد كلمة المرور غير مطابق';
-                    return null;
-                  },
+                AppButton(
+                  label: 'تعيين كلمة المرور الجديدة',
+                  icon: Icons.check_circle_rounded,
+                  onPressed: _isLoading ? null : _updatePassword,
+                  loading: _isLoading,
+                  size: AppButtonSize.md,
                 ),
-                const SizedBox(height: AppSpace.xl),
-                AppButton(label: 'تحديث كلمة المرور', onPressed: _isLoading ? null : _updatePassword, loading: _isLoading),
               ],
-              const SizedBox(height: AppSpace.lg),
+
+              const SizedBox(height: AppSpace.md),
               Center(
                 child: TextButton(
                   onPressed: _navigateToLogin,
-                  child: Text('العودة لشاشة تسجيل الدخول', style: AppTypography.bodySm(AppColors.textSecondary(context)).copyWith(fontWeight: FontWeight.w600)),
+                  child: Text(
+                    'العودة لتسجيل الدخول',
+                    style: AppTypography.bodySm(AppColors.textSecondary(context)),
+                  ),
                 ),
               ),
             ],

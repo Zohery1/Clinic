@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
@@ -57,13 +57,17 @@ class AppBadge extends StatelessWidget {
             ),
             SizedBox(width: size == AppBadgeSize.sm ? 4 : 6),
           ],
-          Text(
-            label,
-            style: GoogleFonts.cairo(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w700,
-              color: colors.fg,
-              height: 1.3,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.cairo(
+                fontSize: fontSize,
+                fontWeight: FontWeight.w700,
+                color: colors.fg,
+                height: 1.3,
+              ),
             ),
           ),
         ],

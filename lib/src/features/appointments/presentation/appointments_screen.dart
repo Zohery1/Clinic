@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/ui/tokens/colors.dart';
 import '../../auth/domain/user_model.dart';
 import '../../auth/presentation/login_controller.dart';
+import '../../../core/routing/routing.dart';
 import 'appointments_controller.dart';
-import 'book_appointment_dialog.dart';
 import 'widgets/appointments_desktop_view.dart';
 import 'widgets/appointments_mobile_view.dart';
-import '../../../core/ui/tokens/colors.dart';
 
-/// Content-only widget for the Appointments tab. The parent [AppShell]
-/// (hosted by [DashboardScreen]) provides the sidebar, top bar, and
-/// navigation. This screen renders only the inner appointments views.
+/// الشاشة المركزية لإدارة المواعيد في تطبيق عيادتي (Appointments Hub).
+/// تستقبل المعلمات الأساسية للمنشأة والاشتراك، وتقوم بالتوزيع المتجاوب (Responsive Layout)
+/// بناءً على قيود الشاشة:
+/// - شاشات سطح المكتب والأجهزة اللوحية العريضة (Width >= 900px): [AppointmentsDesktopView]
+/// - شاشات الهواتف والأجهزة المدمجة (Width < 900px): [AppointmentsMobileView]
 class AppointmentsScreen extends ConsumerWidget {
   final DateTime? subscriptionEndDate;
   final String? inviteCode;
@@ -31,10 +33,25 @@ class AppointmentsScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final appointmentsAsync = ref.watch(todayAppointmentsProvider);
     final selectedDate = ref.watch(selectedDateProvider);
+
+    // تفعيل مزود المزامنة اللحظية طالما الشاشة نشطة
+    ref.watch(realtimeAppointmentsSyncProvider);
+
     if (user == null) {
-      return const Directionality(
+      return Directionality(
         textDirection: TextDirection.rtl,
-        child: Center(child: Text('يرجى تسجيل الدخول أولاً')),
+        child: Scaffold(
+          backgroundColor: AppColors.canvas(context),
+          body: Center(
+            child: Text(
+              'يرجى تسجيل الدخول أولاً للوصول إلى المواعيد',
+              style: TextStyle(
+                color: AppColors.textSecondary(context),
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
       );
     }
 
@@ -53,6 +70,8 @@ class AppointmentsScreen extends ConsumerWidget {
               ),
             );
           }
+
+          // واجهة الموبايل تدير Scaffold الخاص بها لدعم الـ FloatingActionButton
           return AppointmentsMobileView(
             user: user,
             appointmentsAsync: appointmentsAsync,
@@ -64,22 +83,23 @@ class AppointmentsScreen extends ConsumerWidget {
   }
 }
 
-/// Top-bar action used by the dashboard to open the booking dialog.
+/// زر إجراء الحجز العلوي السريع المستخدم في شريط التطبيق أو لوحة التحكم.
 class AppointmentsBookingAction extends ConsumerWidget {
   final UserModel user;
-  const AppointmentsBookingAction({super.key, required this.user});
+
+  const AppointmentsBookingAction({
+    super.key,
+    required this.user,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
       tooltip: 'حجز جديد',
-      onPressed: () {
-        showDialog<void>(
-          context: context,
-          builder: (_) =>
-              BookAppointmentDialog(clinicId: user.clinicId),
-        );
-      },
+      onPressed: () => AppNavigation.showBookAppointment(
+        context,
+        clinicId: user.clinicId,
+      ),
       icon: const Icon(Icons.add_rounded),
       style: IconButton.styleFrom(
         backgroundColor: AppColors.primary,

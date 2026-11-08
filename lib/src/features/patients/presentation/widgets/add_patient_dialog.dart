@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/patient_repository.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
 import '../../../../core/widgets/clinic_toast.dart';
 import '../../../auth/presentation/login_controller.dart';
@@ -37,8 +37,6 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
   }
 
   Widget _buildGenderToggle() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final isMale = _selectedGender == 'male';
     final isFemale = _selectedGender == 'female';
 
@@ -52,7 +50,7 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
             style: GoogleFonts.cairo(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: theme.textTheme.bodySmall?.color,
+              color: AppColors.textSecondary(context),
             ),
           ),
         ),
@@ -66,13 +64,13 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
                   height: 46,
                   decoration: BoxDecoration(
                     color: isMale
-                        ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.20 : 0.10)
-                        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
+                        ? AppColors.primarySubtle
+                        : AppColors.subtle(context),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: isMale
-                          ? theme.colorScheme.primary
-                          : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          ? AppColors.primary
+                          : AppColors.borderSubtle(context),
                       width: isMale ? 1.5 : 1.0,
                     ),
                   ),
@@ -84,18 +82,20 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
                         Icons.male_rounded,
                         size: 18,
                         color: isMale
-                            ? theme.colorScheme.primary
-                            : theme.hintColor,
+                            ? AppColors.primary
+                            : AppColors.textMuted(context),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'ذكر',
-                        style: GoogleFonts.cairo(
-                          fontSize: 13,
-                          fontWeight: isMale ? FontWeight.w700 : FontWeight.w600,
-                          color: isMale
-                              ? theme.colorScheme.primary
-                              : theme.textTheme.bodyLarge?.color,
+                      Flexible(
+                        child: Text(
+                          'ذكر',
+                          style: GoogleFonts.cairo(
+                            fontSize: 13,
+                            fontWeight: isMale ? FontWeight.w700 : FontWeight.w600,
+                            color: isMale
+                                ? AppColors.primary
+                                : AppColors.textPrimary(context),
+                          ),
                         ),
                       ),
                     ],
@@ -112,13 +112,13 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
                   height: 46,
                   decoration: BoxDecoration(
                     color: isFemale
-                        ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.20 : 0.10)
-                        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
+                        ? AppColors.primarySubtle
+                        : AppColors.subtle(context),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: isFemale
-                          ? theme.colorScheme.primary
-                          : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          ? AppColors.primary
+                          : AppColors.borderSubtle(context),
                       width: isFemale ? 1.5 : 1.0,
                     ),
                   ),
@@ -130,18 +130,20 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
                         Icons.female_rounded,
                         size: 18,
                         color: isFemale
-                            ? theme.colorScheme.primary
-                            : theme.hintColor,
+                            ? AppColors.primary
+                            : AppColors.textMuted(context),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'أنثى',
-                        style: GoogleFonts.cairo(
-                          fontSize: 13,
-                          fontWeight: isFemale ? FontWeight.w700 : FontWeight.w600,
-                          color: isFemale
-                              ? theme.colorScheme.primary
-                              : theme.textTheme.bodyLarge?.color,
+                      Flexible(
+                        child: Text(
+                          'أنثى',
+                          style: GoogleFonts.cairo(
+                            fontSize: 13,
+                            fontWeight: isFemale ? FontWeight.w700 : FontWeight.w600,
+                            color: isFemale
+                                ? AppColors.primary
+                                : AppColors.textPrimary(context),
+                          ),
                         ),
                       ),
                     ],
@@ -234,7 +236,7 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
       child: ClinicDialog(
         icon: Icons.person_add_alt_1_rounded,
         title: 'تسجيل مريض جديد',
-        subtitle: 'البيانات المُدخلة ستُحفظ في سجل المريض',
+        subtitle: 'إدخال البيانات الشخصية والطبية للمريض',
         maxWidth: isMobile ? double.infinity : 640,
         content: Form(
           key: _formKey,
@@ -263,14 +265,16 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
           ElevatedButton(
             onPressed: _isSaving ? null : _savePatient,
             style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               elevation: 0,
             ),
             child: _isSaving
-                ? SizedBox(
+                ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
                 : Text('تسجيل وحفظ',
                     style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
@@ -313,25 +317,25 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
               child: AlertDialog(
                 title: const Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: AppTheme.warning),
+                    Icon(Icons.warning_amber_rounded, color: AppColors.warning),
                     SizedBox(width: 8),
-                    Text('تنبيه: مريض مشابه مسجل مسبقاً'),
+                    Text('تنبيه: مريض مسجل مسبقاً'),
                   ],
                 ),
                 content: Text(
-                  'عثر النظام على ملف مسجل باسم أو رقم مشابه جداً:\n\n'
-                  '• ${first.fullName} (هاتف: ${first.phone ?? 'غير مسجل'})\n\n'
-                  'هل ترغب في إنشاء ملف جديد أم الاستعانة بالملف القائم؟',
+                  'يوجد مريض مسجل مسبقاً بنفس الاسم أو رقم الهاتف:\n\n'
+                  '• ${first.fullName} (${first.phone ?? 'بدون هاتف'})\n\n'
+                  'هل تريد المتابعة وإنشاء ملف جديد؟',
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('تراجع / إلغاء'),
+                    child: const Text('إلغاء'),
                   ),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.primary),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
                     onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('إنشاء ملف جديد على أي حال'),
+                    child: const Text('متابعة وإنشاء ملف'),
                   ),
                 ],
               ),
@@ -371,7 +375,7 @@ class _AddPatientDialogState extends ConsumerState<AddPatientDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ClinicToast.showError(context, 'خطأ: $e');
+        ClinicToast.showError(context, 'تعذر تسجيل المريض، يرجى التحقق والمحاولة مجدداً');
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

@@ -6,14 +6,8 @@ import '../../../core/ui/tokens/spacing.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
-import 'clinic_branches_page.dart';
+import '../../../core/routing/routing.dart';
 import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
-
-import 'subpages/clinic_details_page.dart';
-import 'subpages/staff_permissions_page.dart';
-import 'subpages/theme_settings_page.dart';
-import 'subpages/services_config_page.dart';
-import 'subpages/whatsapp_automation_page.dart';
 import 'widgets/user_profile_header.dart';
 import 'widgets/clinic_subscription_card.dart';
 import 'widgets/settings_tile.dart';
@@ -67,45 +61,33 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: AppSpace.xxl),
 
             // ─── القسم الأول: البيانات والملفات ───
-            const SettingsSectionHeader(title: 'البيانات الشخصية والعيادة'),
+            const SettingsSectionHeader(title: 'بيانات العيادة والطبيب'),
             SettingsCardGroup(
               children: [
                 SettingsTile(
                   icon: Icons.local_hospital_outlined,
-                  title: 'بيانات العيادة والدكتور',
-                  subtitle: 'تعديل اسم الطبيب، واسم المركز الطبي',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ClinicDetailsPage()),
-                    );
-                  },
+                  title: 'بيانات العيادة والطبيب',
+                  subtitle: 'تعديل اسم الطبيب، التخصص، وبيانات المركز',
+                  onTap: () => AppNavigation.toClinicDetails(context),
                 ),
                 if (isDoctor)
                   SettingsTile(
                     icon: Icons.badge_outlined,
-                    title: 'مشاركة كود الدعوة والصلاحيات',
-                    subtitle: 'إرسال رابط التسجيل للسكرتيرة وضبط الصلاحيات',
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const StaffPermissionsPage()),
-                      );
-                    },
+                    title: 'طاقم العمل والصلاحيات',
+                    subtitle: 'دعوة طاقم العمل وتحديد الصلاحيات',
+                    onTap: () => AppNavigation.toStaffPermissions(context),
                   ),
                 if (user.isOwner)
                   SettingsTile(
                     icon: Icons.store_mall_directory_outlined,
-                    title: 'إدارة فروع العيادة',
-                    subtitle: 'إضافة وتعديل فروع المركز والعيادات الفرعية',
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ClinicBranchesPage()),
-                      );
-                    },
+                    title: 'فروع العيادة',
+                    subtitle: 'إضافة وتعديل بيانات الفروع',
+                    onTap: () => AppNavigation.toClinicBranches(context),
                   ),
                 SettingsTile(
                   icon: Icons.swap_horiz_rounded,
-                  title: 'التبديل بين العيادات والفروع',
-                  subtitle: 'التنقل الفوري بين عياداتك وفروعها المسجلة',
+                  title: 'التبديل بين الفروع والعيادات',
+                  subtitle: 'التنقل السريع بين الفروع المسجلة',
                   onTap: () {
                     ClinicSwitcherButton.showSwitcherModal(context, ref);
                   },
@@ -120,13 +102,9 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 SettingsTile(
                   icon: Icons.medical_services_outlined,
-                  title: 'إدارة الكشوفات والخدمات',
-                  subtitle: 'ضبط أسعار الكشوفات والخدمات الإضافية',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ServicesConfigPage()),
-                    );
-                  },
+                  title: 'قائمة الخدمات والأسعار',
+                  subtitle: 'تحديد أسعار الكشوفات والخدمات الطبية',
+                  onTap: () => AppNavigation.toServicesConfig(context),
                 ),
               ],
             ),
@@ -138,35 +116,27 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 SettingsTile(
                   icon: Icons.chat_outlined,
-                  title: 'إعدادات الواتساب والأتمتة',
-                  subtitle: 'ربط رقم العيادة وتعديل قوالب الرسائل التلقائية',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const WhatsAppAutomationPage()),
-                    );
-                  },
+                  title: 'إشعارات الواتساب',
+                  subtitle: 'ربط الحساب وتخصيص رسائل التذكير التلقائية',
+                  onTap: () => AppNavigation.toWhatsAppAutomation(context),
                 ),
               ],
             ),
             const SizedBox(height: AppSpace.xl),
 
             // ─── القسم الرابع: المظهر والنظام ───
-            const SettingsSectionHeader(title: 'تخصيص النظام'),
+            const SettingsSectionHeader(title: 'المظهر والعرض'),
             SettingsCardGroup(
               children: [
                 SettingsTile(
                   icon: Icons.dark_mode_outlined,
-                  title: 'مظهر التطبيق (Theme)',
+                  title: 'مظهر التطبيق',
                   subtitle: currentTheme == ThemeMode.light
-                      ? 'الوضع الفاتح (النهاري)'
+                      ? 'الوضع الفاتح'
                       : currentTheme == ThemeMode.dark
-                          ? 'الوضع الداكن (الليلي)'
+                          ? 'الوضع الداكن'
                           : 'تلقائي (حسب النظام)',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ThemeSettingsPage()),
-                    );
-                  },
+                  onTap: () => AppNavigation.toThemeSettings(context),
                 ),
               ],
             ),
@@ -182,7 +152,7 @@ class SettingsScreen extends ConsumerWidget {
             if (!user.isOwner) ...[
               const SizedBox(height: AppSpace.md),
               SettingsActionCard(
-                title: 'الخروج من العيادة',
+                title: 'مغادرة العيادة',
                 icon: Icons.no_accounts_outlined,
                 color: AppColors.danger,
                 onTap: () => SettingsDialogs.showLeaveClinicDialog(context, ref),

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,7 +5,6 @@ import 'package:intl/intl.dart' as intl;
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/double_bezel_card.dart';
 import '../../../core/ui/primitives/app_button.dart';
-import '../../reports/presentation/reports_controller.dart';
 import '../../dashboard/presentation/notifications_controller.dart';
 import '../data/appointment_repository.dart';
 import '../domain/appointment_model.dart';
@@ -40,20 +38,14 @@ class EditAppointmentDialog extends ConsumerStatefulWidget {
       barrierDismissible: true,
       barrierLabel: 'تعديل الموعد',
       barrierColor: Colors.black.withValues(alpha: 0.40),
-      transitionDuration: const Duration(milliseconds: 260),
+      transitionDuration: const Duration(milliseconds: 140),
       transitionBuilder: (ctx, anim1, anim2, child) {
         final curve = CurvedAnimation(parent: anim1, curve: AppMotion.curve);
-        return BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: 8.0 * curve.value,
-            sigmaY: 8.0 * curve.value,
-          ),
-          child: FadeTransition(
-            opacity: curve,
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 0.95, end: 1.0).animate(curve),
-              child: child,
-            ),
+        return FadeTransition(
+          opacity: curve,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.98, end: 1.0).animate(curve),
+            child: child,
           ),
         );
       },
@@ -150,16 +142,8 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
             selectedServices: _selectedServices,
           );
 
-      // Invalidate all 9 required providers
-      ref.invalidate(todayAppointmentsProvider);
-      ref.invalidate(appointmentsForDateProvider);
-      ref.invalidate(todayRevenueProvider);
-      ref.invalidate(monthRevenueProvider);
-      ref.invalidate(weeklyRevenueProvider);
-      ref.invalidate(sixWeeksRevenueProvider);
-      ref.invalidate(monthlyStatsProvider);
-      ref.invalidate(dailyStatsProvider);
-      ref.invalidate(detailedReportProvider);
+      // تحديث جداول اليوم والإيرادات بدون إغراق السيرفر بتقارير الشهور
+      invalidateAppointmentsAndReports(ref, refreshFullReports: false);
 
       try {
         final formattedTime = intl.DateFormat('hh:mm a', 'ar').format(appointmentDateTime);
@@ -179,7 +163,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
                 const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  'تم تحديث الموعد بنجاح',
+                  'تم تحديث بيانات الموعد بنجاح',
                   style: GoogleFonts.cairo(fontWeight: FontWeight.w600),
                 ),
               ],
@@ -201,7 +185,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'حدث خطأ أثناء تعديل الموعد: $e',
+                    'تعذر تعديل بيانات الموعد، يرجى إعادة المحاولة',
                     style: GoogleFonts.cairo(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -327,7 +311,7 @@ class _EditAppointmentDialogState extends ConsumerState<EditAppointmentDialog> {
                           width: 44,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: isDark ? AppColors.borderDark : const Color(0xFFCBD5E1),
+                            color: AppColors.borderSubtle(context),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),

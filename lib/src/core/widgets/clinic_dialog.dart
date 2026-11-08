@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../ui/tokens/colors.dart';
+import '../ui/tokens/spacing.dart';
 
-// ══════════════════════════════════════════════════════════
-// ClinicDialog — نظام حوارات موحد للتطبيق
-// يدعم ثلاثة أنواع: form / confirm / info
-// ══════════════════════════════════════════════════════════
-
+/// Clinical Utility Unified Dialog System.
 class ClinicDialog extends StatelessWidget {
+
   final IconData icon;
   final Color? iconColor;
   final String title;
@@ -27,9 +26,6 @@ class ClinicDialog extends StatelessWidget {
     this.maxWidth = 480,
   });
 
-  // ─── Static helpers ───────────────────────────────────
-
-  /// حوار نموذج (إضافة / تعديل)
   static Future<T?> show<T>({
     required BuildContext context,
     required IconData icon,
@@ -59,7 +55,6 @@ class ClinicDialog extends StatelessWidget {
     );
   }
 
-  /// حوار تأكيد (حذف / إلغاء)
   static Future<bool?> confirm({
     required BuildContext context,
     IconData icon = Icons.warning_amber_rounded,
@@ -88,7 +83,8 @@ class ClinicDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconBg = (iconColor ?? Theme.of(context).colorScheme.primary).withValues(alpha: 0.12);
+    final effectiveIconColor = iconColor ?? AppColors.primary;
+    final iconBg = effectiveIconColor.withValues(alpha: 0.12);
     final isMobile = MediaQuery.of(context).size.width < 650;
 
     return CallbackShortcuts(
@@ -99,151 +95,119 @@ class ClinicDialog extends StatelessWidget {
         autofocus: true,
         child: Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadii.lg),
             side: BorderSide(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1E2E4A)
-                  : const Color(0xFFE2E8F0),
-              width: 1.2,
+              color: AppColors.borderSubtle(context),
+              width: 1.0,
             ),
           ),
-          backgroundColor: Theme.of(context).colorScheme.surface,
+          backgroundColor: AppColors.surface(context),
           insetPadding: EdgeInsets.symmetric(
             horizontal: isMobile ? 12 : 24,
             vertical: isMobile ? 12 : 24,
           ),
           child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ─── Header ───
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                isMobile ? 14 : 20,
-                isMobile ? 12 : 20,
-                isMobile ? 12 : 16,
-                isMobile ? 8 : 16,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: iconBg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: iconColor ?? Theme.of(context).colorScheme.primary,
-                      size: isMobile ? 18 : 20,
-                    ),
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    isMobile ? 14 : 20,
+                    isMobile ? 14 : 20,
+                    isMobile ? 14 : 20,
+                    isMobile ? 10 : 14,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          title,
-                          style: GoogleFonts.cairo(
-                            fontSize: isMobile ? 14.5 : 16,
-                            fontWeight: FontWeight.w700,
-                            color: Theme.of(context).textTheme.titleLarge?.color,
-                          ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: iconBg,
+                          borderRadius: BorderRadius.circular(AppRadii.sm),
                         ),
-                        if (subtitle != null)
-                          Text(
-                            subtitle!,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.8),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () => Navigator.pop(context),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Container(
-                      width: 26,
-                      height: 26,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          )
-                        ],
-                        borderRadius: BorderRadius.circular(6),
+                        child: Icon(
+                          icon,
+                          color: effectiveIconColor,
+                          size: isMobile ? 18 : 20,
+                        ),
                       ),
-                      child: Icon(Icons.close_rounded,
-                          size: 14, color: Theme.of(context).hintColor),
+                      const SizedBox(width: AppSpace.sm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              title,
+                              style: GoogleFonts.cairo(
+                                fontSize: isMobile ? 14.5 : 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary(context),
+                              ),
+                            ),
+                            if (subtitle != null)
+                              Text(
+                                subtitle!,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary(context),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        color: AppColors.textMuted(context),
+                        splashRadius: 18,
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+
+                // Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
+                    padding: EdgeInsets.fromLTRB(
+                      isMobile ? 14 : 20,
+                      isMobile ? 12 : 16,
+                      isMobile ? 14 : 20,
+                      isMobile ? 8 : 12,
+                    ),
+                    child: content,
+                  ),
+                ),
+
+                // Actions
+                if (actions.isNotEmpty) ...[
+                  const Divider(height: 1),
+                  Padding(
+                    padding: EdgeInsets.all(isMobile ? 12 : 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: actions
+                          .expand((w) => [w, const SizedBox(width: 8)])
+                          .toList()
+                        ..removeLast(),
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
-            const SizedBox(height: 1),
-            // ─── Content ───
-            Flexible(
-              child: SingleChildScrollView(
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
-                padding: EdgeInsets.fromLTRB(
-                  isMobile ? 14 : 20,
-                  isMobile ? 10 : 16,
-                  isMobile ? 14 : 20,
-                  isMobile ? 6 : 8,
-                ),
-                child: content,
-              ),
-            ),
-            // ─── Actions ───
-            if (actions.isNotEmpty) ...[
-              const SizedBox(height: 1),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  isMobile ? 14 : 20,
-                  isMobile ? 8 : 12,
-                  isMobile ? 14 : 20,
-                  isMobile ? 10 : 16,
-                ),
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    elevatedButtonTheme: ElevatedButtonThemeData(
-                      style: Theme.of(context).elevatedButtonTheme.style?.copyWith(
-                        minimumSize: WidgetStateProperty.all(Size(80, isMobile ? 36 : 40)),
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: actions
-                        .expand((w) => [w, const SizedBox(width: 8)])
-                        .toList()
-                      ..removeLast(),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+          ),
         ),
       ),
     );
   }
 }
 
-// ══════════════════════════════════════════════════════════
-// _ConfirmDialog — حوار تأكيد مع loading state
-// ══════════════════════════════════════════════════════════
 class _ConfirmDialog extends StatefulWidget {
   final IconData icon;
   final Color? iconColor;
@@ -274,9 +238,7 @@ class _ConfirmDialogState extends State<_ConfirmDialog> {
 
   Color get _actionColor =>
       widget.iconColor ??
-      (widget.isDangerous
-          ? Theme.of(context).colorScheme.error
-          : Theme.of(context).colorScheme.primary);
+      (widget.isDangerous ? AppColors.danger : AppColors.primary);
 
   @override
   Widget build(BuildContext context) {
@@ -290,139 +252,135 @@ class _ConfirmDialogState extends State<_ConfirmDialog> {
           autofocus: true,
           child: Dialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppRadii.lg),
               side: BorderSide(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF1E2E4A)
-                    : const Color(0xFFE2E8F0),
-                width: 1.2,
+                color: AppColors.borderSubtle(context),
+                width: 1.0,
               ),
             ),
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+            backgroundColor: AppColors.surface(context),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 380),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // icon + title
-                Row(
+              constraints: const BoxConstraints(maxWidth: 380),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpace.xl),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: _actionColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadii.sm),
+                          ),
+                          child: Icon(widget.icon, color: _actionColor, size: 20),
+                        ),
+                        const SizedBox(width: AppSpace.sm),
+                        Expanded(
+                          child: Text(
+                            widget.title,
+                            style: GoogleFonts.cairo(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary(context),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpace.md),
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(AppSpace.md),
                       decoration: BoxDecoration(
-                        color: _actionColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
+                        color: AppColors.subtle(context),
+                        borderRadius: BorderRadius.circular(AppRadii.sm),
                       ),
-                      child: Icon(widget.icon, color: _actionColor, size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
                       child: Text(
-                        widget.title,
+                        widget.description,
                         style: GoogleFonts.cairo(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).textTheme.titleLarge?.color,
+                          fontSize: 13,
+                          height: 1.5,
+                          color: AppColors.textSecondary(context),
                         ),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // description
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: widget.isDangerous
-                        ? _actionColor.withValues(alpha: 0.05)
-                        : Theme.of(context).scaffoldBackgroundColor,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    widget.description,
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.5,
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // actions
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _loading ? null : () => Navigator.pop(context, false),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: Text(widget.cancelLabel),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: _loading
-                            ? null
-                            : () async {
-                                if (widget.onConfirm != null) {
-                                  setState(() => _loading = true);
-                                  try {
-                                    await widget.onConfirm!();
-                                    if (context.mounted) Navigator.pop(context, true);
-                                  } catch (_) {
-                                    if (mounted) setState(() => _loading = false);
-                                    rethrow;
-                                  }
-                                } else {
-                                  Navigator.pop(context, true);
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _actionColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: _loading
-                            ? const SizedBox(
-                                height: 16,
-                                width: 16,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
-                              )
-                            : Text(
-                                widget.confirmLabel,
-                                style: const TextStyle(fontWeight: FontWeight.w700),
+                    const SizedBox(height: AppSpace.lg),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _loading ? null : () => Navigator.pop(context, false),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadii.sm),
                               ),
-                      ),
+                            ),
+                            child: Text(
+                              widget.cancelLabel,
+                              style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpace.sm),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: _loading
+                                ? null
+                                : () async {
+                                    if (widget.onConfirm != null) {
+                                      setState(() => _loading = true);
+                                      try {
+                                        await widget.onConfirm!();
+                                        if (context.mounted) Navigator.pop(context, true);
+                                      } catch (_) {
+                                        if (mounted) setState(() => _loading = false);
+                                        rethrow;
+                                      }
+                                    } else {
+                                      Navigator.pop(context, true);
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _actionColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadii.sm),
+                              ),
+                            ),
+                            child: _loading
+                                ? const SizedBox(
+                                    height: 16,
+                                    width: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : Text(
+                                    widget.confirmLabel,
+                                    style: GoogleFonts.cairo(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
           ),
         ),
       ),
     );
   }
 }
-
-// ══════════════════════════════════════════════════════════
-// ClinicFormField — حقل إدخال موحد
-// ══════════════════════════════════════════════════════════
 
 class ClinicFormField extends StatelessWidget {
   final String label;
@@ -454,33 +412,37 @@ class ClinicFormField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelWidget = Row(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).textTheme.bodySmall?.color,
-          ),
-        ),
-        if (optional) ...[
-          const SizedBox(width: 4),
-          Text(
-            '(اختياري)',
-            style: TextStyle(
-              fontSize: 11,
-              color: Theme.of(context).hintColor,
-            ),
-          ),
-        ],
-      ],
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(padding: const EdgeInsets.only(bottom: 5), child: labelWidget),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.cairo(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary(context),
+                  ),
+                ),
+              ),
+              if (optional) ...[
+                const SizedBox(width: 4),
+                Text(
+                  '(اختياري)',
+                  style: GoogleFonts.cairo(
+                    fontSize: 11,
+                    color: AppColors.textMuted(context),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
@@ -488,20 +450,16 @@ class ClinicFormField extends StatelessWidget {
           minLines: minLines,
           readOnly: readOnly,
           onTap: onTap,
-          onTapOutside: (_) {},
-          scrollPadding: const EdgeInsets.all(20.0),
-          style: TextStyle(
-            fontSize: 14,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
+          style: GoogleFonts.cairo(
+            fontSize: 13.5,
+            color: AppColors.textPrimary(context),
           ),
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: prefixIcon != null
-                ? Icon(prefixIcon,
-                    size: 18,
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6))
+                ? Icon(prefixIcon, size: 18, color: AppColors.textMuted(context))
                 : null,
-            prefixIconConstraints: const BoxConstraints(minWidth: 40),
+            prefixIconConstraints: const BoxConstraints(minWidth: 36),
           ),
           validator: validator,
         ),
@@ -510,7 +468,6 @@ class ClinicFormField extends StatelessWidget {
   }
 }
 
-/// حقل Dropdown موحد
 class ClinicDropdownField<T> extends StatelessWidget {
   final String label;
   final T? value;
@@ -537,21 +494,23 @@ class ClinicDropdownField<T> extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 5),
+          padding: const EdgeInsets.only(bottom: 4),
           child: Row(
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12,
+                style: GoogleFonts.cairo(
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).textTheme.bodySmall?.color,
+                  color: AppColors.textPrimary(context),
                 ),
               ),
               if (optional) ...[
                 const SizedBox(width: 4),
-                Text('(اختياري)',
-                    style: TextStyle(fontSize: 11, color: Theme.of(context).hintColor)),
+                Text(
+                  '(اختياري)',
+                  style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textMuted(context)),
+                ),
               ],
             ],
           ),
@@ -561,17 +520,15 @@ class ClinicDropdownField<T> extends StatelessWidget {
           items: items,
           onChanged: onChanged,
           validator: validator,
-          style: TextStyle(
-            fontSize: 14,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
+          style: GoogleFonts.cairo(
+            fontSize: 13.5,
+            color: AppColors.textPrimary(context),
           ),
           decoration: InputDecoration(
             prefixIcon: prefixIcon != null
-                ? Icon(prefixIcon,
-                    size: 18,
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6))
+                ? Icon(prefixIcon, size: 18, color: AppColors.textMuted(context))
                 : null,
-            prefixIconConstraints: const BoxConstraints(minWidth: 40),
+            prefixIconConstraints: const BoxConstraints(minWidth: 36),
           ),
         ),
       ],
@@ -579,7 +536,6 @@ class ClinicDropdownField<T> extends StatelessWidget {
   }
 }
 
-/// Divider مع عنوان لتقسيم أقسام الفورم
 class ClinicFormSection extends StatelessWidget {
   final String title;
   final IconData? icon;
@@ -589,32 +545,29 @@ class ClinicFormSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 12),
+      padding: const EdgeInsets.only(top: 10, bottom: 10),
       child: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 14,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7)),
+            Icon(icon, size: 15, color: AppColors.primary),
             const SizedBox(width: 6),
           ],
           Text(
             title,
-            style: TextStyle(
-              fontSize: 11,
+            style: GoogleFonts.cairo(
+              fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
-              letterSpacing: 0.5,
+              color: AppColors.primary,
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+          Expanded(child: Divider(color: AppColors.borderSubtle(context))),
         ],
       ),
     );
   }
 }
 
-/// زر أساسي موحد للحوارات والشاشات
 class ClinicPrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -635,8 +588,7 @@ class ClinicPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bgColor = isDangerous ? theme.colorScheme.error : theme.colorScheme.primary;
+    final bgColor = isDangerous ? AppColors.danger : AppColors.primary;
 
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
@@ -647,17 +599,14 @@ class ClinicPrimaryButton extends StatelessWidget {
         minimumSize: Size(88, height ?? 40),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadii.sm),
         ),
       ),
       child: isLoading
           ? const SizedBox(
               width: 16,
               height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             )
           : Row(
               mainAxisSize: MainAxisSize.min,
@@ -679,7 +628,6 @@ class ClinicPrimaryButton extends StatelessWidget {
   }
 }
 
-/// زر ثانوي موحد للحوارات والشاشات
 class ClinicSecondaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -702,7 +650,7 @@ class ClinicSecondaryButton extends StatelessWidget {
         minimumSize: Size(72, height ?? 40),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadii.sm),
         ),
       ),
       child: Row(
@@ -724,4 +672,3 @@ class ClinicSecondaryButton extends StatelessWidget {
     );
   }
 }
-

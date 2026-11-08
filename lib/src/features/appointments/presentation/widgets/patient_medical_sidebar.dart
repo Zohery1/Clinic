@@ -11,6 +11,7 @@ import '../../data/appointment_repository.dart';
 import '../../domain/appointment_model.dart';
 import '../../data/visit_note_repository.dart';
 import '../../domain/visit_note_model.dart';
+import '../../../patients/presentation/widgets/pediatric_growth_card.dart';
 
 final patientAppointmentsProvider = FutureProvider.family<List<AppointmentModel>, String>((ref, patientId) async {
   final all = await ref.watch(appointmentRepositoryProvider).getPatientAppointments(patientId);
@@ -154,6 +155,11 @@ class _PatientMedicalSidebarState extends ConsumerState<PatientMedicalSidebar> {
                                     ),
                                   ],
                                 ),
+                              ],
+                              // ─── Pediatric growth curve ───
+                              if (patient != null) ...[
+                                const SizedBox(height: 14),
+                                PediatricGrowthCard(patient: patient),
                               ],
                             ],
                           );

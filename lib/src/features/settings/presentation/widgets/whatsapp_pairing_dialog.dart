@@ -110,7 +110,7 @@ class _WhatsAppPairingDialogState extends ConsumerState<WhatsAppPairingDialog> {
             SnackBar(
               duration: const Duration(seconds: 3),
               content: Text(connectedPhone.isNotEmpty
-                  ? 'تم ربط حساب الواتساب بنجاح! رقم العيادة: $connectedPhone'
+                  ? 'تم ربط حساب الواتساب بنجاح. رقم العيادة: $connectedPhone'
                   : 'تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
               backgroundColor: AppTheme.success,
             ),
@@ -172,7 +172,7 @@ class _WhatsAppPairingDialogState extends ConsumerState<WhatsAppPairingDialog> {
     } catch (e) {
       setState(() {
         _isLoadingQr = false;
-        _qrError = 'خطأ في الاتصال بالبوابة: $e';
+        _qrError = 'تعذر الاتصال ببوابة الواتساب، يرجى إعادة المحاولة';
       });
     }
   }
@@ -181,7 +181,7 @@ class _WhatsAppPairingDialogState extends ConsumerState<WhatsAppPairingDialog> {
     final phoneInput = _pairingPhoneController.text.trim();
     if (phoneInput.isEmpty) {
       setState(() {
-        _pairingError = 'يرجى كتابة رقم هاتف العيادة على الواتساب أولاً';
+        _pairingError = 'أدخل رقم هاتف العيادة على الواتساب أولاً';
       });
       return;
     }
@@ -229,7 +229,7 @@ class _WhatsAppPairingDialogState extends ConsumerState<WhatsAppPairingDialog> {
     } catch (e) {
       setState(() {
         _isLoadingPairing = false;
-        _pairingError = 'خطأ في الاتصال: $e';
+        _pairingError = 'تعذر الاتصال ببوابة الواتساب، يرجى إعادة المحاولة';
       });
     }
   }
@@ -548,7 +548,7 @@ class _WhatsAppPairingDialogState extends ConsumerState<WhatsAppPairingDialog> {
                     SnackBar(
                       duration: const Duration(seconds: 3),
                       content: Text(connectedPhone.isNotEmpty
-                          ? 'تم ربط الواتساب بنجاح! رقم العيادة: $connectedPhone'
+                          ? 'تم ربط الواتساب بنجاح. رقم العيادة: $connectedPhone'
                           : 'تم ربط حساب الواتساب بنجاح وتفعيل الأتمتة'),
                       backgroundColor: AppTheme.success,
                     ),

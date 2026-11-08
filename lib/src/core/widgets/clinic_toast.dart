@@ -44,7 +44,7 @@ class ClinicToast {
             left: horizontalMargin,
             right: horizontalMargin,
           ),
-          backgroundColor: const Color(0xFF0B1324),
+          backgroundColor: AppColors.gray900,
           elevation: 10,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),

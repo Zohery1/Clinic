@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/patient_repository.dart';
 import '../../domain/patient_model.dart';
+import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
 import '../../../../core/widgets/clinic_toast.dart';
 
@@ -58,8 +59,6 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
   }
 
   Widget _buildGenderToggle() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final isMale = _selectedGender == 'male';
     final isFemale = _selectedGender == 'female';
 
@@ -73,7 +72,7 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
             style: GoogleFonts.cairo(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: theme.textTheme.bodySmall?.color,
+              color: AppColors.textSecondary(context),
             ),
           ),
         ),
@@ -87,13 +86,13 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                   height: 46,
                   decoration: BoxDecoration(
                     color: isMale
-                        ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.20 : 0.10)
-                        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
+                        ? AppColors.primarySubtle
+                        : AppColors.subtle(context),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: isMale
-                          ? theme.colorScheme.primary
-                          : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          ? AppColors.primary
+                          : AppColors.borderSubtle(context),
                       width: isMale ? 1.5 : 1.0,
                     ),
                   ),
@@ -105,8 +104,8 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                         Icons.male_rounded,
                         size: 18,
                         color: isMale
-                            ? theme.colorScheme.primary
-                            : theme.hintColor,
+                            ? AppColors.primary
+                            : AppColors.textMuted(context),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -115,8 +114,8 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                           fontSize: 13,
                           fontWeight: isMale ? FontWeight.w700 : FontWeight.w600,
                           color: isMale
-                              ? theme.colorScheme.primary
-                              : theme.textTheme.bodyLarge?.color,
+                              ? AppColors.primary
+                              : AppColors.textPrimary(context),
                         ),
                       ),
                     ],
@@ -133,13 +132,13 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                   height: 46,
                   decoration: BoxDecoration(
                     color: isFemale
-                        ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.20 : 0.10)
-                        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
+                        ? AppColors.primarySubtle
+                        : AppColors.subtle(context),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: isFemale
-                          ? theme.colorScheme.primary
-                          : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                          ? AppColors.primary
+                          : AppColors.borderSubtle(context),
                       width: isFemale ? 1.5 : 1.0,
                     ),
                   ),
@@ -151,8 +150,8 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                         Icons.female_rounded,
                         size: 18,
                         color: isFemale
-                            ? theme.colorScheme.primary
-                            : theme.hintColor,
+                            ? AppColors.primary
+                            : AppColors.textMuted(context),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -161,8 +160,8 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
                           fontSize: 13,
                           fontWeight: isFemale ? FontWeight.w700 : FontWeight.w600,
                           color: isFemale
-                              ? theme.colorScheme.primary
-                              : theme.textTheme.bodyLarge?.color,
+                              ? AppColors.primary
+                              : AppColors.textPrimary(context),
                         ),
                       ),
                     ],
@@ -187,7 +186,7 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
         hint: 'محمد أحمد علي',
         prefixIcon: Icons.person_outline,
         controller: _nameController,
-        validator: (v) => (v == null || v.trim().isEmpty) ? 'يرجى إدخال الاسم' : null,
+        validator: (v) => (v == null || v.trim().isEmpty) ? 'أدخل اسم المريض' : null,
       ),
       const SizedBox(height: 14),
       ClinicFormField(
@@ -197,9 +196,9 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
         controller: _phoneController,
         keyboardType: TextInputType.phone,
         validator: (v) {
-          if (v == null || v.trim().isEmpty) return 'يرجى إدخال رقم الهاتف';
+          if (v == null || v.trim().isEmpty) return 'أدخل رقم هاتف المريض';
           final clean = v.replaceAll(RegExp(r'\D'), '');
-          if (clean.length < 11) return 'صيغة رقم الهاتف خاطئة (أقل من 11 رقم)';
+          if (clean.length < 11) return 'رقم الهاتف يجب أن يتكون من 11 رقماً على الأقل';
           return null;
         },
       ),
@@ -215,9 +214,9 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
               controller: _ageController,
               keyboardType: TextInputType.number,
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'يرجى إدخال العمر';
+                if (v == null || v.trim().isEmpty) return 'أدخل عمر المريض';
                 final age = int.tryParse(v.trim());
-                if (age == null || age <= 0 || age > 150) return 'يرجى إدخال عمر صحيح';
+                if (age == null || age <= 0 || age > 150) return 'أدخل عمراً صحيحاً';
                 return null;
               },
             ),
@@ -284,13 +283,16 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
           ElevatedButton(
             onPressed: _isSaving ? null : _updatePatient,
             style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: 0),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
             child: _isSaving
-                ? SizedBox(
+                ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
                 : Text('حفظ التعديل',
                     style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
@@ -302,7 +304,7 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
 
   Future<void> _updatePatient() async {
     if (_selectedGender == null) {
-      ClinicToast.showWarning(context, 'يرجى تحديد الجنس');
+      ClinicToast.showWarning(context, 'حدد النوع (ذكر / أنثى)');
       return;
     }
     if (!_formKey.currentState!.validate()) return;
@@ -326,12 +328,12 @@ class _EditPatientDialogState extends ConsumerState<EditPatientDialog> {
       ref.invalidate(patientsListProvider(widget.clinicId));
 
       if (mounted) {
-        ClinicToast.showSuccess(context, 'تم تحديث البيانات بنجاح');
+        ClinicToast.showSuccess(context, 'تم تحديث بيانات المريض بنجاح');
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ClinicToast.showError(context, 'خطأ: $e');
+        ClinicToast.showError(context, 'تعذر تحديث بيانات المريض، يرجى المحاولة مجدداً');
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

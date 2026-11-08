@@ -1,11 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 
 import '../../../../core/ui/data/app_data_table.dart';
 import '../../../../core/ui/tokens/spacing.dart';
+import '../../../../core/routing/routing.dart';
 import '../reports_controller.dart';
-import '../report_detail_screen.dart';
 import 'daily_logs_filters.dart';
 
 class DailyLogsTab extends ConsumerWidget {
@@ -96,14 +96,11 @@ class DailyLogsTab extends ConsumerWidget {
           onRowTap: (row) {
             final dt = row['_date'] as DateTime?;
             if (dt == null) return;
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ReportDetailScreen(
-                  startDate: dt,
-                  endDate: dt,
-                  isMonthly: false,
-                ),
-              ),
+            AppNavigation.toReportDetail(
+              context,
+              startDate: dt,
+              endDate: dt,
+              isMonthly: false,
             );
           },
         ),

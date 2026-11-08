@@ -2,7 +2,6 @@
 import 'package:google_fonts/google_fonts.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
-import '../tokens/shadows.dart';
 import '../tokens/motion.dart';
 
 enum AppButtonVariant { primary, secondary, ghost, danger, destructive }
@@ -44,7 +43,7 @@ class _AppButtonState extends State<AppButton> {
       case AppButtonSize.sm:
         return 32;
       case AppButtonSize.md:
-        return 40;
+        return 42;
       case AppButtonSize.lg:
         return 48;
     }
@@ -92,9 +91,7 @@ class _AppButtonState extends State<AppButton> {
     final foreground = _resolveForeground(isDark);
     final border = _resolveBorder(isDark);
 
-    final radius = BorderRadius.circular(
-      widget.variant == AppButtonVariant.ghost ? AppRadii.radiusSm : AppRadii.radiusMd,
-    );
+    const radius = BorderRadius.all(Radius.circular(AppRadii.radiusSm));
 
     final width = widget.expand ? double.infinity : null;
 
@@ -107,9 +104,6 @@ class _AppButtonState extends State<AppButton> {
         color: background,
         borderRadius: radius,
         border: border == null ? null : Border.all(color: border, width: 1),
-        boxShadow: widget.variant == AppButtonVariant.primary && isInteractive
-            ? AppShadows.sm(context)
-            : null,
       ),
       child: Material(
         type: MaterialType.transparency,
@@ -167,7 +161,9 @@ class _AppButtonState extends State<AppButton> {
     }
     switch (widget.variant) {
       case AppButtonVariant.primary:
-        return _hovered ? AppColors.primaryHover : AppColors.primary;
+        final accent = AppColors.accent(context);
+        if (!_hovered) return accent;
+        return Color.lerp(accent, Colors.black, isDark ? 0.16 : 0.12)!;
       case AppButtonVariant.secondary:
         return _hovered
             ? (isDark ? AppColors.darkSubtle : AppColors.lightSubtle)
@@ -188,6 +184,7 @@ class _AppButtonState extends State<AppButton> {
     }
     switch (widget.variant) {
       case AppButtonVariant.primary:
+        return AppColors.onAccent(context);
       case AppButtonVariant.danger:
       case AppButtonVariant.destructive:
         return AppColors.onPrimary;

@@ -1,8 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../tokens/colors.dart';
+import '../tokens/spacing.dart';
 
-/// Thin Material Tooltip wrapper with consistent dark style.
+/// Thin Material Tooltip wrapper with consistent clinical style.
 class AppTooltip extends StatelessWidget {
   final String message;
   final Widget child;
@@ -31,8 +32,8 @@ class AppTooltip extends StatelessWidget {
         height: 1.3,
       ),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.lightSurface : const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(8),
+        color: isDark ? AppColors.lightSurface : AppColors.gray900,
+        borderRadius: BorderRadius.circular(AppRadii.sm),
         border: Border.all(
           color: isDark ? AppColors.darkBorder : Colors.transparent,
         ),

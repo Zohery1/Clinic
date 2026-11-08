@@ -1,12 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
-/// Spacing, padding, and radius tokens for the Premium Enterprise SaaS
-/// design system. Pure 4-pt scale. Every layout / primitive should
-/// reference these instead of magic numbers.
+/// Spacing and padding tokens for Clinical Utility design.
+/// 4-pt grid scale.
 class AppSpace {
   AppSpace._();
 
-  // Base 4-pt scale
   static const double xs = 4;
   static const double sm = 8;
   static const double md = 12;
@@ -18,11 +16,9 @@ class AppSpace {
   static const double xxxxxl = 48;
   static const double huge = 64;
 
-  // Backward-compatible names
   static const double x2l = xxl;
   static const double x3l = xxxl;
 
-  // EdgeInsets
   static const EdgeInsets pageHorizontal = EdgeInsets.symmetric(horizontal: 24);
   static const EdgeInsets pageHorizontalCompact = EdgeInsets.symmetric(horizontal: 16);
 
@@ -44,7 +40,7 @@ class AppSpace {
   static const EdgeInsets paddingListItem = EdgeInsets.symmetric(horizontal: md, vertical: sm);
 }
 
-/// Radius tokens — shared between buttons, cards, inputs, modals.
+/// Radius tokens — shared across inputs, cards, and dialogs.
 class AppRadii {
   AppRadii._();
 
@@ -55,6 +51,14 @@ class AppRadii {
   static const double radiusXl = 20;
   static const double radiusX2l = 24;
   static const double radiusFull = 9999;
+
+  // Direct short aliases
+  static const double xs = radiusXs;
+  static const double sm = radiusSm;
+  static const double md = radiusMd;
+  static const double lg = radiusLg;
+  static const double xl = radiusXl;
+  static const double full = radiusFull;
 
   static final BorderRadius brXs = BorderRadius.circular(radiusXs);
   static final BorderRadius brSm = BorderRadius.circular(radiusSm);

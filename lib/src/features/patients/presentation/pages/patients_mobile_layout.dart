@@ -5,7 +5,7 @@ import '../../../../core/ui/primitives/app_button.dart';
 import '../../../../core/ui/tokens/spacing.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../domain/patient_model.dart';
-import '../patient_details_dialog.dart';
+import '../../../../core/routing/routing.dart';
 import '../widgets/add_patient_dialog.dart';
 import '../widgets/edit_patient_dialog.dart';
 import 'patients_delete_dialog.dart';
@@ -76,11 +76,11 @@ class PatientsMobileLayout extends ConsumerWidget {
   }
 
   void _openDetails(BuildContext context, PatientModel p) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PatientDetailsDialog(clinicId: clinicId, patient: p),
-        fullscreenDialog: true,
-      ),
+    AppNavigation.showPatientDetails(
+      context,
+      clinicId: clinicId,
+      patient: p,
+      asFullscreen: true,
     );
   }
 }

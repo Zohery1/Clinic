@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../features/auth/domain/user_model.dart';
+import '../tokens/breakpoints.dart';
 import '../tokens/colors.dart';
 import '../tokens/motion.dart';
 import '../tokens/spacing.dart';
@@ -9,10 +9,13 @@ import 'app_scaffold.dart';
 import 'app_sidebar.dart';
 import 'app_top_bar.dart';
 
-/// Responsive shell. >=900px uses sidebar + top bar; <900px uses
-/// top bar + bottom nav (sidebar is reserved for a later drawer phase).
+/// Responsive clinical shell.
+///
+/// >=840 keeps a persistent sidebar; 600-839 collapses it to a rail; below 600
+/// the navigation becomes a bottom bar. The shell owns page padding so screens
+/// never double up on insets.
 class AppShell extends StatelessWidget {
-  static const double kDesktopBreakpoint = 900;
+  static const double kDesktopBreakpoint = AppBreakpoints.medium;
 
   final String currentRoute;
   final ValueChanged<String> onNavigate;
@@ -49,11 +52,23 @@ class AppShell extends StatelessWidget {
     this.subtitle,
   });
 
+  EdgeInsets _padding(double width) {
+    if (width >= AppBreakpoints.large) return const EdgeInsets.all(AppSpace.xxxl);
+    if (width >= AppBreakpoints.expanded) {
+      return const EdgeInsets.all(AppSpace.xxl + 4);
+    }
+    if (width >= AppBreakpoints.medium) return const EdgeInsets.all(AppSpace.xxl);
+    if (width >= AppBreakpoints.compact) return const EdgeInsets.all(AppSpace.xl);
+    return const EdgeInsets.all(AppSpace.lg);
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= kDesktopBreakpoint;
+        final width = constraints.maxWidth;
+        final showSidebar = width >= AppBreakpoints.sidebarPanel;
+        final expandedSidebar = width >= AppBreakpoints.expanded;
 
         final topBar = AppTopBar(
           title: title,
@@ -62,13 +77,12 @@ class AppShell extends StatelessWidget {
           actions: actions,
           unreadCount: unreadCount,
           onNotificationsTap: onNotificationsTap,
-          onUserTap: onUserTap,
-          onSearchTap: onSearchTap,
-          userName: user.fullName,
-          compact: !isDesktop,
+          onThemeToggle: onThemeToggle,
+          isDark: isDark,
+          compact: width < AppBreakpoints.medium,
         );
 
-        if (isDesktop) {
+        if (showSidebar) {
           return AppScaffold(
             sidebar: AppSidebar(
               currentRoute: currentRoute,
@@ -76,14 +90,14 @@ class AppShell extends StatelessWidget {
               user: user,
               clinicName: clinicName,
               unreadCount: unreadCount,
-              expanded: true,
+              expanded: expandedSidebar,
               onThemeToggle: onThemeToggle,
               isDark: isDark,
               onUserTap: onUserTap,
             ),
             topBar: topBar,
             body: child,
-            padding: const EdgeInsets.all(AppSpace.xxl),
+            padding: _padding(width),
           );
         }
 
@@ -95,14 +109,14 @@ class AppShell extends StatelessWidget {
             onNavigate: onNavigate,
             user: user,
           ),
-          padding: const EdgeInsets.all(AppSpace.lg),
+          padding: _padding(width),
         );
       },
     );
   }
 }
 
-/// Modern pill-style bottom nav (mobile only). Up to 5 items.
+/// Compact bottom navigation. Up to 5 destinations, no overflow labels.
 class AppBottomNav extends StatelessWidget {
   final String currentRoute;
   final ValueChanged<String> onNavigate;
@@ -116,73 +130,72 @@ class AppBottomNav extends StatelessWidget {
   });
 
   List<_BottomItem> _items() {
-    final base = <_BottomItem>[
+    return <_BottomItem>[
       const _BottomItem(
         route: '/home',
-        icon: Icons.dashboard_outlined,
-        activeIcon: Icons.dashboard_rounded,
+        icon: Icons.grid_view_outlined,
+        activeIcon: Icons.grid_view_rounded,
         label: 'الرئيسية',
       ),
       const _BottomItem(
         route: '/appointments',
-        icon: Icons.calendar_today_outlined,
-        activeIcon: Icons.calendar_today_rounded,
+        icon: Icons.event_note_outlined,
+        activeIcon: Icons.event_note_rounded,
         label: 'المواعيد',
       ),
       const _BottomItem(
         route: '/patients',
-        icon: Icons.people_alt_outlined,
-        activeIcon: Icons.people_alt_rounded,
+        icon: Icons.folder_shared_outlined,
+        activeIcon: Icons.folder_shared_rounded,
         label: 'المرضى',
       ),
       if (user.isOwner)
         const _BottomItem(
           route: '/reports',
-          icon: Icons.insights_outlined,
-          activeIcon: Icons.insights_rounded,
+          icon: Icons.query_stats_outlined,
+          activeIcon: Icons.query_stats_rounded,
           label: 'التقارير',
         ),
       const _BottomItem(
         route: '/settings',
-        icon: Icons.settings_outlined,
-        activeIcon: Icons.settings_rounded,
+        icon: Icons.tune_outlined,
+        activeIcon: Icons.tune_rounded,
         label: 'الإعدادات',
       ),
     ];
-    return base.take(5).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final items = _items();
-    final isDark = AppColors.isDark(context);
-    final bg = AppColors.surface(context);
-    final border = AppColors.borderSubtle(context);
 
-    return AnimatedContainer(
-      duration: AppMotion.normal,
-      curve: AppMotion.easeOutCubic,
+    return Container(
       decoration: BoxDecoration(
-        color: bg,
-        border: Border(top: BorderSide(color: border, width: 1)),
+        color: AppColors.surface(context),
+        border: Border(
+          top: BorderSide(color: AppColors.borderSubtle(context), width: 1),
+        ),
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpace.sm,
-        vertical: AppSpace.sm,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          for (final item in items)
-            Expanded(
-              child: _BottomTile(
-                item: item,
-                active: currentRoute == item.route,
-                isDark: isDark,
-                onTap: () => onNavigate(item.route),
-              ),
-            ),
-        ],
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.sm,
+            vertical: 6,
+          ),
+          child: Row(
+            children: [
+              for (final item in items)
+                Expanded(
+                  child: _BottomTile(
+                    item: item,
+                    active: currentRoute == item.route,
+                    onTap: () => onNavigate(item.route),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -204,63 +217,49 @@ class _BottomItem {
 class _BottomTile extends StatelessWidget {
   final _BottomItem item;
   final bool active;
-  final bool isDark;
   final VoidCallback onTap;
 
   const _BottomTile({
     required this.item,
     required this.active,
-    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final fg = active ? AppColors.primary : AppColors.textSecondary(context);
-    final pillBg = AppColors.primary.withValues(
-      alpha: isDark ? 0.20 : 0.12,
-    );
+    final isDark = AppColors.isDark(context);
+    final accent = AppColors.accent(context);
+    final fg = active ? accent : AppColors.textMuted(context);
 
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadii.radiusMd),
         onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadii.sm),
         child: AnimatedContainer(
           duration: AppMotion.fast,
           curve: AppMotion.easeOutCubic,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpace.sm,
-            vertical: AppSpace.xs + 2,
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           decoration: BoxDecoration(
-            color: active ? pillBg : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppRadii.radiusMd),
-            border: active
-                ? Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    width: 1,
-                  )
-                : null,
+            color: active
+                ? accent.withValues(alpha: isDark ? 0.16 : 0.08)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadii.sm),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                active ? item.activeIcon : item.icon,
-                size: 22,
-                color: fg,
-              ),
+              Icon(active ? item.activeIcon : item.icon, size: 21, color: fg),
               const SizedBox(height: 2),
               Text(
                 item.label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.cairo(
-                  fontSize: 11,
-                  fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                   color: fg,
-                  height: 1.1,
+                  height: 1.15,
                 ),
               ),
             ],
@@ -270,4 +269,3 @@ class _BottomTile extends StatelessWidget {
     );
   }
 }
-

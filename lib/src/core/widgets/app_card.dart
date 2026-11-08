@@ -61,22 +61,22 @@ class _AppCardState extends State<AppCard> {
 
     final borderRadius = BorderRadius.circular(widget.radius);
 
-    final boxShadow = widget.elevated || (_isHovered && widget.onTap != null)
+    final boxShadow = widget.elevated
         ? [
             BoxShadow(
               color: isDark
                   ? Colors.black.withValues(alpha: 0.35)
-                  : Colors.black.withValues(alpha: 0.06),
-              blurRadius: 16,
+                  : Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
               spreadRadius: 0,
-              offset: const Offset(0, 4),
+              offset: const Offset(0, 2),
             ),
           ]
         : (widget.isSelected
             ? [
                 BoxShadow(
                   color: AppColors.primary.withValues(alpha: 0.12),
-                  blurRadius: 12,
+                  blurRadius: 6,
                   offset: const Offset(0, 2),
                 )
               ]
@@ -124,9 +124,7 @@ class _AppCardState extends State<AppCard> {
       );
     }
 
-    Widget body = AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
+    Widget body = Container(
       margin: widget.margin,
       decoration: BoxDecoration(
         color: effectiveBg,
@@ -140,7 +138,6 @@ class _AppCardState extends State<AppCard> {
       child: Material(
         color: Colors.transparent,
         borderRadius: borderRadius,
-        clipBehavior: Clip.antiAlias,
         child: widget.onTap != null
             ? InkWell(
                 onTap: widget.onTap,
@@ -155,8 +152,12 @@ class _AppCardState extends State<AppCard> {
 
     if (widget.onTap != null) {
       body = MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
+        onEnter: (_) {
+          if (!_isHovered) setState(() => _isHovered = true);
+        },
+        onExit: (_) {
+          if (_isHovered) setState(() => _isHovered = false);
+        },
         cursor: SystemMouseCursors.click,
         child: body,
       );

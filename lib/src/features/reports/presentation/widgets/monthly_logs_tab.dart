@@ -1,12 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 
 import '../../../../core/ui/data/app_data_table.dart';
 import '../../../../core/ui/primitives/app_button.dart';
 import '../../../../core/ui/tokens/spacing.dart';
+import '../../../../core/routing/routing.dart';
 import '../reports_controller.dart';
-import '../report_detail_screen.dart';
 
 class MonthlyLogsTab extends ConsumerWidget {
   const MonthlyLogsTab({super.key});
@@ -29,7 +29,7 @@ class MonthlyLogsTab extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             AppButton(
-              label: 'تصدير CSV',
+              label: 'تصدير التقرير الشهري (CSV)',
               icon: Icons.file_download_outlined,
               expand: false,
               size: AppButtonSize.sm,
@@ -77,14 +77,11 @@ class MonthlyLogsTab extends ConsumerWidget {
             if (dt == null) return;
             final monthStart = DateTime(dt.year, dt.month, 1);
             final monthEnd = DateTime(dt.year, dt.month + 1, 0);
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ReportDetailScreen(
-                  startDate: monthStart,
-                  endDate: monthEnd,
-                  isMonthly: true,
-                ),
-              ),
+            AppNavigation.toReportDetail(
+              context,
+              startDate: monthStart,
+              endDate: monthEnd,
+              isMonthly: true,
             );
           },
         ),

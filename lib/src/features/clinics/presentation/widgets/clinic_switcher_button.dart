@@ -355,7 +355,7 @@ class ClinicSwitcherButton extends ConsumerWidget {
                         border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
                       ),
                       child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisSize: minAxis,
                         children: [
                           Icon(Icons.check_circle_rounded, size: 14, color: primaryColor),
                           const SizedBox(width: 4),
@@ -379,7 +379,7 @@ class ClinicSwitcherButton extends ConsumerWidget {
                         border: Border.all(color: primaryColor.withValues(alpha: 0.25)),
                       ),
                       child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisSize: minAxis,
                         children: [
                           Text(
                             'دخول العيادة',
@@ -661,6 +661,8 @@ class ClinicSwitcherButton extends ConsumerWidget {
     );
   }
 
+  static const minAxis = MainAxisSize.min;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -680,8 +682,6 @@ class ClinicSwitcherButton extends ConsumerWidget {
       branchLabel = activeClinic.mainBranch?.name ?? 'الفرع الرئيسي';
     }
 
-    final isDark = theme.brightness == Brightness.dark;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -693,10 +693,10 @@ class ClinicSwitcherButton extends ConsumerWidget {
             vertical: isCompact ? 5 : 6,
           ),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+            color: AppColors.subtle(context),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              color: AppColors.borderSubtle(context),
               width: 1,
             ),
           ),

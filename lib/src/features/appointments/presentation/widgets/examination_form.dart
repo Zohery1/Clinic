@@ -31,15 +31,14 @@ class ExaminationForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.isDark(context);
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context)),
+        side: BorderSide(color: AppColors.borderSubtle(context)),
       ),
-      color: isDark ? AppColors.obsidianCard : AppColors.surface(context),
+      color: AppColors.surface(context),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: LayoutBuilder(
@@ -77,10 +76,11 @@ class ExaminationForm extends StatelessWidget {
                   const SizedBox(height: 20),
                 ],
 
+                _buildHpiBuilder(context: context, controller: complaintController),
                 _buildFormField(
                   context,
-                  label: 'الشكوى الرئيسية والأعراض (Chief Complaint)',
-                  hint: 'ما الذي يشكو منه المريض بالتفصيل؟',
+                  label: 'شكوى المريض (Chief Complaint)',
+                  hint: 'أدخل شكوى المريض بالتفصيل...',
                   controller: complaintController,
                   readOnly: !isDoctor,
                   icon: Icons.record_voice_over_outlined,
@@ -98,7 +98,7 @@ class ExaminationForm extends StatelessWidget {
                 _buildFormField(
                   context,
                   label: 'التشخيص الطبي (Diagnosis)',
-                  hint: 'التشخيص الطبي المحدد للحالة...',
+                  hint: 'التشخيص السريري والتصنيف الطبي...',
                   controller: diagnosisController,
                   readOnly: !isDoctor,
                   icon: Icons.medical_information_outlined,
@@ -114,16 +114,16 @@ class ExaminationForm extends StatelessWidget {
                 const SizedBox(height: 20),
                 _buildFormField(
                   context,
-                  label: 'الروشتة وخطة العلاج (Prescription & Plan)',
-                  hint: 'الأدوية الموصوفة والجرعات ومواعيد المتابعة...',
+                  label: 'الروشتة وخطة العلاج (Rx)',
+                  hint: 'الأدوية الموصوفة والجرعات وملاحظات المتابعة...',
                   controller: instructionsController,
                   readOnly: !isDoctor,
                   icon: Icons.receipt_long_outlined,
                   quickChips: const [
                     'قرص قبل الإفطار بنصف ساعة',
                     'قرص بعد الوجبات',
-                    'مرتين يومياً لمدة ٥ أيام',
-                    'كل ٨ ساعات عند اللزوم',
+                    'مرتين يومياً لمدة 5 أيام',
+                    'كل 8 ساعات عند اللزوم',
                     'راحة تامة وسوائل دافئة',
                     'إعادة الفحص بعد أسبوع',
                   ],
@@ -231,7 +231,7 @@ class ExaminationForm extends StatelessWidget {
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Text(
-                    'خطأ في تحميل الخدمات: $e',
+                    'تعذر تحميل الخدمات الطبية، يرجى إعادة المحاولة',
                     style: GoogleFonts.cairo(
                       fontSize: 13,
                       color: AppColors.danger,
@@ -270,6 +270,86 @@ class ExaminationForm extends StatelessWidget {
     );
   }
 
+  /// HPI builder: tapping a structural template inserts an editable skeleton
+  /// the doctor fills in place, so the history reads clinical rather than free.
+  static const List<(String, String)> _hpiTemplates = [
+    ('ألم متزايد', 'بدأت الشكوى قبل (…) وتتدرج في شدتها.\nتزداد سوءاً مع (…) وتخف مع (…).\nترافقها: (…). أي أعراض مرافقة أخرى: (…).'),
+    ('أعراض هضمية', 'الأعراض بدأت قبل (…)، وتتعلق بالوجبات: (…).\nترافقها: (حرقة / غثيان / انتفاخ).\nلا يوجد (قيء دم / تغير بلون البراز) — (عدّل عند اللزوم).'),
+    ('صداع متكرر', 'صداع متكرر منذ (…). موقعه: (…). طبيعته: (نابض / غامض / شريطي).\nيزداد مع (…) ويخف مع (…). ترافقه أعراض عصبية: (…).'),
+    ('نزلة برد', 'الكحة/الزكام بدأ قبل (…) مع (حرارة / بحة / ألم بالجيوب).\nطبيعة الإفراز: (شفاف / أصفر مخاطي).\nلا يوجد (ضيق تنفس / ألم صدر).'),
+  ];
+
+  Widget _buildHpiBuilder({
+    required BuildContext context,
+    required TextEditingController controller,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 5,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.history_edu_rounded, size: 13, color: AppColors.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'بانى التاريخ المرضي:',
+                  style: GoogleFonts.cairo(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          for (final (title, skeleton) in _hpiTemplates)
+            InkWell(
+              onTap: () {
+                if (!controller.text.contains(skeleton)) {
+                  final cur = controller.text.trim();
+                  controller.text = cur.isEmpty ? skeleton : '$cur\n$skeleton';
+                }
+              },
+              borderRadius: BorderRadius.circular(6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: AppColors.subtle(context),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.borderSubtle(context)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.insert_drive_file_outlined, size: 12, color: AppColors.primary),
+                    const SizedBox(width: 3),
+                    Text(
+                      title,
+                      style: GoogleFonts.cairo(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFormField(
     BuildContext context, {
     required String label,
@@ -279,8 +359,6 @@ class ExaminationForm extends StatelessWidget {
     required IconData icon,
     List<String>? quickChips,
   }) {
-    final isDark = AppColors.isDark(context);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -319,10 +397,10 @@ class ExaminationForm extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0C1424) : AppColors.subtle(context),
+                    color: AppColors.subtle(context),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
+                      color: AppColors.borderSubtle(context),
                     ),
                   ),
                   child: Row(
@@ -363,17 +441,17 @@ class ExaminationForm extends StatelessWidget {
               color: AppColors.textMuted(context),
             ),
             filled: true,
-            fillColor: isDark ? const Color(0xFF0C1424) : AppColors.subtle(context),
+            fillColor: AppColors.subtle(context),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
+                color: AppColors.borderSubtle(context),
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
+                color: AppColors.borderSubtle(context),
               ),
             ),
             focusedBorder: const OutlineInputBorder(

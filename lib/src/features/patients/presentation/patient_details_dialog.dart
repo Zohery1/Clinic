@@ -6,8 +6,7 @@ import '../../../core/ui/tokens/colors.dart';
 import '../../../core/ui/tokens/spacing.dart';
 import '../../../core/ui/feedback/app_empty_state.dart';
 import '../../../core/ui/feedback/app_error_state.dart';
-import '../../../core/widgets/send_whatsapp_dialog.dart';
-import '../../appointments/presentation/book_appointment_dialog.dart';
+import '../../../core/routing/routing.dart';
 import '../../auth/presentation/login_controller.dart';
 import '../../auth/domain/user_model.dart';
 import '../domain/patient_model.dart';
@@ -53,15 +52,17 @@ class PatientDetailsDialog extends ConsumerWidget {
   String _translateStatus(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
-        return 'مع الطبيب';
+        return 'قيد الكشف';
       case 'confirmed':
-        return 'في الانتظار';
+        return 'في صالة الانتظار';
       case 'completed':
-        return 'منتهي';
+        return 'مكتمل';
       case 'cancelled':
-        return 'ملغي';
+      case 'cancelled_by_patient':
+      case 'cancelled_by_clinic':
+        return 'ملغي / اعتذار';
       default:
-        return 'في الانتظار';
+        return 'في صالة الانتظار';
     }
   }
 
@@ -99,10 +100,14 @@ class PatientDetailsDialog extends ConsumerWidget {
 
     final patientsAsync = ref.watch(patientsListProvider(clinicId));
     final fullPatients = patientsAsync.value ?? [];
-    final sortedFullPatients = List<PatientModel>.from(fullPatients)
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    final index = sortedFullPatients.indexWhere((p) => p.id == patient.id);
-    final fileNo = index != -1 ? '#${index + 1}' : '';
+    int patientIdx = -1;
+    for (int i = 0; i < fullPatients.length; i++) {
+      if (fullPatients[i].id == patient.id) {
+        patientIdx = i;
+        break;
+      }
+    }
+    final fileNo = patientIdx != -1 ? '#${patientIdx + 1}' : '';
 
     final isMobile = MediaQuery.of(context).size.width < 900;
 
@@ -247,7 +252,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                         icon: Icons.phone_rounded,
                         color: AppColors.primary,
                         onActionTap: (patient.phone != null && patient.phone!.isNotEmpty)
-                            ? () => showSendWhatsAppDialog(context, ref, phone: patient.phone!, patientName: patient.fullName)
+                            ? () => AppNavigation.showWhatsApp(context, phone: patient.phone!, patientName: patient.fullName)
                             : null,
                         actionIcon: Icons.chat_bubble_outline_rounded,
                         actionColor: AppColors.success,
@@ -296,12 +301,10 @@ class PatientDetailsDialog extends ConsumerWidget {
         ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
-            showDialog(
-              context: context,
-              builder: (context) => BookAppointmentDialog(
-                clinicId: clinicId,
-                preselectedPatientId: patient.id,
-              ),
+            AppNavigation.showBookAppointment(
+              context,
+              clinicId: clinicId,
+              preselectedPatientId: patient.id,
             );
           },
           backgroundColor: AppColors.primary,
@@ -451,12 +454,10 @@ class PatientDetailsDialog extends ConsumerWidget {
                           const SizedBox(width: AppSpace.sm),
                           ElevatedButton.icon(
                             onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => BookAppointmentDialog(
-                                  clinicId: clinicId,
-                                  preselectedPatientId: patient.id,
-                                ),
+                              AppNavigation.showBookAppointment(
+                                context,
+                                clinicId: clinicId,
+                                preselectedPatientId: patient.id,
                               );
                             },
                             icon: const Icon(Icons.add_task_rounded, size: 16),
@@ -490,7 +491,7 @@ class PatientDetailsDialog extends ConsumerWidget {
                             icon: Icons.phone_rounded,
                             color: AppColors.primary,
                             onActionTap: (patient.phone != null && patient.phone!.isNotEmpty)
-                                ? () => showSendWhatsAppDialog(context, ref, phone: patient.phone!, patientName: patient.fullName)
+                                ? () => AppNavigation.showWhatsApp(context, phone: patient.phone!, patientName: patient.fullName)
                                 : null,
                             actionIcon: Icons.chat_bubble_outline_rounded,
                             actionColor: AppColors.success,
@@ -661,8 +662,8 @@ class PatientDetailsDialog extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
       error: (err, _) => AppErrorState(
-        title: 'خطأ',
-        message: 'خطأ: $err',
+        title: 'تعذر تحميل السجل الطبي',
+        message: 'حدث خطأ أثناء تحميل سجل زيارات المريض، يرجى إعادة المحاولة.',
         onRetry: () => ref.invalidate(patientAppointmentsProvider(patient.id)),
       ),
     );

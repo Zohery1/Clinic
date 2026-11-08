@@ -102,7 +102,7 @@ class _ClinicBranchesPageState extends ConsumerState<ClinicBranchesPage> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
-                        validator: (val) => val == null || val.trim().isEmpty ? 'يرجى إدخال اسم الفرع' : null,
+                        validator: (val) => val == null || val.trim().isEmpty ? 'أدخل اسم الفرع' : null,
                       ),
                       const SizedBox(height: 14),
 
@@ -220,8 +220,7 @@ class _ClinicBranchesPageState extends ConsumerState<ClinicBranchesPage> {
                                           branch == null ? 'تمت إضافة الفرع بنجاح' : 'تم تحديث بيانات الفرع',
                                         );
                                       } else {
-                                        final err = ref.read(clinicsControllerProvider).error?.toString() ?? 'حدث خطأ';
-                                        ClinicToast.showError(context, err);
+                                        ClinicToast.showError(context, 'تعذر حفظ بيانات الفرع، يرجى إعادة المحاولة');
                                       }
                                     },
                               style: ElevatedButton.styleFrom(
@@ -680,7 +679,7 @@ class _ClinicBranchesPageState extends ConsumerState<ClinicBranchesPage> {
               error: (err, _) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('خطأ في تحميل الفروع: $err', style: GoogleFonts.cairo(color: Colors.red)),
+                  child: Text('تعذر تحميل فروع العيادة، يرجى إعادة المحاولة', style: GoogleFonts.cairo(color: Colors.red)),
                 ),
               ),
             ),

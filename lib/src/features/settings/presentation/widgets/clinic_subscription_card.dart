@@ -43,19 +43,12 @@ class ClinicSubscriptionCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpace.xl),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0E1626) : AppColors.surface(context),
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF1E2E4A) : AppColors.borderSubtle(context),
+          color: AppColors.borderSubtle(context),
           width: 1.0,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
-            blurRadius: 14,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
       child: subAsync.when(
         data: (info) {
@@ -256,7 +249,7 @@ class ClinicSubscriptionCard extends ConsumerWidget {
                   ),
                   icon: const Icon(Icons.flash_on_rounded, size: 16),
                   label: Text(
-                    'تجديد الاشتراك / شحن الرصيد',
+                    'تجديد وشحن باقة العيادة',
                     style: GoogleFonts.cairo(
                       fontWeight: FontWeight.w700,
                       fontSize: 13,

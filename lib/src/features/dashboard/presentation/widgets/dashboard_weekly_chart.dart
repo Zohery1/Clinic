@@ -1,19 +1,15 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 
-import '../../../../core/ui/data/app_chart_card.dart';
 import '../../../../core/ui/feedback/app_empty_state.dart';
-import '../../../../core/ui/feedback/app_skeleton.dart';
-import '../../../../core/ui/primitives/app_chip.dart';
 import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/ui/tokens/spacing.dart';
+import '../../../../core/ui/tokens/typography.dart';
 import '../../../reports/presentation/reports_controller.dart';
 
-/// Weekly revenue line chart wrapped in `AppChartCard`. 7 points,
-/// smooth bezier curve, gradient area fill. Loading = skeleton shape.
+/// Seven days of revenue as one quiet line. Dots only appear under the finger.
 class DashboardWeeklyChart extends ConsumerStatefulWidget {
   const DashboardWeeklyChart({super.key});
 
@@ -29,217 +25,308 @@ class _DashboardWeeklyChartState extends ConsumerState<DashboardWeeklyChart> {
     try {
       final date = DateTime.parse(dateStr);
       var name = intl.DateFormat('EEEE', 'ar').format(date);
-      if (name.startsWith('ال')) {
-        name = name.substring(2);
-      }
+      if (name.startsWith('ال')) name = name.substring(2);
       return name;
     } catch (_) {
       return '';
     }
   }
 
-  String _dayFull(String dateStr) {
-    try {
-      final date = DateTime.parse(dateStr);
-      return intl.DateFormat('EEEE، d MMM', 'ar').format(date);
-    } catch (_) {
-      return dateStr;
-    }
+  String _money(num value) {
+    final fmt = intl.NumberFormat('#,##0', 'ar');
+    return '${fmt.format(value)} ج.م';
   }
 
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(weeklyRevenueProvider);
-    final isDark = AppColors.isDark(context);
-
-    const actions = AppChip(
-      label: 'آخر 7 أيام',
-      icon: Icons.calendar_view_week_rounded,
-      selected: true,
-      variant: AppChipVariant.filter,
+    final data = async.value ?? const <Map<String, dynamic>>[];
+    final total = data.fold<double>(
+      0,
+      (sum, row) => sum + (((row['revenue'] as num?) ?? 0).toDouble()),
     );
 
-    Widget chart;
+    Widget body;
     if (async.isLoading && async.value == null) {
-      chart = const Padding(
-        padding: EdgeInsets.all(AppSpace.lg),
-        child: AppSkeleton(width: double.infinity, height: 200, radius: 12),
+      body = Container(
+        height: 190,
+        margin: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
+        decoration: BoxDecoration(
+          color: AppColors.subtle(context),
+          borderRadius: BorderRadius.circular(AppRadii.sm),
+        ),
       );
     } else if (async.hasError && async.value == null) {
-      chart = Padding(
-        padding: const EdgeInsets.all(AppSpace.lg),
+      body = const Padding(
+        padding: EdgeInsets.all(AppSpace.lg),
         child: Text(
-          'تعذر تحميل الإيرادات',
+          'تعذر تحميل بيانات الإيرادات.',
           textAlign: TextAlign.center,
-          style: GoogleFonts.cairo(
+          style: TextStyle(
             color: AppColors.danger,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
         ),
       );
+    } else if (data.isEmpty || total == 0) {
+      body = const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpace.xl),
+        child: AppEmptyState(
+          icon: Icons.show_chart_rounded,
+          title: 'لا توجد إيرادات هذا الأسبوع',
+          message: 'ستظهر هنا فور تسجيل أول دفعة.',
+        ),
+      );
     } else {
-      final data = async.value ?? const [];
-      if (data.isEmpty) {
-        chart = const Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpace.lg),
-          child: AppEmptyState(
-            icon: Icons.bar_chart_outlined,
-            title: 'لا توجد بيانات بعد',
-            message: 'ستظهر الإيرادات هنا بمجرد تسجيل حجوزات هذا الأسبوع.',
-          ),
-        );
-      } else {
-        chart = _buildChart(context, data, isDark);
-      }
+      body = _buildChart(context, data);
     }
 
-    return AppChartCard(
-      title: 'الإيرادات هذا الأسبوع',
-      subtitle: 'ملخص الإيرادات اليومية',
-      actions: actions,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpace.lg, AppSpace.sm, AppSpace.lg, AppSpace.lg,
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(color: AppColors.borderSubtle(context), width: 1),
       ),
-      height: 240,
-      child: chart,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpace.lg + 2,
+              AppSpace.lg,
+              AppSpace.md,
+              AppSpace.sm,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: AppColors.success
+                        .withValues(alpha: AppColors.isDark(context) ? 0.18 : 0.09),
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.show_chart_rounded,
+                    size: 16,
+                    color: AppColors.success,
+                  ),
+                ),
+                const SizedBox(width: AppSpace.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'إيرادات الأسبوع',
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary(context),
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        _money(total),
+                        style: AppTypography.numericSm(
+                          AppColors.textSecondary(context),
+                        ).copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.subtle(context),
+                    borderRadius: BorderRadius.circular(AppRadii.full),
+                  ),
+                  child: Text(
+                    'آخر 7 أيام',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMuted(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpace.md,
+              AppSpace.sm,
+              AppSpace.lg,
+              AppSpace.lg,
+            ),
+            child: body,
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildChart(
-    BuildContext context,
-    List<Map<String, dynamic>> data,
-    bool isDark,
-  ) {
-    final maxRevenue = data
-        .map((item) => (item['revenue'] as num? ?? 0.0).toDouble())
-        .fold<double>(0.0, (a, b) => a > b ? a : b);
-    final ceiling = (maxRevenue == 0 ? 100.0 : maxRevenue * 1.2);
-    final spots = <FlSpot>[
-      for (int i = 0; i < data.length; i++)
-        FlSpot(
-          i.toDouble(),
-          (data[i]['revenue'] as num? ?? 0.0).toDouble(),
-        ),
-    ];
+  Widget _buildChart(BuildContext context, List<Map<String, dynamic>> data) {
+    final spots = <FlSpot>[];
+    var maxY = 0.0;
+    for (var i = 0; i < data.length; i++) {
+      final revenue = ((data[i]['revenue'] as num?) ?? 0).toDouble();
+      spots.add(FlSpot(i.toDouble(), revenue));
+      if (revenue > maxY) maxY = revenue;
+    }
+    // Headroom so the peak never touches the border.
+    maxY = (maxY * 1.22).ceilToDouble();
 
-    return LineChart(
-      LineChartData(
-        minX: 0,
-        maxX: (data.length - 1).toDouble().clamp(0.0, double.infinity),
-        minY: 0,
-        maxY: ceiling,
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: ceiling / 4,
-          getDrawingHorizontalLine: (_) => FlLine(
-            color: AppColors.borderSubtle(context).withValues(alpha: 0.6),
-            strokeWidth: 1,
-            dashArray: const [4, 4],
+    final accent = AppColors.accent(context);
+    final line = AppColors.borderSubtle(context);
+
+    return SizedBox(
+      height: 196,
+      child: LineChart(
+        LineChartData(
+          minY: 0,
+          maxY: maxY,
+          clipData: const FlClipData.all(),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: (maxY / 4).clamp(1.0, double.infinity),
+            getDrawingHorizontalLine: (_) => FlLine(
+              color: line,
+              strokeWidth: 1,
+              dashArray: const <int>[3, 5],
+            ),
           ),
-        ),
-        borderData: FlBorderData(show: false),
-        titlesData: FlTitlesData(
-          rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
-          leftTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 30,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                final idx = value.round();
-                if (idx < 0 || idx >= data.length) {
-                  return const SizedBox.shrink();
-                }
-                return Padding(
-                  padding: const EdgeInsets.only(top: AppSpace.xs),
-                  child: Text(
-                    _shortDay(data[idx]['date'] as String),
-                    style: GoogleFonts.cairo(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textMuted(context),
-                      height: 1.2,
+          titlesData: FlTitlesData(
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            leftTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 26,
+                interval: 1,
+                getTitlesWidget: (val, meta) {
+                  final idx = val.toInt();
+                  if (idx < 0 || idx >= data.length) {
+                    return const SizedBox.shrink();
+                  }
+                  final touched = idx == _touchedIndex;
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      _shortDay(data[idx]['date']?.toString() ?? ''),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight:
+                            touched ? FontWeight.w800 : FontWeight.w500,
+                        color: touched
+                            ? accent
+                            : AppColors.textMuted(context),
+                      ),
                     ),
-                  ),
-                );
+                  );
+                },
+              ),
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          lineTouchData: LineTouchData(
+            handleBuiltInTouches: true,
+            touchCallback: (event, response) {
+              final touched = response?.lineBarSpots;
+              if (touched != null && touched.isNotEmpty) {
+                final index = touched.first.spotIndex;
+                if (_touchedIndex != index) {
+                  setState(() => _touchedIndex = index);
+                }
+              } else if (_touchedIndex != -1) {
+                setState(() => _touchedIndex = -1);
+              }
+            },
+            touchTooltipData: LineTouchTooltipData(
+              fitInsideHorizontally: true,
+              fitInsideVertically: true,
+              tooltipRoundedRadius: AppRadii.radiusSm,
+              tooltipPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              getTooltipColor: (_) => AppColors.isDark(context)
+                  ? AppColors.darkElevated
+                  : AppColors.primaryInk,
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.map((spot) {
+                  final idx = spot.spotIndex;
+                  final day =
+                      (idx >= 0 && idx < data.length) ? data[idx]['date'] : '';
+                  final value = intl.NumberFormat('#,##0', 'ar')
+                      .format(spot.y.toInt());
+                  return LineTooltipItem(
+                    '${_shortDay(day?.toString() ?? '')}\n$value ج.م',
+                    const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11,
+                      height: 1.6,
+                    ),
+                  );
+                }).toList();
               },
             ),
           ),
-        ),
-        lineTouchData: LineTouchData(
-          touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => AppColors.elevated(context),
-            tooltipRoundedRadius: AppRadii.radiusSm,
-            tooltipPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpace.md,
-              vertical: AppSpace.sm,
-            ),
-            getTooltipItems: (spots) => spots
-                .map(
-                  (s) => LineTooltipItem(
-                    '${_dayFull(data[s.x.round()]['date'] as String)}\n${s.y.toStringAsFixed(0)} ج.م',
-                    GoogleFonts.cairo(
-                      color: AppColors.textPrimary(context),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11.5,
-                      height: 1.35,
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              curveSmoothness: 0.32,
+              color: accent,
+              barWidth: 2.4,
+              isStrokeCapRound: true,
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) {
+                  if (index != _touchedIndex) {
+                    return FlDotCirclePainter(
+                      radius: 0,
+                      color: Colors.transparent,
+                    );
+                  }
+                  return FlDotCirclePainter(
+                    radius: 4.5,
+                    color: accent,
+                    strokeWidth: 2,
+                    strokeColor: AppColors.surface(context),
+                  );
+                },
+              ),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[
+                    accent.withValues(
+                      alpha: AppColors.isDark(context) ? 0.28 : 0.16,
                     ),
-                  ),
-                )
-                .toList(),
-          ),
-          handleBuiltInTouches: true,
-          touchCallback: (event, response) {
-            if (response?.lineBarSpots != null &&
-                response!.lineBarSpots!.isNotEmpty) {
-              setState(() {
-                _touchedIndex = response.lineBarSpots!.first.x.round();
-              });
-            } else {
-              setState(() => _touchedIndex = -1);
-            }
-          },
+                    accent.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            curveSmoothness: 0.32,
-            preventCurveOverShooting: true,
-            color: AppColors.primary,
-            barWidth: 3,
-            isStrokeCapRound: true,
-            dotData: FlDotData(
-              show: true,
-              checkToShowDot: (spot, _) =>
-                  _touchedIndex == spot.x.round() || data.length <= 7,
-              getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(
-                radius: _touchedIndex == spot.x.round() ? 5 : 3,
-                color: AppColors.onPrimary,
-                strokeColor: AppColors.primary,
-                strokeWidth: 2,
-              ),
-            ),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.primary.withValues(alpha: isDark ? 0.30 : 0.20),
-                  AppColors.primary.withValues(alpha: 0.0),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

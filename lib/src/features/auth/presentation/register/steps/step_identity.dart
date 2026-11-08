@@ -28,21 +28,21 @@ class _StepIdentityState extends ConsumerState<StepIdentity> {
 
   String? _validateName(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'يرجى إدخال الاسم الكامل';
+      return 'أدخل الاسم الكامل';
     }
     if (value.trim().length < 3) {
-      return 'الاسم قصير جداً (3 أحرف على الأقل)';
+      return 'الاسم غير مكتمل (3 أحرف على الأقل)';
     }
     return null;
   }
 
   String? _validatePhone(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'يرجى إدخال رقم الهاتف للتواصل';
+      return 'أدخل رقم هاتف التواصل';
     }
     final cleaned = value.trim().replaceAll(RegExp(r'[^0-9+]'), '');
     if (cleaned.length < 10) {
-      return 'يرجى إدخال رقم هاتف صحيح (10 أرقام على الأقل)';
+      return 'رقم الهاتف غير صحيح (10 أرقام على الأقل)';
     }
     return null;
   }
@@ -83,7 +83,7 @@ class _StepIdentityState extends ConsumerState<StepIdentity> {
             label: 'رقم الهاتف (الواتساب الشخصي)',
             hint: '01xxxxxxxxx',
             helper:
-                'سيُستخدم لتواصل الإدارة وإرسال إشعارات الحساب المهمة',
+                'لتلقي إشعارات الحساب ورسائل الدعم الفني للعيادة',
             keyboardType: TextInputType.phone,
             prefixIcon: const Icon(Icons.phone_android_rounded, size: 20),
             validator: _validatePhone,
@@ -91,7 +91,7 @@ class _StepIdentityState extends ConsumerState<StepIdentity> {
           ),
           const SizedBox(height: AppSpace.xxl),
           AppButton(
-            label: 'المتابعة لحساب الدخول',
+            label: 'المتابعة لبيانات الدخول',
             icon: Icons.arrow_back_rounded,
             onPressed: _submit,
           ),

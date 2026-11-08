@@ -27,9 +27,9 @@ class DesktopDetailsPane extends StatelessWidget {
         padding: EdgeInsets.all(AppSpace.lg),
         child: AppEmptyState(
           icon: Icons.touch_app_rounded,
-          title: 'اختر موعداً لعرض التفاصيل',
+          title: 'اختر كشفاً لعرض التفاصيل',
           message:
-              'اضغط على أي موعد من القائمة لعرض معلومات المريض والإجراءات المتاحة',
+              'اضغط على أي مريض من القائمة لعرض تفاصيل الكشف والملف الطبي والإجراءات المتاحة',
         ),
       );
     }
@@ -51,7 +51,7 @@ class DesktopDetailsPane extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'تفاصيل الموعد السريري',
+                  'بيانات الكشف والحالة',
                   style: GoogleFonts.cairo(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -101,7 +101,7 @@ class DesktopDetailsPane extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'المزامنة السحابية فورية ومباشرة مع شاشة الطبيب والاستقبال',
+                            'مزامنة فورية ومباشرة بين غرفة الطبيب وشاشة الاستقبال',
                             style: GoogleFonts.cairo(
                               fontSize: 11,
                               color: AppColors.textSecondary(context),

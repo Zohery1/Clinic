@@ -1,23 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 
-import '../../../../core/ui/primitives/app_button.dart';
+import '../../../../core/routing/routing.dart';
+import '../../../../core/ui/primitives/app_avatar.dart';
 import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/ui/tokens/spacing.dart';
 import '../../../../core/utils/doctor_utils.dart';
 import '../../../appointments/domain/appointment_model.dart';
 import '../../../appointments/presentation/appointments_controller.dart';
-import '../../../appointments/presentation/book_appointment_dialog.dart';
-import '../../../appointments/presentation/examination_screen.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../auth/presentation/login_controller.dart';
 
-/// Full-width hero panel above the dashboard stats.
-/// Subtle primary gradient, calm clinical status pill, greeting in Cairo with safe
-/// line heights, contextual subtitle with today's appointment counts,
-/// primary CTA + secondary link.
+/// The clinic's morning brief: who you are, what today holds, and the next
+/// patient walking in. Deep sapphire anchors the whole canvas.
 class DashboardGreetingHero extends ConsumerWidget {
   final void Function(int tabIndex)? onNavigateToTab;
 
@@ -25,7 +21,7 @@ class DashboardGreetingHero extends ConsumerWidget {
 
   String _formatDate() {
     try {
-      return intl.DateFormat('EEEE، d MMMM y', 'ar').format(DateTime.now());
+      return intl.DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now());
     } catch (_) {
       return '';
     }
@@ -34,504 +30,333 @@ class DashboardGreetingHero extends ConsumerWidget {
   String _greeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'صباح الخير';
-    if (hour < 17) return 'مساء النور';
     return 'مساء الخير';
+  }
+
+  String _time(DateTime date) {
+    try {
+      return intl.DateFormat('hh:mm a', 'ar').format(date);
+    } catch (_) {
+      return '${date.hour.toString().padLeft(2, '0')}:'
+          '${date.minute.toString().padLeft(2, '0')}';
+    }
+  }
+
+  AppointmentModel? _nextUp(List<AppointmentModel> list) {
+    final now = DateTime.now();
+    final upcoming = list
+        .where((a) =>
+            a.status != 'completed' &&
+            !a.status.startsWith('cancelled') &&
+            a.appointmentDate.isAfter(now))
+        .toList()
+      ..sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+    return upcoming.isEmpty ? null : upcoming.first;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final appointmentsAsync = ref.watch(todayAppointmentsProvider);
-    final isDark = AppColors.isDark(context);
+    final appointments = ref.watch(todayAppointmentsProvider).value ??
+        const <AppointmentModel>[];
 
     final displayName = user?.fullName ?? 'دكتور';
     final isDoctor = user?.role == UserRole.doctor;
     final greetingName =
         isDoctor ? DoctorUtils.formatTitle(displayName) : displayName;
 
-    final total = appointmentsAsync.value?.length ?? 0;
-    final completed = appointmentsAsync.value
-            ?.where((a) => a.status == 'completed')
-            .length ??
-        0;
-    final waiting = appointmentsAsync.value
-            ?.where(
-                (a) => a.status != 'completed' && !a.status.startsWith('cancelled'))
-            .length ??
-        0;
-    final inProgress = appointmentsAsync.value
-        ?.where((a) => a.status == 'pending')
-        .firstOrNull;
-    final waitingList = appointmentsAsync.value
-        ?.where((a) => a.status == 'confirmed')
-        .toList();
-    if (waitingList != null && waitingList.length > 1) {
-      waitingList.sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
-    }
-    final nextWaiting = waitingList?.firstOrNull;
+    final waiting = appointments
+        .where((a) =>
+            a.status != 'completed' && !a.status.startsWith('cancelled'))
+        .length;
+    final next = _nextUp(appointments);
 
-    final effectiveClinicId = user?.clinicId ?? '';
+    final insight = appointments.isEmpty
+        ? 'لا توجد مواعيد مسجلة اليوم حتى الآن.'
+        : waiting == 0
+            ? 'اكتملت جميع كشوفات اليوم بنجاح.'
+            : '$waiting في صالة الانتظار حالياً.';
 
     return Container(
       width: double.infinity,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: isDark
-              ? [const Color(0xFF0E1626), const Color(0xFF0A0F1D)]
-              : [Colors.white, const Color(0xFFF8FAFC)],
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        gradient: const LinearGradient(
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
+          colors: <Color>[AppColors.primaryDark, Color(0xFF111C3D)],
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? const Color(0xFF1E2E4A) : const Color(0xFFE2E8F0),
-          width: 1.0,
-        ),
-        boxShadow: [
+        boxShadow: <BoxShadow>[
           BoxShadow(
-            color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: AppColors.primaryDark
+                .withValues(alpha: AppColors.isDark(context) ? 0.28 : 0.22),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: AppSpace.xl,
-          horizontal: AppSpace.xl,
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final stacked = constraints.maxWidth < 700;
-            final textWidget = Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: AppSpace.sm,
-                      runSpacing: AppSpace.xs,
-                      children: [
-                        Text(
-                          '${_greeting()} · ${_formatDate()}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.cairo(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
-                            color: AppColors.primary,
-                            height: 1.4,
-                          ),
-                        ),
-                        // Live clinical status pill
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: (waiting > 0 ? AppColors.primary : AppColors.success)
-                                .withValues(alpha: isDark ? 0.18 : 0.08),
-                            borderRadius: AppRadii.brFull,
-                            border: Border.all(
-                              color: (waiting > 0 ? AppColors.primary : AppColors.success)
-                                  .withValues(alpha: isDark ? 0.40 : 0.25),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 7,
-                                height: 7,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: waiting > 0
-                                      ? AppColors.primary
-                                      : AppColors.success,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                waiting > 0
-                                    ? 'العيادة نشطة • $waiting في الانتظار'
-                                    : 'جاهز للاستقبال',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: waiting > 0
-                                      ? AppColors.primary
-                                      : AppColors.success,
-                                  height: 1.35,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpace.xs + 2),
-                    Text(
-                      'مرحباً، $greetingName 👋',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.cairo(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary(context),
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpace.xs),
-                    if (appointmentsAsync.isLoading)
-                      Text(
-                        'جارٍ تحميل جدول اليوم…',
-                        style: GoogleFonts.cairo(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary(context),
-                          height: 1.5,
-                        ),
-                      )
-                    else if (total == 0)
-                      Text(
-                        'لا توجد مواعيد اليوم. ابدأ يومك بإضافة مريض جديد أو حجز كشف.',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.cairo(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary(context),
-                          height: 1.5,
-                        ),
-                      )
-                    else
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          _buildCountBadge(
-                            context: context,
-                            label: 'إجمالي المواعيد',
-                            count: total,
-                            color: AppColors.primary,
-                          ),
-                          _buildCountBadge(
-                            context: context,
-                            label: 'المكتمل',
-                            count: completed,
-                            color: AppColors.success,
-                          ),
-                          _buildCountBadge(
-                            context: context,
-                            label: 'في الانتظار',
-                            count: waiting,
-                            color: AppColors.warning,
-                          ),
-                        ],
-                      ),
-                    if (inProgress != null)
-                      _buildActiveSessionBanner(
-                        context: context,
-                        inProgress: inProgress,
-                        effectiveClinicId: effectiveClinicId,
-                        isDoctor: isDoctor,
-                        canViewHistory: user?.canViewMedicalHistory ?? false,
-                      )
-                    else if (nextWaiting != null)
-                      _buildNextWaitingBanner(
-                        context: context,
-                        nextWaiting: nextWaiting,
-                      ),
-                  ],
-                );
-
-                final actions = ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 360),
-                  child: Flex(
-                    direction: stacked ? Axis.vertical : Axis.horizontal,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AppButton(
-                        label: 'حجز جديد',
-                        icon: Icons.event_available_rounded,
-                        size: AppButtonSize.md,
-                        expand: stacked,
-                        variant: AppButtonVariant.primary,
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => BookAppointmentDialog(
-                              clinicId: effectiveClinicId,
-                            ),
-                          );
-                        },
-                      ),
-                      SizedBox(
-                        width: stacked ? 0 : AppSpace.sm,
-                        height: stacked ? AppSpace.sm : 0,
-                      ),
-                      AppButton(
-                        label: 'عرض المواعيد',
-                        icon: Icons.arrow_back_rounded,
-                        size: AppButtonSize.md,
-                        expand: stacked,
-                        variant: AppButtonVariant.secondary,
-                        onPressed: () => onNavigateToTab?.call(1),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (stacked) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      textWidget,
-                      const SizedBox(height: AppSpace.lg),
-                      actions,
-                    ],
-                  );
-                }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(child: textWidget),
-                    const SizedBox(width: AppSpace.xl),
-                    actions,
-                  ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCountBadge({
-    required BuildContext context,
-    required String label,
-    required int count,
-    required Color color,
-  }) {
-    final isDark = AppColors.isDark(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.subtle(context),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: AppColors.borderSubtle(context),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Stack(
         children: [
-          Container(
-            width: 5,
-            height: 5,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: GoogleFonts.cairo(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary(context),
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            '$count',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : AppColors.textPrimary(context),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActiveSessionBanner({
-    required BuildContext context,
-    required AppointmentModel inProgress,
-    required String effectiveClinicId,
-    required bool isDoctor,
-    required bool canViewHistory,
-  }) {
-    final isDark = AppColors.isDark(context);
-    return Container(
-      margin: const EdgeInsets.only(top: AppSpace.sm),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: isDark ? 0.12 : 0.06),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: isDark ? 0.35 : 0.2),
-          width: 1,
-        ),
-      ),
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 6,
-        runSpacing: 4,
-        children: [
-          Container(
-            width: 7,
-            height: 7,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primary,
-            ),
-          ),
-          Text(
-            'في غرفة الكشف الآن:',
-            style: GoogleFonts.cairo(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
-            ),
-          ),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
-            child: Text(
-              inProgress.patient.fullName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.cairo(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary(context),
-              ),
-            ),
-          ),
-          if (isDoctor || canViewHistory)
-            Semantics(
-              button: true,
-              label: 'متابعة الجلسة',
-              child: InkWell(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ExaminationScreen(
-                        clinicId: effectiveClinicId,
-                        appointmentId: inProgress.id,
-                        patientId: inProgress.patientId,
-                        patientName: inProgress.patient.fullName,
-                      ),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(4),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'متابعة الجلسة',
-                        style: GoogleFonts.cairo(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      const Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 12,
-                        color: AppColors.primary,
-                      ),
+          Positioned(
+            top: -110,
+            left: -70,
+            child: IgnorePointer(
+              child: Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: <Color>[
+                      Colors.white.withValues(alpha: 0.10),
+                      Colors.white.withValues(alpha: 0.0),
                     ],
                   ),
                 ),
               ),
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpace.xxl,
+              vertical: AppSpace.xl + 2,
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 760;
+
+                final copy = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 12,
+                          color: Colors.white.withValues(alpha: 0.55),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          _formatDate(),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withValues(alpha: 0.62),
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpace.sm),
+                    Text(
+                      '${_greeting()}، $greetingName',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: narrow ? 22 : 26,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        height: 1.28,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      insight,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withValues(alpha: 0.72),
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpace.xl),
+                    Wrap(
+                      spacing: AppSpace.sm,
+                      runSpacing: AppSpace.sm,
+                      children: [
+                        FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.primaryInk,
+                            minimumSize: const Size(0, 42),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpace.xl,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppRadii.radiusSm),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text(
+                            'حجز موعد',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          onPressed: () {
+                            AppNavigation.showBookAppointment(
+                              context,
+                              clinicId: user?.clinicId ?? '',
+                            );
+                          },
+                        ),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 42),
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.30),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpace.lg,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppRadii.radiusSm),
+                            ),
+                          ),
+                          icon:
+                              const Icon(Icons.event_note_rounded, size: 17),
+                          label: const Text(
+                            'جدول اليوم',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          onPressed: () => onNavigateToTab?.call(1),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+
+                final nextCard = _NextPatientCard(
+                  appointment: next,
+                  timeLabel: next == null ? null : _time(next.appointmentDate),
+                  onTap: () => onNavigateToTab?.call(1),
+                );
+
+                if (narrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      copy,
+                      if (next != null) ...[
+                        const SizedBox(height: AppSpace.lg),
+                        nextCard,
+                      ],
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(child: copy),
+                    if (next != null) ...[
+                      const SizedBox(width: AppSpace.xxl),
+                      SizedBox(width: 300, child: nextCard),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildNextWaitingBanner({
-    required BuildContext context,
-    required AppointmentModel nextWaiting,
-  }) {
-    final isDark = AppColors.isDark(context);
-    String formattedTime;
-    try {
-      formattedTime = intl.DateFormat('hh:mm a', 'ar').format(nextWaiting.appointmentDate.toLocal());
-    } catch (_) {
-      formattedTime = intl.DateFormat('hh:mm a').format(nextWaiting.appointmentDate.toLocal());
-    }
+class _NextPatientCard extends StatelessWidget {
+  final AppointmentModel? appointment;
+  final String? timeLabel;
+  final VoidCallback onTap;
 
-    return Container(
-      margin: const EdgeInsets.only(top: AppSpace.sm),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: isDark ? 0.12 : 0.06),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.warning.withValues(alpha: isDark ? 0.35 : 0.2),
-          width: 1,
-        ),
-      ),
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 6,
-        runSpacing: 4,
-        children: [
-          Container(
-            width: 7,
-            height: 7,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.warning,
-            ),
+  const _NextPatientCard({
+    required this.appointment,
+    required this.onTap,
+    this.timeLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final appt = appointment;
+    if (appt == null) return const SizedBox.shrink();
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        child: Ink(
+          padding: const EdgeInsets.all(AppSpace.md),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(AppRadii.md),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
           ),
-          Text(
-            'المريض التالي في الانتظار:',
-            style: GoogleFonts.cairo(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.warning,
-            ),
-          ),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
-            child: Text(
-              nextWaiting.patient.fullName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.cairo(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary(context),
+          child: Row(
+            children: [
+              AppAvatar(
+                name: appt.patient.fullName,
+                size: AppAvatarSize.md,
               ),
-            ),
+              const SizedBox(width: AppSpace.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'الموعد القادم',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.6,
+                        color: Colors.white.withValues(alpha: 0.55),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      appt.patient.fullName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.3,
+                      ),
+                    ),
+                    Text(
+                      timeLabel ?? '',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withValues(alpha: 0.70),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_left_rounded,
+                size: 18,
+                color: Colors.white.withValues(alpha: 0.55),
+              ),
+            ],
           ),
-          Text(
-            formattedTime,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary(context),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

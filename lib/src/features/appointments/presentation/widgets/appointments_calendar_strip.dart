@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
+
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/doctor_utils.dart';
 import '../../../../core/widgets/app_card.dart';
@@ -11,8 +12,9 @@ import '../../../clinics/presentation/clinics_controller.dart';
 import '../../data/appointment_repository.dart';
 import '../appointments_controller.dart';
 
-/// شريط التقويم الأفقي الأسبوعي وفلاتر الطبيب والفرع بنظام Soft Structuralism.
-/// تم التخلص بالكامل من DropdownButton واستبدالها بأزرار لمسية Tactile Filter Pills ومودال اختيار سلس.
+/// شريط التقويم الأسبوعي وفلاتر الطبيب والفرع بنظام Clinical Bento Utility.
+/// يدعم اختيار الأيام بلمسة واحدة، التنقل السريع بين الأيام، وفلاتر الأطباء والفروع
+/// بدون أي مشاكل overflow على الشاشات الصغيرة (375px) أو الشاشات العريضة.
 class AppointmentsCalendarStrip extends ConsumerWidget {
   final DateTime selectedDate;
   final UserModel user;
@@ -23,7 +25,7 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
     required this.user,
   });
 
-  String _getShortDayName(String label) {
+  String _cleanDayLabel(String label) {
     if (label.startsWith('ال')) {
       return label.substring(2);
     }
@@ -46,12 +48,12 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
         textDirection: TextDirection.rtl,
         child: Container(
           decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            color: AppColors.surface(context),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.15),
-                blurRadius: 20,
+                color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.12),
+                blurRadius: 16,
                 offset: const Offset(0, -4),
               ),
             ],
@@ -61,38 +63,40 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Drag Handle
               Center(
                 child: Container(
-                  width: 40,
+                  width: 36,
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.borderDark : const Color(0xFFCBD5E1),
+                    color: AppColors.borderSubtle(context),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               Row(
                 children: [
-                  Icon(Icons.filter_alt_outlined, color: theme.colorScheme.primary, size: 20),
+                  const Icon(
+                    Icons.filter_alt_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Text(
-                    'تصفية حسب الطبيب',
+                    'تصفية المواعيد حسب الطبيب',
                     style: GoogleFonts.cairo(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               Wrap(
-                spacing: 10,
-                runSpacing: 10,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  // خيار جميع الأطباء
                   _buildModalPill(
                     context: context,
                     isSelected: selectedDoctorId == null,
@@ -144,12 +148,12 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
         textDirection: TextDirection.rtl,
         child: Container(
           decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            color: AppColors.surface(context),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.15),
-                blurRadius: 20,
+                color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.12),
+                blurRadius: 16,
                 offset: const Offset(0, -4),
               ),
             ],
@@ -159,38 +163,40 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Drag Handle
               Center(
                 child: Container(
-                  width: 40,
+                  width: 36,
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.borderDark : const Color(0xFFCBD5E1),
+                    color: AppColors.borderSubtle(context),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               Row(
                 children: [
-                  Icon(Icons.storefront_outlined, color: theme.colorScheme.primary, size: 20),
+                  const Icon(
+                    Icons.storefront_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Text(
-                    'تصفية حسب الفرع',
+                    'تصفية المواعيد حسب الفرع',
                     style: GoogleFonts.cairo(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               Wrap(
-                spacing: 10,
-                runSpacing: 10,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  // خيار جميع الفروع
                   _buildModalPill(
                     context: context,
                     isSelected: selectedBranchId == null,
@@ -236,87 +242,75 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final bgColor = isSelected
-        ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.25 : 0.15)
-        : (isDark ? AppColors.surfaceDimDark : AppColors.surfaceDimLight);
+        ? AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.12)
+        : AppColors.subtle(context);
 
     final borderColor = isSelected
-        ? theme.colorScheme.primary
-        : (isDark ? AppColors.borderDark : AppColors.borderLight);
+        ? AppColors.primary
+        : AppColors.borderSubtle(context);
 
     final textColor = isSelected
-        ? theme.colorScheme.primary
-        : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight);
+        ? AppColors.primary
+        : AppColors.textPrimary(context);
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(12),
       child: AnimatedContainer(
         duration: AppMotion.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: borderColor,
             width: isSelected ? 1.5 : 1.0,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.35 : 0.20),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (initials != null) ...[
               Container(
-                width: 22,
-                height: 22,
+                width: 20,
+                height: 20,
                 decoration: BoxDecoration(
-                  color: color ?? theme.colorScheme.primary,
+                  color: color ?? AppColors.primary,
                   shape: BoxShape.circle,
                 ),
-                child: Center(
-                  child: Text(
-                    initials,
-                    style: GoogleFonts.cairo(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
+                alignment: Alignment.center,
+                child: Text(
+                  initials,
+                  style: GoogleFonts.cairo(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
             ] else if (icon != null) ...[
               Icon(
                 icon,
-                size: 16,
-                color: isSelected
-                    ? theme.colorScheme.primary
-                    : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                size: 15,
+                color: isSelected ? AppColors.primary : AppColors.textSecondary(context),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
             ],
             Text(
               label,
               style: GoogleFonts.cairo(
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 color: textColor,
               ),
             ),
             if (isSelected) ...[
               const SizedBox(width: 6),
-              Icon(
+              const Icon(
                 Icons.check_circle_rounded,
-                size: 16,
-                color: theme.colorScheme.primary,
+                size: 15,
+                color: AppColors.primary,
               ),
             ],
           ],
@@ -338,24 +332,24 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
         if (!canSeeAll) return const SizedBox.shrink();
 
         final selectedDoctor = doctors.where((d) => d.id == selectedDoctorId).firstOrNull;
-        final label = selectedDoctor != null ? DoctorUtils.formatTitle(selectedDoctor.fullName) : 'جميع الأطباء';
+        final label = selectedDoctor != null
+            ? DoctorUtils.formatTitle(selectedDoctor.fullName)
+            : 'جميع الأطباء';
         final isFiltered = selectedDoctorId != null;
 
         return InkWell(
           onTap: () => _showDoctorFilterSheet(context, ref, doctors, selectedDoctorId),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           child: AnimatedContainer(
             duration: AppMotion.fast,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
               color: isFiltered
-                  ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.25 : 0.12)
-                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F3F5)),
-              borderRadius: BorderRadius.circular(12),
+                  ? AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.12)
+                  : AppColors.subtle(context),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isFiltered
-                    ? theme.colorScheme.primary
-                    : (isDark ? AppColors.borderDark : AppColors.borderLight),
+                color: isFiltered ? AppColors.primary : AppColors.borderSubtle(context),
                 width: isFiltered ? 1.5 : 1.0,
               ),
             ),
@@ -364,25 +358,29 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.badge_outlined,
-                  size: 15,
-                  color: isFiltered ? theme.colorScheme.primary : theme.hintColor,
+                  size: 14,
+                  color: isFiltered ? AppColors.primary : AppColors.textSecondary(context),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: GoogleFonts.cairo(
-                    fontSize: 12,
-                    fontWeight: isFiltered ? FontWeight.w700 : FontWeight.w600,
-                    color: isFiltered
-                        ? theme.colorScheme.primary
-                        : theme.textTheme.bodyMedium?.color,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.cairo(
+                      fontSize: 12,
+                      fontWeight: isFiltered ? FontWeight.w700 : FontWeight.w600,
+                      color: isFiltered
+                          ? AppColors.primary
+                          : AppColors.textPrimary(context),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 4),
                 Icon(
                   Icons.keyboard_arrow_down_rounded,
                   size: 16,
-                  color: isFiltered ? theme.colorScheme.primary : theme.hintColor,
+                  color: isFiltered ? AppColors.primary : AppColors.textSecondary(context),
                 ),
               ],
             ),
@@ -410,19 +408,17 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
 
         return InkWell(
           onTap: () => _showBranchFilterSheet(context, ref, branches, selectedBranchId),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           child: AnimatedContainer(
             duration: AppMotion.fast,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
               color: isFiltered
-                  ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.25 : 0.12)
-                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F3F5)),
-              borderRadius: BorderRadius.circular(12),
+                  ? AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.12)
+                  : AppColors.subtle(context),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isFiltered
-                    ? theme.colorScheme.primary
-                    : (isDark ? AppColors.borderDark : AppColors.borderLight),
+                color: isFiltered ? AppColors.primary : AppColors.borderSubtle(context),
                 width: isFiltered ? 1.5 : 1.0,
               ),
             ),
@@ -431,25 +427,29 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.storefront_outlined,
-                  size: 15,
-                  color: isFiltered ? theme.colorScheme.primary : theme.hintColor,
+                  size: 14,
+                  color: isFiltered ? AppColors.primary : AppColors.textSecondary(context),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: GoogleFonts.cairo(
-                    fontSize: 12,
-                    fontWeight: isFiltered ? FontWeight.w700 : FontWeight.w600,
-                    color: isFiltered
-                        ? theme.colorScheme.primary
-                        : theme.textTheme.bodyMedium?.color,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.cairo(
+                      fontSize: 12,
+                      fontWeight: isFiltered ? FontWeight.w700 : FontWeight.w600,
+                      color: isFiltered
+                          ? AppColors.primary
+                          : AppColors.textPrimary(context),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 4),
                 Icon(
                   Icons.keyboard_arrow_down_rounded,
                   size: 16,
-                  color: isFiltered ? theme.colorScheme.primary : theme.hintColor,
+                  color: isFiltered ? AppColors.primary : AppColors.textSecondary(context),
                 ),
               ],
             ),
@@ -477,31 +477,33 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
     final isMobile = screenWidth < 768;
 
     final datePickerButton = Container(
-      width: 44,
-      height: 44,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF1E293B)
-            : const Color(0xFFF1F3F5),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.subtle(context),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.borderSubtle(context)),
       ),
       child: IconButton(
+        padding: EdgeInsets.zero,
+        tooltip: 'اختيار تاريخ محدد',
         onPressed: () async {
           final DateTime? picked = await showDatePicker(
             context: context,
             initialDate: selectedDate,
             firstDate: DateTime(2024, 1, 1),
-            lastDate: DateTime(2028, 12, 31),
+            lastDate: DateTime(2030, 12, 31),
+            locale: const Locale('ar'),
           );
           if (picked != null) {
             ref.read(selectedDateProvider.notifier).state =
                 DateTime(picked.year, picked.month, picked.day);
           }
         },
-        icon: Icon(
+        icon: const Icon(
           Icons.calendar_month_rounded,
-          color: Theme.of(context).colorScheme.primary,
-          size: 22,
+          color: AppColors.primary,
+          size: 20,
         ),
       ),
     );
@@ -523,63 +525,60 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
               duration: AppMotion.fast,
               curve: AppMotion.curve,
               margin: const EdgeInsets.symmetric(horizontal: 2),
-              padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? Theme.of(context).colorScheme.primary
+                    ? AppColors.primary
                     : (isToday
-                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
+                        ? AppColors.primary.withValues(alpha: 0.08)
                         : Colors.transparent),
                 borderRadius: BorderRadius.circular(10),
                 border: isToday && !isSelected
                     ? Border.all(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+                        color: AppColors.primary.withValues(alpha: 0.4),
                         width: 1,
                       )
                     : null,
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+                          color: AppColors.primary.withValues(alpha: 0.25),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         )
                       ]
                     : null,
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    _getShortDayName(dayLabel),
+                    _cleanDayLabel(dayLabel),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.cairo(
-                      fontSize: 10.5,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: isSelected
-                          ? Colors.white.withValues(alpha: 0.9)
+                          ? Colors.white.withValues(alpha: 0.95)
                           : (isToday
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.color
-                                  ?.withValues(alpha: 0.7)),
+                              ? AppColors.primary
+                              : AppColors.textSecondary(context)),
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Text(
                     dayNum,
                     style: GoogleFonts.jetBrainsMono(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color: isSelected
                           ? Colors.white
                           : (isToday
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).textTheme.titleMedium?.color),
+                              ? AppColors.primary
+                              : AppColors.textPrimary(context)),
                     ),
                   ),
                   if (isToday && !isSelected)
@@ -587,8 +586,8 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
                       margin: const EdgeInsets.only(top: 2),
                       width: 4,
                       height: 4,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -602,8 +601,8 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
 
     if (isMobile) {
       return AppCard(
-        padding: const EdgeInsets.all(12),
-        radius: AppRadii.radiusLg,
+        padding: const EdgeInsets.all(10),
+        radius: AppRadii.radiusMd,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -614,7 +613,7 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
                 Expanded(child: daysRow),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(child: _buildDoctorFilterChip(context, ref)),
@@ -628,19 +627,25 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
     }
 
     return AppCard(
-      padding: const EdgeInsets.all(12),
-      radius: AppRadii.radiusLg,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      radius: AppRadii.radiusMd,
       child: Row(
         children: [
           datePickerButton,
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(child: daysRow),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           _buildDoctorFilterChip(context, ref),
           const SizedBox(width: 8),
           _buildBranchFilterChip(context, ref),
-          if (MediaQuery.of(context).size.width >= 1150) ...[
-            const SizedBox(width: 16),
+          if (screenWidth >= 1180) ...[
+            const SizedBox(width: 14),
+            Container(
+              height: 36,
+              width: 1,
+              color: AppColors.borderSubtle(context),
+            ),
+            const SizedBox(width: 14),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -649,15 +654,15 @@ class AppointmentsCalendarStrip extends ConsumerWidget {
                   'مواعيد $dayName',
                   style: GoogleFonts.cairo(
                     fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    color: Theme.of(context).textTheme.titleMedium?.color,
+                    fontSize: 14,
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
                 Text(
                   todayFormatted,
                   style: GoogleFonts.cairo(
-                    fontSize: 12.5,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    fontSize: 11,
+                    color: AppColors.textSecondary(context),
                   ),
                 ),
               ],

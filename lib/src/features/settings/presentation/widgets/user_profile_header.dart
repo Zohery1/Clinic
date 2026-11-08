@@ -36,19 +36,12 @@ class UserProfileHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpace.xl),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0E1626) : AppColors.surface(context),
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF1E2E4A) : AppColors.borderSubtle(context),
+          color: AppColors.borderSubtle(context),
           width: 1.0,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
       child: Row(
         children: [
@@ -106,7 +99,7 @@ class UserProfileHeader extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    isDoctor ? 'طبيب' : 'سكرتارية',
+                    isDoctor ? 'طبيب معالج' : 'مساعد / سكرتير',
                     style: GoogleFonts.cairo(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,

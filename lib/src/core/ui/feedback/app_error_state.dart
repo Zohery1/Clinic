@@ -4,8 +4,7 @@ import '../primitives/app_button.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
 
-/// Red-tinted error placeholder with a friendly headline,
-/// a one-line explanation, and an optional retry button.
+/// Clinical Utility Error State. Direct and concise.
 class AppErrorState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -22,14 +21,6 @@ class AppErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.isDark(context);
-
-    final iconBg = Color.alphaBlend(
-      AppColors.danger.withValues(alpha: isDark ? 0.20 : 0.10),
-      AppColors.surface(context),
-    );
-    final iconBorder = AppColors.danger.withValues(alpha: isDark ? 0.4 : 0.25);
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpace.xl),
@@ -38,50 +29,59 @@ class AppErrorState extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: iconBg,
+                color: AppColors.tint(context, AppColors.danger),
                 shape: BoxShape.circle,
-                border: Border.all(color: iconBorder, width: 1.5),
+                border: Border.all(
+                  color: AppColors.tintBorder(context, AppColors.danger),
+                  width: 1,
+                ),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 32, color: AppColors.danger),
+              child: Icon(
+                icon,
+                size: 28,
+                color: AppColors.tintText(context, AppColors.danger),
+              ),
             ),
-            const SizedBox(height: AppSpace.lg),
+            const SizedBox(height: AppSpace.md),
             Text(
               title,
               textAlign: TextAlign.center,
               style: GoogleFonts.cairo(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary(context),
                 height: 1.3,
               ),
             ),
-            const SizedBox(height: AppSpace.xs),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Text(
-                message,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.cairo(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textSecondary(context),
-                  height: 1.55,
+            if (message.isNotEmpty) ...[
+              const SizedBox(height: AppSpace.xs),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cairo(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.textSecondary(context),
+                    height: 1.4,
+                  ),
                 ),
               ),
-            ),
+            ],
             if (onRetry != null) ...[
-              const SizedBox(height: AppSpace.xl),
+              const SizedBox(height: AppSpace.lg),
               SizedBox(
-                width: 200,
+                width: 160,
                 child: AppButton(
                   label: 'إعادة المحاولة',
                   icon: Icons.refresh_rounded,
                   onPressed: onRetry,
-                  size: AppButtonSize.md,
+                  size: AppButtonSize.sm,
                   variant: AppButtonVariant.secondary,
                 ),
               ),

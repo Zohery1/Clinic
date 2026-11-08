@@ -10,8 +10,8 @@ import '../../../core/ui/primitives/app_button.dart';
 import '../../../core/ui/tokens/typography.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
+import '../../../core/routing/routing.dart';
 import 'login_controller.dart';
-import 'login_screen.dart';
 
 class PendingActivationScreen extends ConsumerStatefulWidget {
   final String clinicName;
@@ -42,8 +42,8 @@ class _PendingActivationScreenState extends ConsumerState<PendingActivationScree
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Row(children: [
           const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
-          const SizedBox(width: 10),
-          Expanded(child: Text('طلبك ما زال قيد المراجعة. تواصل معنا عبر واتساب.', style: GoogleFonts.cairo(fontWeight: FontWeight.w600, fontSize: 13))),
+          const SizedBox(width: AppSpace.md),
+          Expanded(child: Text('الحساب ما زال قيد المراجعة. يتم التفعيل خلال ساعات العمل.', style: GoogleFonts.cairo(fontWeight: FontWeight.w600, fontSize: 13))),
         ]),
         backgroundColor: AppColors.warning,
         duration: const Duration(seconds: 3),
@@ -59,8 +59,8 @@ class _PendingActivationScreenState extends ConsumerState<PendingActivationScree
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Row(children: [
         const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-        const SizedBox(width: 10),
-        Text('تم نسخ كود العيادة (${widget.inviteCode})', style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+        const SizedBox(width: AppSpace.md),
+        Text('تم نسخ كود العيادة', style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
       ]),
       backgroundColor: AppColors.success,
       duration: const Duration(seconds: 2),
@@ -73,10 +73,7 @@ class _PendingActivationScreenState extends ConsumerState<PendingActivationScree
     await Supabase.instance.client.auth.signOut();
     ref.read(currentUserProvider.notifier).state = null;
     if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      AppNavigation.toLogin(context, clearStack: true);
     }
   }
 
@@ -85,8 +82,8 @@ class _PendingActivationScreenState extends ConsumerState<PendingActivationScree
     return AppStatusPage(
       icon: Icons.access_time_rounded,
       iconColor: AppColors.warning,
-      title: 'حسابك في انتظار التفعيل',
-      message: 'حسابك قيد المراجعة من إدارة عيادتي. سيتم تفعيله خلال 24 ساعة كحد أقصى.',
+      title: 'الحساب قيد المراجعة',
+      message: 'تم استلام بيانات عيادتك وجارٍ اعتمادها من الإدارة لتفعيل حسابك.',
       hero: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -131,7 +128,7 @@ class _PendingActivationScreenState extends ConsumerState<PendingActivationScree
         ],
       ),
       primaryAction: StatusAction(
-        label: 'تحقُّق من حالة التفعيل الآن',
+        label: 'التحقق من حالة التفعيل',
         onPressed: _isChecking ? null : _checkAgain,
         loading: _isChecking,
         icon: Icons.refresh_rounded,

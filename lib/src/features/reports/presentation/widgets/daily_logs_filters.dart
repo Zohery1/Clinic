@@ -194,7 +194,7 @@ class DailyLogsFilters extends ConsumerWidget {
             error: (_, __) => const SizedBox.shrink(),
           );
           final exportBtn = AppButton(
-            label: 'تصدير CSV',
+            label: 'تصدير التقرير اليومي (CSV)',
             icon: Icons.file_download_outlined,
             expand: false,
             size: AppButtonSize.sm,

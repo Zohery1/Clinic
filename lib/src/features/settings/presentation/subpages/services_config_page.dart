@@ -104,7 +104,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
         backgroundColor: AppColors.canvas(context),
         appBar: AppBar(
           title: Text(
-            'أسعار الكشوفات والخدمات',
+            'الخدمات والأسعار',
             style: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 16),
           ),
           bottom: TabBar(
@@ -113,8 +113,8 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
             unselectedLabelStyle: GoogleFonts.cairo(fontWeight: FontWeight.w600, fontSize: 13),
             indicatorColor: AppColors.primary,
             tabs: const [
-              Tab(text: 'أسعار الكشوفات'),
-              Tab(text: 'الخدمات الطبية الإضافية'),
+              Tab(text: 'أنواع الكشف'),
+              Tab(text: 'الخدمات والإجراءات'),
             ],
           ),
         ),
@@ -151,7 +151,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
         if (list.isEmpty) {
           return Center(
             child: Text(
-              'لا توجد أسعار كشوفات مضافة بعد.',
+              'لا توجد أنواع كشف مسجلة بعد.',
               style: GoogleFonts.cairo(
                 fontSize: 13,
                 color: AppColors.textSecondary(context),
@@ -230,7 +230,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
       ),
       error: (err, _) => Center(
         child: Text(
-          'خطأ: $err',
+          'تعذر تحميل أنواع الكشف، يرجى إعادة المحاولة',
           style: GoogleFonts.cairo(color: AppColors.danger),
         ),
       ),
@@ -245,7 +245,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
         if (list.isEmpty) {
           return Center(
             child: Text(
-              'لا توجد خدمات مضافة بعد.',
+              'لا توجد خدمات أو إجراءات مسجلة بعد.',
               style: GoogleFonts.cairo(
                 fontSize: 13,
                 color: AppColors.textSecondary(context),
@@ -319,7 +319,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
       ),
       error: (err, _) => Center(
         child: Text(
-          'خطأ: $err',
+          'تعذر تحميل الخدمات والإجراءات، يرجى إعادة المحاولة',
           style: GoogleFonts.cairo(color: AppColors.danger),
         ),
       ),
@@ -449,7 +449,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
       context: context,
       icon: Icons.delete_outline_rounded,
       title: 'حذف نوع الكشف',
-      description: 'هل أنت متأكد من حذف نوع الكشف "${type.name}"؟ لا يمكن التراجع عن هذا الإجراء.',
+      description: 'هل تريد بالتأكيد حذف نوع الكشف "${type.name}"؟ لا يمكن التراجع عن هذا الإجراء.',
       confirmLabel: 'حذف',
       isDangerous: true,
       onConfirm: () async {
@@ -465,7 +465,7 @@ class _ServicesConfigPageState extends ConsumerState<ServicesConfigPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'ليس لديك صلاحية لإضافة أو تعديل الخدمات والأسعار. يرجى مراجعة الطبيب.',
+            'تعديل الخدمات والأسعار متاح فقط للمصرح لهم من إدارة العيادة.',
             style: GoogleFonts.cairo(),
           ),
           backgroundColor: AppColors.danger,
@@ -653,7 +653,7 @@ class _SettingsSaveButtonState extends State<SettingsSaveButton> {
                 await widget.onPressed();
               } catch (e) {
                 if (context.mounted) {
-                  ClinicToast.showError(context, 'خطأ: $e');
+                  ClinicToast.showError(context, 'تعذر إتمام العملية، يرجى إعادة المحاولة');
                 }
               } finally {
                 if (mounted) setState(() => _loading = false);

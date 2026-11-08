@@ -90,7 +90,7 @@ class _NotificationsSheet extends ConsumerWidget {
                 const SizedBox(width: AppSpace.md),
                 Expanded(
                   child: Text(
-                    'التنبيهات والإشعارات',
+                    'تنبيهات العيادة',
                     style: GoogleFonts.cairo(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -112,7 +112,7 @@ class _NotificationsSheet extends ConsumerWidget {
                     ),
                     onPressed: () => notifier.markAllAsRead(),
                     child: Text(
-                      'مسح الكل',
+                      'تحديد الكل كمقروء',
                       style: GoogleFonts.cairo(
                         fontSize: 12,
                         color: AppColors.primary,

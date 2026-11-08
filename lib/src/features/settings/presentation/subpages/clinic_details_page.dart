@@ -100,7 +100,7 @@ class _ClinicDetailsPageState extends ConsumerState<ClinicDetailsPage> {
             ..showSnackBar(
               SnackBar(
                 duration: const Duration(seconds: 2),
-                content: Text('خطأ أثناء الحفظ: $e', style: GoogleFonts.cairo()),
+                content: Text('تعذر حفظ البيانات، يرجى المحاولة مجدداً', style: GoogleFonts.cairo()),
                 backgroundColor: AppColors.danger,
               ),
             );
@@ -122,7 +122,7 @@ class _ClinicDetailsPageState extends ConsumerState<ClinicDetailsPage> {
         backgroundColor: AppColors.canvas(context),
         appBar: AppBar(
           title: Text(
-            'بيانات العيادة والدكتور',
+            'بيانات العيادة والطبيب',
             style: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 16),
           ),
         ),
@@ -171,7 +171,7 @@ class _ClinicDetailsPageState extends ConsumerState<ClinicDetailsPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'المعاينة في الروشتات والنظام:',
+                                'الظهور في الروشتة والنظام:',
                                 style: GoogleFonts.cairo(
                                   fontSize: 11,
                                   color: AppColors.textSecondary(context),
@@ -207,7 +207,7 @@ class _ClinicDetailsPageState extends ConsumerState<ClinicDetailsPage> {
                     color: AppColors.textPrimary(context),
                   ),
                   decoration: InputDecoration(
-                    labelText: 'اسم الطبيب / المستخدم',
+                    labelText: 'الاسم الكامل',
                     labelStyle: GoogleFonts.cairo(fontSize: 13),
                     prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
                   ),
@@ -223,11 +223,11 @@ class _ClinicDetailsPageState extends ConsumerState<ClinicDetailsPage> {
                     color: AppColors.textPrimary(context),
                   ),
                   decoration: InputDecoration(
-                    labelText: 'اسم العيادة / المركز الطبي',
+                    labelText: 'اسم العيادة',
                     labelStyle: GoogleFonts.cairo(fontSize: 13),
                     prefixIcon: const Icon(Icons.business_rounded, color: AppColors.primary),
                     helperText: user?.role == UserRole.secretary
-                        ? 'تنبيه: السكرتير لا يمكنه تغيير اسم العيادة'
+                        ? 'تعديل اسم العيادة متاح لمدير العيادة فقط'
                         : null,
                     helperStyle: GoogleFonts.cairo(fontSize: 11),
                   ),
@@ -251,7 +251,7 @@ class _ClinicDetailsPageState extends ConsumerState<ClinicDetailsPage> {
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : Text(
-                          'حفظ البيانات',
+                          'حفظ التعديلات',
                           style: GoogleFonts.cairo(
                             fontWeight: FontWeight.w700,
                             fontSize: 14,

@@ -6,17 +6,17 @@ import '../../../core/ui/layout/auth_shell.dart';
 import '../../../core/ui/layout/app_stepper.dart';
 import '../../../core/ui/tokens/colors.dart';
 import '../../../core/ui/tokens/spacing.dart';
-import '../../../core/ui/tokens/motion.dart';
+import '../../../core/ui/tokens/typography.dart';
 import '../../../core/utils/invite_utils.dart';
+import '../../../core/routing/routing.dart';
 import 'login_controller.dart';
-import 'login_screen.dart';
-import 'verify_otp_screen.dart';
 import 'register/register_state.dart';
 import 'register/steps/step_identity.dart';
 import 'register/steps/step_credentials.dart';
 import 'register/steps/step_clinic_path.dart';
 import 'register/steps/step_clinic_details.dart';
 
+/// Clinical Utility Register Screen.
 class RegisterScreen extends ConsumerStatefulWidget {
   final String? initialInviteCode;
   const RegisterScreen({super.key, this.initialInviteCode});
@@ -28,23 +28,23 @@ class RegisterScreen extends ConsumerStatefulWidget {
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   static const List<AppStepperStep> _steps = [
     AppStepperStep(
-      title: 'البيانات',
-      description: 'الاسم ورقم التواصل',
+      title: 'البيانات الشخصية',
+      description: 'الاسم والهاتف',
       icon: Icons.person_pin_rounded,
     ),
     AppStepperStep(
-      title: 'الدخول',
+      title: 'بيانات الدخول',
       description: 'البريد وكلمة المرور',
       icon: Icons.lock_person_rounded,
     ),
     AppStepperStep(
-      title: 'المسار',
+      title: 'نوع الحساب',
       description: 'تأسيس أو انضمام',
       icon: Icons.alt_route_rounded,
     ),
     AppStepperStep(
-      title: 'العيادة',
-      description: 'التفاصيل والفروع',
+      title: 'تفاصيل العيادة',
+      description: 'المعلومات والفروع',
       icon: Icons.apartment_rounded,
     ),
   ];
@@ -154,9 +154,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final after = ref.read(loginControllerProvider);
     if (!after.isSuccess) return;
     if (after.isEmailVerificationRequired) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => VerifyOtpScreen(email: email)),
-      );
+      AppNavigation.toVerifyOtp(context, email: email);
     } else {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
@@ -210,103 +208,47 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: AuthShell(
-        heroTitle: 'انضم إلى عيادتي',
-        heroSubtitle:
-            'منصة موحدة لإدارة عيادتك وفروعها وأطبائك — بتجربة استخدام احترافية وبيانات آمئة.',
-        heroBullets: const [
-          AuthHeroBullet(
-              icon: Icons.shield_outlined,
-              text: 'موثوق وآمن لتخزين بيانات المرضى'),
-          AuthHeroBullet(
-              icon: Icons.notifications_active_outlined,
-              text: 'تذكيرات واتساب تلقائية بدون كود'),
-          AuthHeroBullet(
-              icon: Icons.business_rounded,
-              text: 'يدعم عدة فروع وأطباء في عيادة واحدة'),
-        ],
+        heroTitle: 'عيادتي',
+        heroSubtitle: 'المنظومة السحابية المتكاملة لإدارة الكشوفات والملفات الطبية.',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               'إنشاء حساب جديد',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.cairo(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary(context),
-                height: 1.2,
-              ),
+              style: AppTypography.headingMd(AppColors.textPrimary(context)),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSpace.xs),
             Text(
-              'انضم لمنصة عيادتي لإدارة مركزك الطبي وفروعه بسهولة',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.cairo(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textSecondary(context),
-                height: 1.5,
-              ),
+              'ابدأ بتسجيل بياناتك الطبية وتأسيس مساحة عمل عيادتك',
+              style: AppTypography.bodySm(AppColors.textSecondary(context)),
             ),
-            const SizedBox(height: AppSpace.xl),
+            const SizedBox(height: AppSpace.lg),
             AppStepper(
               steps: _steps,
               currentIndex: state.currentStep,
               onStepTap: _goTo,
             ),
-            const SizedBox(height: AppSpace.xl),
-            AnimatedSwitcher(
-              duration: AppMotion.normal,
-              switchInCurve: AppMotion.easeOutCubic,
-              transitionBuilder: (child, anim) => FadeTransition(
-                opacity: anim,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, 0.04),
-                    end: Offset.zero,
-                  ).animate(anim),
-                  child: child,
-                ),
-              ),
-              child: KeyedSubtree(
-                key: ValueKey('step-${state.currentStep}'),
-                child: _currentStepWidget(),
-              ),
-            ),
             const SizedBox(height: AppSpace.lg),
-            Wrap(
-              alignment: WrapAlignment.center,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 4,
+            _currentStepWidget(),
+            const SizedBox(height: AppSpace.lg),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   'لديك حساب بالفعل؟',
-                  style: GoogleFonts.cairo(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textMuted(context),
-                  ),
+                  style: AppTypography.bodySm(AppColors.textSecondary(context)),
                 ),
+                const SizedBox(width: AppSpace.xs),
                 TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    );
-                  },
+                  onPressed: () => AppNavigation.toLogin(context, replace: true),
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpace.sm, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                     minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Text(
                     'تسجيل الدخول',
-                    style: GoogleFonts.cairo(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                      color: AppColors.primary,
-                    ),
+                    style: AppTypography.bodySm(AppColors.primary).copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
               ],

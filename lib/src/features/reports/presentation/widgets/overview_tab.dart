@@ -67,7 +67,7 @@ class OverviewTab extends ConsumerWidget {
                   title: 'إيرادات الأسبوع',
                   async: AsyncValue.data(weeklyTotal),
                   icon: Icons.date_range_outlined,
-                  color: const Color(0xFF7C3AED),
+                  color: AppColors.completed,
                   subtitle: 'آخر 7 أيام',
                 ),
                 _kpi(

@@ -125,7 +125,7 @@ class StatusDonutChart extends StatelessWidget {
       case 'cancelled':
         return AppColors.danger;
       default:
-        return const Color(0xFF94A3B8);
+        return AppColors.lightBorderStrong;
     }
   }
 }

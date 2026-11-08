@@ -6,7 +6,7 @@ import '../../../core/ui/tokens/colors.dart';
 import '../../../core/ui/tokens/spacing.dart';
 import '../../../core/ui/tokens/typography.dart';
 import '../../clinics/presentation/widgets/clinic_switcher_button.dart';
-import 'top_up_subscription_screen.dart';
+import '../../../core/routing/routing.dart';
 
 class SubscriptionGateScreen extends ConsumerStatefulWidget {
   final String clinicName;
@@ -46,12 +46,17 @@ class _SubscriptionGateScreenState extends ConsumerState<SubscriptionGateScreen>
 
   @override
   Widget build(BuildContext context) {
-    final msg = !widget.isActive ? 'تم إيقاف حساب العيادة مؤقتًا بواسطة الإدارة.' : 'انتهت مدة الاشتراك. يرجى التجديد للمتابعة.';
+    final title = !widget.isActive
+        ? 'اشتراك العيادة موقوف'
+        : 'انتهت صلاحية باقة العيادة';
+    final msg = !widget.isActive
+        ? 'تم تعليق حساب العيادة مؤقتاً. يرجى مراجعة إدارة النظام لتسوية الاشتراك.'
+        : 'انتهت فترة الاشتراك الحالية. يرجى شحن وتجديد الباقة لاستئناف العمل.';
 
     return AppStatusPage(
       icon: Icons.lock_outline_rounded,
       iconColor: AppColors.warning,
-      title: 'الاشتراك غير مفعل',
+      title: title,
       message: msg,
       hero: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -82,7 +87,7 @@ class _SubscriptionGateScreenState extends ConsumerState<SubscriptionGateScreen>
                     children: [
                       const Icon(Icons.event_busy_rounded, color: AppColors.warning, size: 18),
                       const SizedBox(width: AppSpace.xs),
-                      Text('تاريخ انتهاء الاشتراك: ', style: AppTypography.bodySm(AppColors.warning)),
+                      Text('تاريخ الانتهاء: ', style: AppTypography.bodySm(AppColors.warning)),
                       Text(_formatDate(widget.subscriptionEndDate), style: AppTypography.numericMd(AppColors.warning)),
                     ],
                   ),
@@ -93,23 +98,20 @@ class _SubscriptionGateScreenState extends ConsumerState<SubscriptionGateScreen>
         ],
       ),
       primaryAction: StatusAction(
-        label: 'تجديد الاشتراك',
+        label: 'تجديد وشحن الباقة',
         onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => TopUpSubscriptionScreen(
-                clinicName: widget.clinicName,
-                inviteCode: '',
-                clinicId: '',
-                onRefresh: widget.onRefresh,
-              ),
-            ),
+          AppNavigation.toTopUp(
+            context,
+            clinicName: widget.clinicName,
+            inviteCode: '',
+            clinicId: '',
+            onRefresh: widget.onRefresh,
           );
         },
         icon: Icons.credit_card_rounded,
       ),
       secondaryAction: StatusAction(
-        label: 'تحقُّق من الحالة',
+        label: 'التحقق من حالة التفعيل',
         onPressed: _isChecking ? null : _checkAgain,
         loading: _isChecking,
         variant: AppButtonVariant.secondary,

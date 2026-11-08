@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/ui/primitives/app_input.dart';
@@ -34,20 +34,20 @@ class _StepCredentialsState extends ConsumerState<StepCredentials> {
 
   String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'يرجى إدخال البريد الإلكتروني';
+      return 'أدخل عنوان البريد الإلكتروني';
     }
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
-      return 'يرجى إدخال بريد إلكتروني صحيح';
+      return 'صيغة البريد الإلكتروني غير صحيحة';
     }
     return null;
   }
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'يرجى إدخال كلمة المرور';
+      return 'أدخل كلمة المرور';
     }
     if (value.length < 6) {
-      return 'يجب ألا تقل كلمة المرور عن 6 أحرف';
+      return 'كلمة المرور يجب ألا تقل عن 6 خانات';
     }
     return null;
   }

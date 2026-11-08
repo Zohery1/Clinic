@@ -64,10 +64,29 @@ final todayRevenueProvider = FutureProvider<double>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return 0.0;
   if (user.clinicId == 'demo-clinic-01') return 4850.0;
-  final selectedDate = ref.watch(selectedDateProvider);
+
   final doctorId = getEffectiveDoctorIdForReport(ref);
   final branchId = getEffectiveBranchIdForReport(ref);
-  return ref.watch(reportsRepositoryProvider).getTodayRevenue(user.clinicId, selectedDate, doctorId: doctorId, branchId: branchId);
+
+  // إذا كانت مواعيد اليوم متوفرة في الذاكرة نحسب الإيراد منها مباشرة لتجنب استعلام إضافي
+  final appointmentsAsync = ref.watch(todayAppointmentsProvider);
+  if (appointmentsAsync.hasValue) {
+    final appointments = appointmentsAsync.value ?? [];
+    return appointments.where((a) {
+      if (a.status != 'completed') return false;
+      if (doctorId != null && doctorId.isNotEmpty && a.doctorId != doctorId) return false;
+      if (branchId != null && branchId.isNotEmpty && a.branchId != branchId) return false;
+      return true;
+    }).fold<double>(0.0, (sum, a) => sum + a.totalPaid);
+  }
+
+  final selectedDate = ref.watch(selectedDateProvider);
+  return ref.watch(reportsRepositoryProvider).getTodayRevenue(
+        user.clinicId,
+        selectedDate,
+        doctorId: doctorId,
+        branchId: branchId,
+      );
 });
 
 // مزود الدخل الشخصي للطبيب اليوم (My Today Revenue)
@@ -104,15 +123,18 @@ final weeklyRevenueProvider = FutureProvider<List<Map<String, dynamic>>>((ref) a
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
   if (user.clinicId == 'demo-clinic-01') {
-    return [
-      {'date': 'السبت', 'revenue': 4200.0},
-      {'date': 'الأحد', 'revenue': 5100.0},
-      {'date': 'الإثنين', 'revenue': 3800.0},
-      {'date': 'الثلاثاء', 'revenue': 4600.0},
-      {'date': 'الأربعاء', 'revenue': 5400.0},
-      {'date': 'الخميس', 'revenue': 4900.0},
-      {'date': 'الجمعة', 'revenue': 4850.0},
-    ];
+    // تواريخ ISO بنفس ترتيب المستودع (سبت→جمعه) حتى يقرأها الرسم البياني.
+    final today = DateTime.now();
+    var diff = today.weekday - DateTime.saturday;
+    if (diff < 0) diff += 7;
+    final saturday = DateTime(today.year, today.month, today.day).subtract(Duration(days: diff));
+    const revenues = [4200.0, 5100.0, 3800.0, 4600.0, 5400.0, 4900.0, 4850.0];
+    return List.generate(7, (i) {
+      final d = saturday.add(Duration(days: i));
+      final dayStr =
+          "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+      return {'date': dayStr, 'revenue': revenues[i]};
+    });
   }
   final doctorId = getEffectiveDoctorIdForReport(ref);
   final branchId = getEffectiveBranchIdForReport(ref);

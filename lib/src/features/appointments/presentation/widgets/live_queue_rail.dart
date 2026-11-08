@@ -413,7 +413,7 @@ class _LiveQueueRailState extends ConsumerState<LiveQueueRail> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
         child: Text(
-          'خطأ في تحميل الطابور: $e',
+          'تعذر تحميل طابور الانتظار، يرجى إعادة المحاولة',
           style: GoogleFonts.cairo(fontSize: 11, color: AppColors.danger),
         ),
       ),

@@ -4,8 +4,7 @@ import '../primitives/app_button.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
 
-/// Calm medical empty state. Soft circular icon container, friendly copy,
-/// and an optional primary action. Backed by the new token system.
+/// Clinical Utility Empty State. Clean, direct, zero filler.
 class AppEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -26,14 +25,6 @@ class AppEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.isDark(context);
-
-    final iconBg = Color.alphaBlend(
-      AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.08),
-      AppColors.surface(context),
-    );
-    final iconBorder = AppColors.primary.withValues(alpha: isDark ? 0.3 : 0.18);
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpace.xl),
@@ -42,23 +33,23 @@ class AppEmptyState extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: iconBg,
+                color: AppColors.subtle(context),
                 shape: BoxShape.circle,
-                border: Border.all(color: iconBorder, width: 1.5),
+                border: Border.all(color: AppColors.borderSubtle(context), width: 1),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 32, color: AppColors.primary),
+              child: Icon(icon, size: 28, color: AppColors.textMuted(context)),
             ),
-            const SizedBox(height: AppSpace.lg),
+            const SizedBox(height: AppSpace.md),
             Text(
               title,
               textAlign: TextAlign.center,
               style: GoogleFonts.cairo(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary(context),
                 height: 1.3,
               ),
@@ -66,7 +57,7 @@ class AppEmptyState extends StatelessWidget {
             if (message != null && message!.isNotEmpty) ...[
               const SizedBox(height: AppSpace.xs),
               ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 360),
+                constraints: const BoxConstraints(maxWidth: 320),
                 child: Text(
                   message!,
                   textAlign: TextAlign.center,
@@ -74,20 +65,20 @@ class AppEmptyState extends StatelessWidget {
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
                     color: AppColors.textSecondary(context),
-                    height: 1.55,
+                    height: 1.4,
                   ),
                 ),
               ),
             ],
             if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: AppSpace.xl),
+              const SizedBox(height: AppSpace.lg),
               SizedBox(
-                width: 220,
+                width: 180,
                 child: AppButton(
                   label: actionLabel!,
                   icon: actionIcon,
                   onPressed: onAction,
-                  size: AppButtonSize.md,
+                  size: AppButtonSize.sm,
                   variant: AppButtonVariant.primary,
                 ),
               ),

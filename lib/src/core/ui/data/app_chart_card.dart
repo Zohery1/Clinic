@@ -27,24 +27,15 @@ class AppChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppColors.isDark(context);
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0E1626) : AppColors.surface(context),
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF1E2E4A) : AppColors.borderSubtle(context),
+          color: AppColors.borderSubtle(context),
           width: 1,
         ),
-        boxShadow: isDark
-            ? const [
-                BoxShadow(
-                  color: Color(0x33000000),
-                  blurRadius: 16,
-                  offset: Offset(0, 4),
-                ),
-              ]
-            : AppShadows.sm(context),
+        boxShadow: AppShadows.sm(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

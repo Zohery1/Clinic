@@ -101,7 +101,7 @@ class StepClinicPath extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpace.sm),
         AppButton(
-          label: 'الرجوع للبيانات ورقم الهاتف',
+          label: 'الرجوع لبيانات الدخول',
           icon: Icons.arrow_forward_rounded,
           variant: AppButtonVariant.ghost,
           onPressed: onBack,

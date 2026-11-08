@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/ui/tokens/colors.dart';
+import '../../../../core/ui/tokens/spacing.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
 import '../../../../core/widgets/clinic_toast.dart';
-import '../../../../core/widgets/send_whatsapp_dialog.dart';
-import '../../../appointments/presentation/book_appointment_dialog.dart';
+import '../../../../core/routing/routing.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../auth/presentation/login_controller.dart';
 import '../../data/patient_repository.dart';
 import '../../domain/patient_model.dart';
-import '../patient_details_dialog.dart';
 import 'edit_patient_dialog.dart';
 
-/// بطاقة المريض في العرض الهاتفي
+/// بطاقة المريض في العرض الهاتفي (Mobile Patient Card)
 class PatientCardItem extends ConsumerWidget {
   final PatientModel patient;
   final int fileNumber;
@@ -53,7 +53,7 @@ class PatientCardItem extends ConsumerWidget {
           }
         } catch (e) {
           if (context.mounted) {
-            ClinicToast.showError(context, 'حدث خطأ أثناء الحذف: $e');
+            ClinicToast.showError(context, 'تعذر حذف ملف المريض، يرجى المحاولة مجدداً');
           }
         }
       },
@@ -62,7 +62,6 @@ class PatientCardItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final user = ref.watch(currentUserProvider);
     final isDoctor = user?.role == UserRole.doctor;
     final age = _calculateAge(patient.birthDate);
@@ -70,21 +69,20 @@ class PatientCardItem extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(AppRadii.md),
         child: InkWell(
-          onTap: () {
-            showDialog(
-              context: context,
-              builder: (_) => PatientDetailsDialog(clinicId: clinicId, patient: patient),
-            );
-          },
-          borderRadius: BorderRadius.circular(14),
+          onTap: () => AppNavigation.showPatientDetails(
+            context,
+            clinicId: clinicId,
+            patient: patient,
+          ),
+          borderRadius: BorderRadius.circular(AppRadii.md),
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              border: Border.all(color: AppColors.borderSubtle(context)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,15 +91,15 @@ class PatientCardItem extends ConsumerWidget {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+                      backgroundColor: AppColors.primarySubtle,
                       child: Text(
                         patient.fullName.trim().isNotEmpty
                             ? patient.fullName.trim().substring(0, 1)
                             : '؟',
-                        style: TextStyle(
+                        style: GoogleFonts.cairo(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
@@ -115,9 +113,10 @@ class PatientCardItem extends ConsumerWidget {
                               Expanded(
                                 child: Text(
                                   patient.fullName,
-                                  style: const TextStyle(
-                                    fontSize: 15,
+                                  style: GoogleFonts.cairo(
+                                    fontSize: 14.5,
                                     fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary(context),
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -125,15 +124,15 @@ class PatientCardItem extends ConsumerWidget {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(6),
+                                  color: AppColors.primarySubtle,
+                                  borderRadius: BorderRadius.circular(AppRadii.xs),
                                 ),
                                 child: Text(
                                   '#$fileNumber',
-                                  style: TextStyle(
+                                  style: GoogleFonts.jetBrainsMono(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: theme.colorScheme.primary,
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               ),
@@ -144,9 +143,8 @@ class PatientCardItem extends ConsumerWidget {
                             children: [
                               if (patient.phone != null && patient.phone!.isNotEmpty)
                                 InkWell(
-                                  onTap: () => showSendWhatsAppDialog(
+                                  onTap: () => AppNavigation.showWhatsApp(
                                     context,
-                                    ref,
                                     phone: patient.phone!,
                                     patientName: patient.fullName,
                                   ),
@@ -154,13 +152,13 @@ class PatientCardItem extends ConsumerWidget {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       const Icon(Icons.chat_bubble_outline_rounded,
-                                          size: 12, color: Color(0xFF10B981)),
+                                          size: 12, color: AppColors.success),
                                       const SizedBox(width: 4),
                                       Text(
                                         patient.phone!,
-                                        style: const TextStyle(
+                                        style: GoogleFonts.jetBrainsMono(
                                           fontSize: 12,
-                                          color: Color(0xFF10B981),
+                                          color: AppColors.success,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -168,10 +166,10 @@ class PatientCardItem extends ConsumerWidget {
                                   ),
                                 )
                               else
-                                Text('بدون هاتف', style: TextStyle(fontSize: 11, color: theme.hintColor)),
+                                Text('بدون هاتف', style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textMuted(context))),
                               if (age != null) ...[
                                 const SizedBox(width: 12),
-                                Text('• $age سنة', style: TextStyle(fontSize: 11, color: theme.hintColor)),
+                                Text('• $age سنة', style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textSecondary(context))),
                               ],
                             ],
                           ),
@@ -181,28 +179,26 @@ class PatientCardItem extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 10),
-                const Divider(height: 1),
+                Divider(height: 1, color: AppColors.borderSubtle(context)),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     ElevatedButton.icon(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => BookAppointmentDialog(
-                            clinicId: clinicId,
-                            preselectedPatientId: patient.id,
-                          ),
-                        );
-                      },
+                      onPressed: () => AppNavigation.showBookAppointment(
+                        context,
+                        clinicId: clinicId,
+                        preselectedPatientId: patient.id,
+                      ),
                       icon: const Icon(Icons.calendar_today_rounded, size: 13),
-                      label: const Text('حجز موعد', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      label: Text('حجز موعد', style: GoogleFonts.cairo(fontSize: 11, fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         minimumSize: Size.zero,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
                       ),
                     ),
                     Row(
@@ -219,7 +215,7 @@ class PatientCardItem extends ConsumerWidget {
                         ),
                         if (user?.isOwner == true || isDoctor)
                           IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.error),
+                            icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.danger),
                             tooltip: 'حذف',
                             onPressed: () => _showDeleteDialog(context, ref),
                           ),

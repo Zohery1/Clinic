@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/ui/tokens/colors.dart';
+import '../../../core/ui/tokens/spacing.dart';
 
 class SubscriptionWarningBanner extends StatelessWidget {
   final DateTime endDate;
@@ -30,16 +32,9 @@ class SubscriptionWarningBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       constraints: const BoxConstraints(maxWidth: 560),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED), // Amber 50
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: const Color(0xFFFDBA74), width: 1.2), // Amber 300
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFEA580C).withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.warningSubtle,
+        borderRadius: BorderRadius.circular(AppRadii.full),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.4), width: 1.0),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -47,7 +42,7 @@ class SubscriptionWarningBanner extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: const BoxDecoration(
-              color: Color(0xFFF97316),
+              color: AppColors.warning,
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -59,9 +54,9 @@ class SubscriptionWarningBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Flexible(
             child: Text(
-              'تنبيه: ينتهي اشتراك عيادتك بعد ($remainingStr). يرجى التجديد الآن.',
+              'متبقي على انتهاء باقة العيادة ($remainingStr). سارع بالتجديد لتفادي التوقف.',
               style: GoogleFonts.cairo(
-                color: const Color(0xFFC2410C),
+                color: AppColors.warning,
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
               ),
@@ -72,24 +67,15 @@ class SubscriptionWarningBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Material(
             color: Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadii.full),
             child: InkWell(
               onTap: onRenewPressed,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppRadii.full),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFEA580C), Color(0xFFC2410C)],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFEA580C).withValues(alpha: 0.25),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  color: AppColors.warning,
+                  borderRadius: BorderRadius.circular(AppRadii.full),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -101,7 +87,7 @@ class SubscriptionWarningBanner extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'تجديد الآن',
+                      'تجديد الباقة',
                       style: GoogleFonts.cairo(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
@@ -118,4 +104,3 @@ class SubscriptionWarningBanner extends StatelessWidget {
     );
   }
 }
-

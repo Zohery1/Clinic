@@ -4,17 +4,15 @@ import '../ui/tokens/spacing.dart';
 
 export 'staggered_card_entry.dart';
 
-/// Clinical double-bezel card container providing structural elegance,
-/// a recessed outer rim bezel, elevated inner surface, dual micro-shadows,
-/// and responsive active-glow halo states.
+/// Clinical Utility container card with flat styling, clean border, and subtle active state.
 class DoubleBezelCard extends StatelessWidget {
   const DoubleBezelCard({
     super.key,
     required this.child,
-    this.outerPadding = const EdgeInsets.all(2.5),
+    this.outerPadding = const EdgeInsets.all(1.5),
     this.innerPadding = const EdgeInsets.all(16),
     this.margin,
-    this.outerRadius = 20.0,
+    this.outerRadius = 16.0,
     this.innerRadius,
     this.outerColor,
     this.borderColor,
@@ -23,7 +21,7 @@ class DoubleBezelCard extends StatelessWidget {
     this.innerShadows,
     this.innerBorder,
     this.onTap,
-    this.clipBehavior = Clip.antiAlias,
+    this.clipBehavior = Clip.none,
     this.isActiveGlow = false,
     this.glowColor,
   });
@@ -47,84 +45,25 @@ class DoubleBezelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final resolvedOuterRadius = outerRadius ?? AppRadii.radiusLg;
-    final resolvedInnerRadius = innerRadius ??
-        (resolvedOuterRadius - 2.5).clamp(0.0, 999.0);
+    final resolvedOuterRadius = outerRadius ?? AppRadii.lg;
+    final resolvedInnerRadius = innerRadius ?? (resolvedOuterRadius - 1.5).clamp(0.0, 999.0);
     final effectiveOuterBorderRadius = BorderRadius.circular(resolvedOuterRadius);
     final effectiveInnerBorderRadius = BorderRadius.circular(resolvedInnerRadius);
 
     final accent = glowColor ?? AppColors.primary;
+    final effectiveBorderColor = borderColor ??
+        (isActiveGlow ? accent : AppColors.borderSubtle(context));
 
-    // Outer shell rim color
-    final resolvedOuterColor = outerColor ??
-        (isActiveGlow
-            ? accent.withValues(alpha: isDark ? 0.16 : 0.08)
-            : (isDark
-                ? Colors.white.withValues(alpha: 0.035)
-                : AppColors.lightSubtle));
-
-    // Outer bezel border color
-    final resolvedBorderColor = borderColor ??
-        (isActiveGlow
-            ? accent.withValues(alpha: isDark ? 0.45 : 0.30)
-            : (isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleLight));
-
-    // Outer halo / elevation shadow
-    final outerShadows = isActiveGlow
-        ? [
-            BoxShadow(
-              color: accent.withValues(alpha: isDark ? 0.14 : 0.08),
-              blurRadius: 10,
-              spreadRadius: 0.5,
-              offset: const Offset(0, 2),
-            ),
-          ]
-        : [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.035),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ];
-
-    // Inner surface fill & shadows
-    final resolvedInnerBg = innerColor ?? AppColors.surface(context);
-    final defaultInnerShadows = <BoxShadow>[
-      BoxShadow(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.03)
-            : Colors.white.withValues(alpha: 0.9),
-        offset: const Offset(0, 1),
-        blurRadius: 1,
-        spreadRadius: 0,
-      ),
-      if (isActiveGlow)
-        BoxShadow(
-          color: accent.withValues(alpha: isDark ? 0.15 : 0.08),
-          offset: const Offset(0, 4),
-          blurRadius: 12,
-          spreadRadius: 0,
-        ),
-    ];
-
-    final effectiveInnerShadows = innerShadows ?? defaultInnerShadows;
-    final effectiveOuterPadding = outerPadding ?? const EdgeInsets.all(2.5);
     final effectiveInnerPadding = innerPadding ?? const EdgeInsets.all(16);
+    final effectiveOuterPadding = outerPadding ?? const EdgeInsets.all(1.5);
 
     Widget innerCard = Ink(
       decoration: BoxDecoration(
-        color: innerGradient == null ? resolvedInnerBg : null,
+        color: innerGradient == null ? (innerColor ?? AppColors.surface(context)) : null,
         gradient: innerGradient,
         borderRadius: effectiveInnerBorderRadius,
-        border: innerBorder ??
-            Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Colors.black.withValues(alpha: 0.04),
-              width: 0.75,
-            ),
-        boxShadow: effectiveInnerShadows,
+        border: innerBorder,
+        boxShadow: innerShadows,
       ),
       child: onTap != null
           ? InkWell(
@@ -145,19 +84,18 @@ class DoubleBezelCard extends StatelessWidget {
       margin: margin,
       padding: effectiveOuterPadding,
       decoration: BoxDecoration(
-        color: resolvedOuterColor,
+        color: outerColor ?? AppColors.surface(context),
         borderRadius: effectiveOuterBorderRadius,
         border: Border.all(
-          color: resolvedBorderColor,
+          color: effectiveBorderColor,
           width: isActiveGlow ? 1.5 : 1.0,
         ),
-        boxShadow: outerShadows,
       ),
-      clipBehavior: clipBehavior ?? Clip.antiAlias,
+      clipBehavior: clipBehavior ?? Clip.none,
       child: Material(
         color: Colors.transparent,
         borderRadius: effectiveInnerBorderRadius,
-        clipBehavior: clipBehavior ?? Clip.antiAlias,
+        clipBehavior: clipBehavior ?? Clip.none,
         child: innerCard,
       ),
     );

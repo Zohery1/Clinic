@@ -96,10 +96,10 @@ final realtimeAppointmentsSyncProvider = Provider<void>((ref) {
       value: user.clinicId,
     ),
     callback: (payload) {
-      // تجميع التغييرات المتقاربة زمنياً وتأخير التحديث 500 ملي ثانية لمنع غمر السيرفر بالطلبات المتكررة
+      // تجميع التغييرات المتقاربة زمنياً وتأخير التحديث لمنع غمر السيرفر بالطلبات المتكررة
       debounceTimer?.cancel();
-      debounceTimer = Timer(const Duration(milliseconds: 500), () {
-        invalidateAppointmentsAndReports(ref);
+      debounceTimer = Timer(const Duration(milliseconds: 600), () {
+        invalidateAppointmentsAndReports(ref, refreshFullReports: false);
       });
     },
   ).subscribe();
@@ -110,14 +110,17 @@ final realtimeAppointmentsSyncProvider = Provider<void>((ref) {
   });
 });
 
-void invalidateAppointmentsAndReports(dynamic ref) {
+void invalidateAppointmentsAndReports(dynamic ref, {bool refreshFullReports = false}) {
   ref.invalidate(todayAppointmentsProvider);
   ref.invalidate(appointmentsForDateProvider);
   ref.invalidate(todayRevenueProvider);
-  ref.invalidate(monthRevenueProvider);
-  ref.invalidate(weeklyRevenueProvider);
-  ref.invalidate(sixWeeksRevenueProvider);
-  ref.invalidate(monthlyStatsProvider);
-  ref.invalidate(dailyStatsProvider);
-  ref.invalidate(detailedReportProvider);
+
+  if (refreshFullReports) {
+    ref.invalidate(weeklyRevenueProvider);
+    ref.invalidate(monthRevenueProvider);
+    ref.invalidate(sixWeeksRevenueProvider);
+    ref.invalidate(monthlyStatsProvider);
+    ref.invalidate(dailyStatsProvider);
+    ref.invalidate(detailedReportProvider);
+  }
 }

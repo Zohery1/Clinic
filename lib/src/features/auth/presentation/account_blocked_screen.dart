@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/ui/feedback/app_status_page.dart';
 import '../../../core/ui/primitives/app_button.dart';
 import '../../../core/ui/tokens/colors.dart';
-import '../../../core/ui/tokens/typography.dart';
 import '../../../core/ui/tokens/spacing.dart';
-import 'join_clinic_screen.dart';
+import '../../../core/ui/tokens/typography.dart';
+import '../../../core/routing/routing.dart';
 
 class AccountBlockedScreen extends ConsumerStatefulWidget {
   final String userName;
@@ -35,17 +35,13 @@ class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final helloLine = widget.userName.isNotEmpty
-        ? 'أهلًا بك يا ${widget.userName}'
-        : 'عزيزي المساعد / السكرتير';
-
-    final msg = 'يرجى التواصل مع مدير العيادة (${widget.clinicName}) لإعادة التفعيل.';
+    final helloLine = widget.userName.isNotEmpty ? 'أهلاً ${widget.userName}' : 'مرحباً بك';
 
     return AppStatusPage(
       icon: Icons.block_rounded,
       iconColor: AppColors.danger,
-      title: 'تم تعطيل حسابك من قبل إدارة العيادة',
-      message: msg,
+      title: 'تم إيقاف الحساب',
+      message: 'تم إيقاف صلاحية الدخول لهذه العيادة (${widget.clinicName}). يرجى مراجعة إدارة العيادة لإعادة التفعيل.',
       hero: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -65,7 +61,7 @@ class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
                 const SizedBox(width: AppSpace.sm),
                 Expanded(
                   child: Text(
-                    'قام الطبيب المسؤول في عيادة «${widget.clinicName}» بإيقاف صلاحيات دخول هذا الحساب مؤقتًا. يرجى مراجعة الطبيب لإعادة تفعيل حسابك.',
+                    'تم إيقاف صلاحية الدخول لهذا الحساب من قبل إدارة العيادة.',
                     style: AppTypography.bodyMd(AppColors.textPrimary(context)),
                   ),
                 ),
@@ -75,22 +71,18 @@ class _AccountBlockedScreenState extends ConsumerState<AccountBlockedScreen> {
         ],
       ),
       primaryAction: StatusAction(
-        label: 'إعادة المحاولة والتحقُّق',
+        label: 'التحقق من التفعيل',
         onPressed: _isChecking ? null : _checkAgain,
         loading: _isChecking,
         icon: Icons.refresh_rounded,
       ),
       secondaryAction: StatusAction(
-        label: 'الخروج والربط بعيادة جديدة',
+        label: 'الانضمام لعيادة أخرى',
         onPressed: () {
-          Navigator.push(
+          AppNavigation.toJoinClinic(
             context,
-            MaterialPageRoute(
-              builder: (_) => JoinClinicScreen(
-                userName: widget.userName,
-                onRefresh: widget.onRefresh,
-              ),
-            ),
+            userName: widget.userName,
+            onRefresh: widget.onRefresh,
           );
         },
         variant: AppButtonVariant.secondary,

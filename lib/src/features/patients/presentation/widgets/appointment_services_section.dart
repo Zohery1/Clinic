@@ -122,7 +122,7 @@ class AppointmentServicesSection extends ConsumerWidget {
         child: SizedBox(height: 12, width: 12, child: CircularProgressIndicator(strokeWidth: 1.5)),
       ),
       error: (err, stack) => ErrorStateView(
-        message: 'خطأ في تحميل الخدمات: $err',
+        message: 'تعذر تحميل الخدمات الطبية المرافقة',
         onRetry: () => ref.invalidate(appointmentServicesProvider(appointmentId)),
       ),
     );

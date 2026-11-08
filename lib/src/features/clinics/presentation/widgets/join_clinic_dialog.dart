@@ -45,10 +45,12 @@ class _JoinClinicDialogState extends ConsumerState<JoinClinicDialog> {
       );
     } else {
       final err = ref.read(clinicsControllerProvider).error;
-      String errorMsg = 'كود الدعوة غير صحيح أو غير مسجل في النظام';
+      String errorMsg = 'كود الدعوة غير صحيح أو منتهي الصلاحية';
       if (err != null) {
-        final s = err.toString();
-        errorMsg = s.startsWith('Exception: ') ? s.substring(11) : s;
+        final s = err.toString().toLowerCase();
+        if (s.contains('already')) {
+          errorMsg = 'أنت مسجل بالفعل ضمن طاقم هذه العيادة';
+        }
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -121,7 +123,7 @@ class _JoinClinicDialogState extends ConsumerState<JoinClinicDialog> {
                 ),
                 const SizedBox(height: 22),
                 Text(
-                  'كود الدعوة (Invite Code)',
+                  'كود الدعوة المكون من 6 رموز',
                   style: GoogleFonts.cairo(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
@@ -146,7 +148,7 @@ class _JoinClinicDialogState extends ConsumerState<JoinClinicDialog> {
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'يرجى إدخال كود الدعوة';
+                      return 'أدخل كود الدعوة الممنوح لك';
                     }
                     if (val.trim().length < 4) {
                       return 'كود الدعوة غير مكتمل';

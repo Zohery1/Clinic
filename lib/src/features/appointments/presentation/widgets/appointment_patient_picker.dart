@@ -255,7 +255,10 @@ class AppointmentPatientPicker extends ConsumerWidget {
             } catch (e) {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: AppTheme.error),
+                  const SnackBar(
+                    content: Text('تعذر إضافة المريض الجديد، يرجى إعادة المحاولة'),
+                    backgroundColor: AppTheme.error,
+                  ),
                 );
               }
             }
@@ -350,7 +353,7 @@ class AppointmentPatientPicker extends ConsumerWidget {
                   ),
                   validator: (val) {
                     if (selectedPatientId == null && (val == null || val.trim().isEmpty)) {
-                      return 'يرجى اختيار مريض';
+                      return 'اختر المريض أولاً أو سجّل مريضاً جديداً';
                     }
                     return null;
                   },

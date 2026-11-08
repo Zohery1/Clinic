@@ -15,11 +15,14 @@ import '../../../../core/ui/tokens/spacing.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../reports/presentation/reports_controller.dart';
 import '../../domain/appointment_model.dart';
+import '../../../../core/routing/routing.dart';
 import '../appointments_controller.dart';
-import '../book_appointment_dialog.dart';
 import 'appointment_card.dart';
 import 'appointments_calendar_strip.dart';
 
+/// واجهة المواعيد للهواتف والشاشات الصغيرة (Mobile Appointments View).
+/// تدعم التمرير السلس، شريط التقويم التفاعلي، مؤشرات الإيرادات السريعة،
+/// وفلاتر الحالات مع زر إجراء عائم لحجز موعد جديد.
 class AppointmentsMobileView extends ConsumerStatefulWidget {
   final UserModel user;
   final AsyncValue<List<AppointmentModel>> appointmentsAsync;
@@ -47,9 +50,9 @@ extension on _AppointmentFilter {
       case _AppointmentFilter.waiting:
         return 'في الانتظار';
       case _AppointmentFilter.withDoctor:
-        return 'مع الطبيب';
+        return 'قيد الكشف';
       case _AppointmentFilter.completed:
-        return 'منتهي';
+        return 'مكتمل';
       case _AppointmentFilter.cancelled:
         return 'ملغي';
     }
@@ -117,71 +120,74 @@ class _AppointmentsMobileViewState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.canvas(context),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openBooking,
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(
-          'حجز جديد',
-          style: GoogleFonts.cairo(
-            fontWeight: FontWeight.w700,
-            fontSize: 13.5,
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: AppColors.canvas(context),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _openBooking,
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
+          icon: const Icon(Icons.add_rounded),
+          label: Text(
+            'حجز جديد',
+            style: GoogleFonts.cairo(
+              fontWeight: FontWeight.w700,
+              fontSize: 13.5,
+            ),
           ),
         ),
-      ),
-      body: RefreshIndicator(
-        color: AppColors.primary,
-        onRefresh: () async {
-          ref.invalidate(todayAppointmentsProvider);
-          ref.invalidate(todayRevenueProvider);
-        },
-        child: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpace.lg,
-            vertical: AppSpace.md,
+        body: RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () async {
+            ref.invalidate(todayAppointmentsProvider);
+            ref.invalidate(todayRevenueProvider);
+          },
+          child: ListView(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpace.lg,
+              vertical: AppSpace.md,
+            ),
+            children: [
+              AppointmentsCalendarStrip(
+                selectedDate: widget.selectedDate,
+                user: widget.user,
+              ),
+              const SizedBox(height: AppSpace.md),
+              _RevenueSummary(appointmentsAsync: widget.appointmentsAsync),
+              const SizedBox(height: AppSpace.md),
+              _SearchBar(
+                controller: _searchController,
+                query: _searchQuery,
+                onChanged: _onSearchChanged,
+                onClear: _clearSearch,
+              ),
+              const SizedBox(height: AppSpace.md),
+              _FilterRow(
+                appointmentsAsync: widget.appointmentsAsync,
+                selected: _filter,
+                specs: _filterSpecs,
+                onSelect: (f) => setState(() => _filter = f),
+              ),
+              const SizedBox(height: AppSpace.lg),
+              _List(
+                appointmentsAsync: widget.appointmentsAsync,
+                filter: _filter,
+                searchQuery: _searchQuery,
+                clinicId: widget.user.clinicId,
+              ),
+              const SizedBox(height: AppSpace.huge),
+            ],
           ),
-          children: [
-            AppointmentsCalendarStrip(
-              selectedDate: widget.selectedDate,
-              user: widget.user,
-            ),
-            const SizedBox(height: AppSpace.md),
-            _RevenueSummary(appointmentsAsync: widget.appointmentsAsync),
-            const SizedBox(height: AppSpace.md),
-            _SearchBar(
-              controller: _searchController,
-              query: _searchQuery,
-              onChanged: _onSearchChanged,
-              onClear: _clearSearch,
-            ),
-            const SizedBox(height: AppSpace.md),
-            _FilterRow(
-              appointmentsAsync: widget.appointmentsAsync,
-              selected: _filter,
-              specs: _filterSpecs,
-              onSelect: (f) => setState(() => _filter = f),
-            ),
-            const SizedBox(height: AppSpace.lg),
-            _List(
-              appointmentsAsync: widget.appointmentsAsync,
-              filter: _filter,
-              searchQuery: _searchQuery,
-              clinicId: widget.user.clinicId,
-            ),
-            const SizedBox(height: AppSpace.huge),
-          ],
         ),
       ),
     );
   }
 
   void _openBooking() {
-    showDialog<void>(
-      context: context,
-      builder: (_) => BookAppointmentDialog(clinicId: widget.user.clinicId),
+    AppNavigation.showBookAppointment(
+      context,
+      clinicId: widget.user.clinicId,
     );
   }
 }
@@ -357,11 +363,11 @@ class _List extends ConsumerWidget {
           return AppEmptyState(
             icon: Icons.event_busy_rounded,
             title: searchQuery.isNotEmpty
-                ? 'لا توجد نتائج للبحث'
+                ? 'لا توجد نتائج مطابقة للبحث'
                 : 'لا توجد مواعيد في هذا القسم',
             message: searchQuery.isNotEmpty
-                ? 'جرب تغيير كلمات البحث أو المسح'
-                : 'يمكنك إضافة موعد جديد بالضغط على زر حجز جديد',
+                ? 'تأكد من كتابة الاسم أو رقم الهاتف بشكل صحيح.'
+                : 'اضغط على زر "حجز جديد" لإضافة مريض إلى الجدول.',
           );
         }
         return Column(

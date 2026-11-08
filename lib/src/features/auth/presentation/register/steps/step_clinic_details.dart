@@ -37,28 +37,28 @@ class _StepClinicDetailsState extends ConsumerState<StepClinicDetails> {
 
   String? _validateClinicName(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'يرجى إدخال اسم العيادة أو المركز الطبي';
+      return 'أدخل اسم العيادة أو المركز الطبي';
     }
     return null;
   }
 
   String? _validateMainBranch(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'يرجى إدخال اسم الفرع الرئيسي';
+      return 'أدخل اسم الفرع الرئيسي';
     }
     return null;
   }
 
   String? _validateInviteCode(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'يرجى إدخال كود الدعوة للانضمام للعيادة';
+      return 'أدخل كود الدعوة الممنوح لك من مدير العيادة';
     }
     return null;
   }
 
   String? _validateExtraBranchName(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'يرجى إدخال اسم الفرع';
+      return 'أدخل اسم الفرع الإضافي';
     }
     return null;
   }
@@ -103,8 +103,8 @@ class _StepClinicDetailsState extends ConsumerState<StepClinicDetails> {
           const SizedBox(height: AppSpace.xxl),
           AppButton(
             label: isCreating
-                ? 'إنشاء الحساب وتأسيس العيادة 🚀'
-                : 'إنشاء الحساب والانضمام للعيادة 🚀',
+                ? 'تأكيد التسجيل وتأسيس العيادة'
+                : 'تأكيد التسجيل والانضمام للعيادة',
             icon: Icons.check_circle_rounded,
             loading: widget.isSubmitting,
             onPressed: _submit,
@@ -336,7 +336,7 @@ class _JoinSection extends StatelessWidget {
       children: [
         const _SectionTitle(
           icon: Icons.badge_rounded,
-          title: 'بيانات المركز الطبي والفروع',
+          title: 'بيانات الانضمام والدور الوظيفي',
         ),
         const SizedBox(height: AppSpace.lg),
         Text(

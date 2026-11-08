@@ -3,28 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 
+import '../../../../core/routing/routing.dart';
 import '../../../../core/ui/primitives/app_avatar.dart';
 import '../../../../core/ui/primitives/app_badge.dart';
 import '../../../../core/ui/primitives/app_button.dart';
 import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/ui/tokens/spacing.dart';
-import '../../../../core/ui/tokens/typography.dart';
+import '../../../../core/utils/appointment_status.dart';
 import '../../../../core/utils/doctor_utils.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/clinic_toast.dart';
-import '../../../../core/widgets/send_whatsapp_dialog.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../auth/presentation/login_controller.dart';
 import '../../../dashboard/presentation/notifications_controller.dart';
-import '../../../patients/presentation/patient_details_dialog.dart';
 import '../../data/appointment_repository.dart';
 import '../../domain/appointment_model.dart';
 import '../appointments_controller.dart';
 import '../edit_appointment_dialog.dart';
-import '../examination_screen.dart';
 import '../visit_notes_dialog.dart';
+import 'admission_confirmation_sheet.dart';
 
-/// Full appointment details card used in the desktop right pane.
+/// بطاقة التفاصيل السريرية الكاملة المدمجة (High-Density Clinical Details Card).
+/// تدعم إتمام الفحص، التحويل للانتظار، وإلغاء الموعد المزدوج (عيادة / مريض).
 class AppointmentDetailsCard extends ConsumerWidget {
   final AppointmentModel appointment;
   final String clinicId;
@@ -35,22 +35,16 @@ class AppointmentDetailsCard extends ConsumerWidget {
     required this.clinicId,
   });
 
-  static const _statusLabels = <String, String>{
-    'pending': 'مع الطبيب',
-    'confirmed': 'في الانتظار',
-    'completed': 'منتهي',
-    'cancelled': 'ملغي',
-    'cancelled_by_patient': 'ملغي',
-    'cancelled_by_clinic': 'ملغي',
-  };
+  // Canonical labels come from the central map in core/utils.
+  static Map<String, String> get _statusLabels => appointmentStatusLabels;
 
   static const _statusIcons = <String, IconData>{
     'pending': Icons.person_search_rounded,
     'confirmed': Icons.hourglass_top_rounded,
     'completed': Icons.check_circle_rounded,
     'cancelled': Icons.cancel_outlined,
-    'cancelled_by_patient': Icons.cancel_outlined,
-    'cancelled_by_clinic': Icons.cancel_outlined,
+    'cancelled_by_patient': Icons.person_off_outlined,
+    'cancelled_by_clinic': Icons.domain_disabled_rounded,
   };
 
   AppBadgeVariant _badgeVariant(String status) {
@@ -61,6 +55,8 @@ class AppointmentDetailsCard extends ConsumerWidget {
         return AppBadgeVariant.warning;
       case 'completed':
         return AppBadgeVariant.success;
+      case 'cancelled_by_patient':
+        return AppBadgeVariant.warning;
       default:
         return AppBadgeVariant.danger;
     }
@@ -73,42 +69,69 @@ class AppointmentDetailsCard extends ConsumerWidget {
           .read(appointmentRepositoryProvider)
           .updateAppointmentStatus(appointment.id, status);
       invalidateAppointmentsAndReports(ref);
+
       try {
         if (status.startsWith('cancelled')) {
           ref.read(notificationsProvider.notifier).sendBroadcastNotification(
                 title: 'إلغاء موعد',
-                body: 'تم إلغاء حجز المريض (${appointment.patient.fullName})',
+                body: status == 'cancelled_by_patient'
+                    ? 'اعتذر المريض (${appointment.patient.fullName}) عن الحضور'
+                    : 'تم إلغاء حجز المريض (${appointment.patient.fullName}) من العيادة',
                 targetRole: 'doctor',
               );
         } else if (status == 'pending') {
           ref.read(notificationsProvider.notifier).sendBroadcastNotification(
-                title: 'دخول مريض للفحص',
+                title: 'دخول مريض لغرفة الكشف',
                 body:
-                    'المريض (${appointment.patient.fullName}) في انتظارك الآن',
+                    'المريض (${appointment.patient.fullName}) داخل غرفة الفحص الآن',
                 targetRole: 'doctor',
                 playSound: true,
               );
         } else if (status == 'completed') {
           ref.read(notificationsProvider.notifier).sendBroadcastNotification(
-                title: 'إنتهاء موعد',
+                title: 'اكتمال الكشف',
                 body:
-                    'تم الانتهاء من موعد المريض (${appointment.patient.fullName})',
+                    'تم الانتهاء من فحص المريض (${appointment.patient.fullName})',
                 targetRole: 'secretary',
                 playSound: true,
               );
         }
       } catch (_) {}
+
       if (!context.mounted) return;
+      final label = status == 'pending'
+          ? 'تم دخول المريض لغرفة الكشف'
+          : status == 'completed'
+              ? 'تم إنهاء الكشف بنجاح'
+              : status == 'confirmed'
+                  ? 'تمت إعادة المريض لصالة الانتظار'
+                  : status == 'cancelled_by_patient'
+                      ? 'تم تسجيل اعتذار المريض'
+                      : 'تم إلغاء الكشف من العيادة';
+
       ClinicToast.show(
         context,
-        message: 'تم تحديث حالة الموعد',
+        message: label,
         icon: Icons.check_rounded,
         color: AppColors.success,
       );
     } catch (e) {
       if (!context.mounted) return;
-      ClinicToast.showError(context, 'حدث خطأ: $e');
+      ClinicToast.showError(context, 'تعذر تحديث حالة الكشف، يرجى إعادة المحاولة');
     }
+  }
+
+  void _openConfirmation(BuildContext context, WidgetRef ref, String target) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AdmissionConfirmationSheet(
+        appointment: appointment,
+        targetStatus: target,
+        onConfirm: () => _updateStatus(context, ref, target),
+      ),
+    );
   }
 
   @override
@@ -122,20 +145,18 @@ class AppointmentDetailsCard extends ConsumerWidget {
     final status = appointment.status.toLowerCase();
     final label = _statusLabels[status] ?? 'في الانتظار';
     final icon = _statusIcons[status] ?? Icons.hourglass_top_rounded;
-    final canCancel = status != 'cancelled' &&
-        status != 'cancelled_by_patient' &&
-        status != 'cancelled_by_clinic' &&
-        status != 'completed';
+    final isCancelled = status.startsWith('cancelled');
+    final isCompleted = status == 'completed';
+    final canCancel = !isCancelled && !isCompleted;
 
     final price = appointment.priceCharged ?? 0.0;
     final totalPaid = appointment.totalPaid;
     final remaining = (price > totalPaid) ? (price - totalPaid) : 0.0;
-    final isDark = AppColors.isDark(context);
 
     return AppCard(
-      padding: const EdgeInsets.all(AppSpace.xl),
-      backgroundColor: isDark ? AppColors.obsidianCard : AppColors.surface(context),
-      borderColor: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context),
+      padding: const EdgeInsets.all(AppSpace.md),
+      backgroundColor: AppColors.surface(context),
+      borderColor: AppColors.borderSubtle(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -145,32 +166,31 @@ class AppointmentDetailsCard extends ConsumerWidget {
             children: [
               AppAvatar(
                 name: appointment.patient.fullName,
-                size: AppAvatarSize.lg,
+                size: AppAvatarSize.md,
                 color: AppColors.primary,
               ),
-              const SizedBox(width: AppSpace.md),
+              const SizedBox(width: AppSpace.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       appointment.patient.fullName,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.cairo(
-                        fontSize: 16,
+                        fontSize: 14.5,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary(context),
                         height: 1.25,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     if (appointment.patient.phone != null &&
                         appointment.patient.phone!.isNotEmpty)
                       InkWell(
-                        onTap: () => showSendWhatsAppDialog(
+                        onTap: () => AppNavigation.showWhatsApp(
                           context,
-                          ref,
                           phone: appointment.patient.phone!,
                           patientName: appointment.patient.fullName,
                         ),
@@ -179,12 +199,12 @@ class AppointmentDetailsCard extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.chat_bubble_rounded,
-                                size: 13, color: AppColors.success),
+                                size: 12, color: AppColors.success),
                             const SizedBox(width: 4),
                             Text(
                               appointment.patient.phone!,
                               style: GoogleFonts.jetBrainsMono(
-                                fontSize: 12,
+                                fontSize: 11,
                                 color: AppColors.success,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -195,15 +215,16 @@ class AppointmentDetailsCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpace.sm),
+              const SizedBox(width: AppSpace.xs),
               AppBadge(
                 label: label,
                 icon: icon,
+                size: AppBadgeSize.sm,
                 variant: _badgeVariant(status),
               ),
             ],
           ),
-          const SizedBox(height: AppSpace.lg),
+          const SizedBox(height: AppSpace.md),
 
           // ─── 1. بيانات الحجز والزيارة ───
           _buildSectionHeader(
@@ -212,11 +233,11 @@ class AppointmentDetailsCard extends ConsumerWidget {
             Icons.event_note_rounded,
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpace.md, vertical: AppSpace.sm),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF090E1A) : AppColors.canvas(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context)),
+              color: AppColors.canvas(context),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.borderSubtle(context)),
             ),
             child: Column(
               children: [
@@ -225,7 +246,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
                   label: 'التاريخ',
                   value: formattedDate,
                 ),
-                Divider(height: 12, color: AppColors.borderSubtle(context)),
+                Divider(height: 8, color: AppColors.borderSubtle(context)),
                 _DetailRow(
                   icon: Icons.access_time_rounded,
                   label: 'الوقت',
@@ -234,7 +255,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
                 ),
                 if (appointment.appointmentTypeName != null &&
                     appointment.appointmentTypeName!.isNotEmpty) ...[
-                  Divider(height: 12, color: AppColors.borderSubtle(context)),
+                  Divider(height: 8, color: AppColors.borderSubtle(context)),
                   _DetailRow(
                     icon: Icons.medical_information_outlined,
                     label: 'نوع الكشف',
@@ -243,7 +264,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
                 ],
                 if (appointment.doctorName != null &&
                     appointment.doctorName!.isNotEmpty) ...[
-                  Divider(height: 12, color: AppColors.borderSubtle(context)),
+                  Divider(height: 8, color: AppColors.borderSubtle(context)),
                   _DetailRow(
                     icon: Icons.person_pin_outlined,
                     label: 'الطبيب',
@@ -252,7 +273,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
                 ],
                 if (appointment.branchName != null &&
                     appointment.branchName!.isNotEmpty) ...[
-                  Divider(height: 12, color: AppColors.borderSubtle(context)),
+                  Divider(height: 8, color: AppColors.borderSubtle(context)),
                   _DetailRow(
                     icon: Icons.storefront_outlined,
                     label: 'الفرع',
@@ -262,7 +283,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: AppSpace.lg),
+          const SizedBox(height: AppSpace.md),
 
           // ─── 2. البيانات المالية والتحصيل ───
           _buildSectionHeader(
@@ -271,65 +292,70 @@ class AppointmentDetailsCard extends ConsumerWidget {
             Icons.account_balance_wallet_outlined,
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpace.md, vertical: AppSpace.sm),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF090E1A) : AppColors.canvas(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context)),
+              color: AppColors.canvas(context),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.borderSubtle(context)),
             ),
             child: Column(
               children: [
                 _DetailRow(
                   icon: Icons.payments_outlined,
-                  label: 'إجمالي المدفوع',
+                  label: 'المدفوع',
                   value: '${totalPaid.toStringAsFixed(0)} ج.م',
                   valueColor: totalPaid > 0 ? AppColors.success : null,
                   isMono: true,
                 ),
                 if (appointment.priceCharged != null) ...[
-                  Divider(height: 12, color: AppColors.borderSubtle(context)),
+                  Divider(height: 8, color: AppColors.borderSubtle(context)),
                   _DetailRow(
                     icon: Icons.receipt_long_outlined,
-                    label: 'السعر المستحق',
+                    label: 'المستحق',
                     value: '${price.toStringAsFixed(0)} ج.م',
                     isMono: true,
                   ),
                 ],
-                Divider(height: 12, color: AppColors.borderSubtle(context)),
+                Divider(height: 8, color: AppColors.borderSubtle(context)),
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(
                     children: [
                       Icon(
                         Icons.price_check_rounded,
-                        size: 16,
+                        size: 15,
                         color: AppColors.textSecondary(context),
                       ),
                       const SizedBox(width: AppSpace.sm),
                       SizedBox(
-                        width: 100,
+                        width: 90,
                         child: Text(
-                          'حالة التحصيل',
-                          style: AppTypography.bodySm(
-                              AppColors.textSecondary(context)),
+                          'حالة السداد',
+                          style: GoogleFonts.cairo(
+                            fontSize: 11,
+                            color: AppColors.textSecondary(context),
+                          ),
                         ),
                       ),
                       if (remaining > 0)
                         AppBadge(
                           label: 'متبقي ${remaining.toStringAsFixed(0)} ج.م',
                           icon: Icons.warning_amber_rounded,
+                          size: AppBadgeSize.sm,
                           variant: AppBadgeVariant.danger,
                         )
                       else if (totalPaid > 0)
                         const AppBadge(
                           label: 'مسدد بالكامل',
                           icon: Icons.check_circle_rounded,
+                          size: AppBadgeSize.sm,
                           variant: AppBadgeVariant.success,
                         )
                       else
                         const AppBadge(
-                          label: 'لم يتم التحصيل',
+                          label: 'لم يحصل',
                           icon: Icons.hourglass_empty_rounded,
+                          size: AppBadgeSize.sm,
                           variant: AppBadgeVariant.warning,
                         ),
                     ],
@@ -338,117 +364,42 @@ class AppointmentDetailsCard extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: AppSpace.lg),
+          const SizedBox(height: AppSpace.md),
 
-          // ─── 3. الخدمات الطبية المرفقة ───
+          // ─── 3. الإجراءات السريرية وخيارات الإلغاء ───
           _buildSectionHeader(
             context,
-            'الخدمات الطبية المرفقة',
-            Icons.medical_services_outlined,
-          ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpace.md),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF090E1A) : AppColors.canvas(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context)),
-            ),
-            child: (appointment.serviceNames != null &&
-                    appointment.serviceNames!.isNotEmpty)
-                ? Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: appointment.serviceNames!.map((service) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface(context),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.borderSubtle(context),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.check_circle_outline_rounded,
-                              size: 14,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              service,
-                              style: GoogleFonts.cairo(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary(context),
-                                height: 1.35,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  )
-                : Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        size: 15,
-                        color: AppColors.textMuted(context),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'لا توجد خدمات إضافية مرفقة بهذا الموعد',
-                        style: GoogleFonts.cairo(
-                          fontSize: 12,
-                          color: AppColors.textMuted(context),
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-          const SizedBox(height: AppSpace.lg),
-
-          // ─── 4. الإجراءات السريرية ───
-          _buildSectionHeader(
-            context,
-            'الإجراءات السريرية',
+            'الإجراءات السريرية والتحكم',
             Icons.bolt_rounded,
           ),
           Wrap(
-            spacing: AppSpace.sm,
-            runSpacing: AppSpace.sm,
+            spacing: 6,
+            runSpacing: 6,
             children: [
-              // إجراءات سريرية رئيسية حسب الحالة
+              // 1. إجراءات التقدم السريري
               if (status == 'confirmed')
                 AppButton(
                   label: 'نقل للطبيب',
                   icon: Icons.arrow_forward_rounded,
                   variant: AppButtonVariant.primary,
+                  size: AppButtonSize.sm,
                   expand: false,
-                  onPressed: () => _updateStatus(context, ref, 'pending'),
+                  onPressed: () => _openConfirmation(context, ref, 'pending'),
                 ),
               if (status == 'pending' && isDoctor)
                 AppButton(
                   label: 'بدء الفحص',
                   icon: Icons.medical_services_outlined,
                   variant: AppButtonVariant.primary,
+                  size: AppButtonSize.sm,
                   expand: false,
                   onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => ExaminationScreen(
-                          clinicId: clinicId,
-                          appointmentId: appointment.id,
-                          patientId: appointment.patientId,
-                          patientName: appointment.patient.fullName,
-                        ),
-                      ),
+                    AppNavigation.toExamination(
+                      context,
+                      clinicId: clinicId,
+                      appointmentId: appointment.id,
+                      patientId: appointment.patientId,
+                      patientName: appointment.patient.fullName,
                     );
                   },
                 ),
@@ -457,33 +408,34 @@ class AppointmentDetailsCard extends ConsumerWidget {
                   label: 'إنهاء الكشف',
                   icon: Icons.check_rounded,
                   variant: AppButtonVariant.primary,
+                  size: AppButtonSize.sm,
                   expand: false,
-                  onPressed: () => _updateStatus(context, ref, 'completed'),
+                  onPressed: () =>
+                      _openConfirmation(context, ref, 'completed'),
                 ),
-              if (status == 'completed' && isDoctor)
+              if (isCompleted && isDoctor)
                 AppButton(
                   label: 'عرض التقرير',
                   icon: Icons.edit_note_rounded,
                   variant: AppButtonVariant.primary,
+                  size: AppButtonSize.sm,
                   expand: false,
                   onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => ExaminationScreen(
-                          clinicId: clinicId,
-                          appointmentId: appointment.id,
-                          patientId: appointment.patientId,
-                          patientName: appointment.patient.fullName,
-                        ),
-                      ),
+                    AppNavigation.toExamination(
+                      context,
+                      clinicId: clinicId,
+                      appointmentId: appointment.id,
+                      patientId: appointment.patientId,
+                      patientName: appointment.patient.fullName,
                     );
                   },
                 ),
-              if (status == 'completed')
+              if (isCompleted)
                 AppButton(
                   label: 'ملاحظات الزيارة',
                   icon: Icons.note_alt_rounded,
                   variant: AppButtonVariant.secondary,
+                  size: AppButtonSize.sm,
                   expand: false,
                   onPressed: () {
                     showDialog<void>(
@@ -498,19 +450,18 @@ class AppointmentDetailsCard extends ConsumerWidget {
                   },
                 ),
 
-              // إجراءات الإدارة والملف
+              // 2. إدارة وتعديل
               AppButton(
-                label: 'الملف الشخصي',
+                label: 'الملف الطبي',
                 icon: Icons.person_rounded,
                 variant: AppButtonVariant.secondary,
+                size: AppButtonSize.sm,
                 expand: false,
                 onPressed: () {
-                  showDialog<void>(
-                    context: context,
-                    builder: (_) => PatientDetailsDialog(
-                      clinicId: clinicId,
-                      patient: appointment.toPatientModel(),
-                    ),
+                  AppNavigation.showPatientDetails(
+                    context,
+                    clinicId: clinicId,
+                    patient: appointment.toPatientModel(),
                   );
                 },
               ),
@@ -518,6 +469,7 @@ class AppointmentDetailsCard extends ConsumerWidget {
                 label: 'تعديل',
                 icon: Icons.edit_outlined,
                 variant: AppButtonVariant.secondary,
+                size: AppButtonSize.sm,
                 expand: false,
                 onPressed: () {
                   showDialog<void>(
@@ -530,14 +482,38 @@ class AppointmentDetailsCard extends ConsumerWidget {
                 },
               ),
 
-              // إجراء الإلغاء
-              if (canCancel)
+              // 3. خيارات الإلغاء الثنائية (من العيادة أو اعتذار المريض)
+              if (canCancel) ...[
                 AppButton(
-                  label: 'إلغاء الموعد',
-                  icon: Icons.cancel_outlined,
+                  label: 'إلغاء من العيادة',
+                  icon: Icons.domain_disabled_rounded,
                   variant: AppButtonVariant.destructive,
+                  size: AppButtonSize.sm,
                   expand: false,
-                  onPressed: () => _updateStatus(context, ref, 'cancelled'),
+                  onPressed: () =>
+                      _openConfirmation(context, ref, 'cancelled_by_clinic'),
+                ),
+                AppButton(
+                  label: 'اعتذار من المريض',
+                  icon: Icons.person_off_outlined,
+                  variant: AppButtonVariant.secondary,
+                  size: AppButtonSize.sm,
+                  expand: false,
+                  onPressed: () =>
+                      _openConfirmation(context, ref, 'cancelled_by_patient'),
+                ),
+              ],
+
+              // 4. إعادة للانتظار للحالات الملغاة أو المنتهية
+              if (isCancelled || isCompleted)
+                AppButton(
+                  label: 'إعادة للانتظار',
+                  icon: Icons.replay_rounded,
+                  variant: AppButtonVariant.secondary,
+                  size: AppButtonSize.sm,
+                  expand: false,
+                  onPressed: () =>
+                      _openConfirmation(context, ref, 'confirmed'),
                 ),
             ],
           ),
@@ -549,18 +525,17 @@ class AppointmentDetailsCard extends ConsumerWidget {
   Widget _buildSectionHeader(
       BuildContext context, String title, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpace.sm),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.primary),
-          const SizedBox(width: AppSpace.sm),
+          Icon(icon, size: 14, color: AppColors.primary),
+          const SizedBox(width: 6),
           Text(
             title,
             style: GoogleFonts.cairo(
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary(context),
-              height: 1.35,
             ),
           ),
         ],
@@ -587,15 +562,18 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondary(context)),
-        const SizedBox(width: AppSpace.sm),
+        Icon(icon, size: 14, color: AppColors.textSecondary(context)),
+        const SizedBox(width: 6),
         SizedBox(
-          width: 100,
+          width: 90,
           child: Text(
             label,
-            style: AppTypography.bodySm(AppColors.textSecondary(context)),
+            style: GoogleFonts.cairo(
+              fontSize: 11,
+              color: AppColors.textSecondary(context),
+            ),
           ),
         ),
         Expanded(
@@ -603,13 +581,15 @@ class _DetailRow extends StatelessWidget {
             value,
             style: isMono
                 ? GoogleFonts.jetBrainsMono(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: valueColor ?? AppColors.textPrimary(context),
                   )
-                : AppTypography.bodySm(
-                        valueColor ?? AppColors.textPrimary(context))
-                    .copyWith(fontWeight: FontWeight.w600, height: 1.35),
+                : GoogleFonts.cairo(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: valueColor ?? AppColors.textPrimary(context),
+                  ),
           ),
         ),
       ],

@@ -68,7 +68,6 @@ class DoctorPillSelector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final doctorsAsync = ref.watch(clinicDoctorsProvider(clinicId));
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,7 +104,7 @@ class DoctorPillSelector extends ConsumerWidget {
                     isSelected: selectedDoctorId == null,
                     label: 'بدون طبيب محدد',
                     icon: Icons.person_outline_rounded,
-                    color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                    color: AppColors.textSecondary(context),
                     onTap: enabled ? () => onSelected(null) : null,
                   ),
                   const SizedBox(width: 8),
@@ -167,15 +166,15 @@ class DoctorPillSelector extends ConsumerWidget {
 
     final bgColor = isSelected
         ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.20 : 0.12)
-        : (isDark ? AppColors.surfaceDark : AppColors.surfaceLight);
+        : AppColors.surface(context);
 
     final borderColor = isSelected
         ? theme.colorScheme.primary
-        : (isDark ? AppColors.borderDark : AppColors.borderLight);
+        : AppColors.borderSubtle(context);
 
     final textColor = isSelected
         ? theme.colorScheme.primary
-        : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight);
+        : AppColors.textPrimary(context);
 
     return InkWell(
       onTap: onTap,
@@ -367,15 +366,15 @@ class BranchPillSelector extends ConsumerWidget {
 
     final bgColor = isSelected
         ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.20 : 0.12)
-        : (isDark ? AppColors.surfaceDark : AppColors.surfaceLight);
+        : AppColors.surface(context);
 
     final borderColor = isSelected
         ? theme.colorScheme.primary
-        : (isDark ? AppColors.borderDark : AppColors.borderLight);
+        : AppColors.borderSubtle(context);
 
     final textColor = isSelected
         ? theme.colorScheme.primary
-        : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight);
+        : AppColors.textPrimary(context);
 
     return InkWell(
       onTap: onTap,
@@ -415,7 +414,7 @@ class BranchPillSelector extends ConsumerWidget {
               size: 15,
               color: isSelected
                   ? theme.colorScheme.primary
-                  : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                  : AppColors.textSecondary(context),
             ),
             const SizedBox(width: 6),
             Text(

@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../../main.dart';
+import '../../../core/routing/routing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/layout/auth_shell.dart';
 import '../../../core/ui/primitives/app_button.dart';
 import '../../../core/ui/primitives/app_input.dart';
+import '../../../core/ui/tokens/typography.dart';
 import '../../../core/utils/invite_utils.dart';
 import 'login_controller.dart';
-import 'register_screen.dart';
-import 'reset_password_screen.dart';
-import 'verify_otp_screen.dart';
 
+/// Clinical Utility Login Screen. Clean, direct, simple Arabic copy.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -44,16 +42,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final loginState = ref.read(loginControllerProvider);
       if (mounted) {
         if (loginState.isEmailVerificationRequired) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => VerifyOtpScreen(email: _emailController.text.trim()),
-            ),
+          AppNavigation.toVerifyOtp(
+            context,
+            email: _emailController.text.trim(),
           );
         } else if (loginState.isSuccess) {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const AuthGate()),
-            (route) => false,
-          );
+          AppNavigation.toDashboard(context, clearStack: true);
         }
       }
     }
@@ -62,7 +56,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final loginState = ref.watch(loginControllerProvider);
-    final theme = Theme.of(context);
 
     ref.listen<LoginState>(loginControllerProvider, (previous, next) {
       if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
@@ -70,21 +63,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              duration: const Duration(seconds: 2),
+              duration: const Duration(seconds: 3),
               content: Text(
                 next.errorMessage!,
-                style: TextStyle(color: theme.colorScheme.onError),
                 textAlign: TextAlign.start,
               ),
-              backgroundColor: theme.colorScheme.error,
+              backgroundColor: AppColors.danger,
             ),
           );
       }
     });
 
     return AuthShell(
-      heroTitle: 'المنظومة السريرية الذكية',
-      heroSubtitle: 'إدارة متكاملة لمواعيد المرضى، طابور كشف ذكي لحظي عبر واتساب، وسجل طبي إلكتروني موحد.',
+      heroTitle: 'عيادتي',
+      heroSubtitle: 'منظومة إدارة العيادات والمواعيد الطبية.',
       child: Directionality(
         textDirection: TextDirection.rtl,
         child: Form(
@@ -93,85 +85,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // رأس النموذج
-              Center(
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppColors.primarySubtle,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.local_hospital_rounded,
-                      size: 28,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
+              Text(
+                'بوابة الدخول',
+                style: AppTypography.overline(
+                  AppColors.textMuted(context),
+                ).copyWith(letterSpacing: 0.8),
               ),
-              const SizedBox(height: AppSpace.lg),
+              const SizedBox(height: 4),
               Text(
                 'تسجيل الدخول',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.cairo(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary(context),
-                  height: 1.2,
+                style: AppTypography.headingLg(
+                  AppColors.textPrimary(context),
                 ),
               ),
-              const SizedBox(height: AppSpace.xs),
+              const SizedBox(height: 4),
               Text(
-                'سجّل دخولك للوصول إلى لوحة إدارة العيادة والمرضى',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.cairo(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary(context),
-                  height: 1.4,
-                ),
+                'أدخل البريد الإلكتروني وكلمة المرور للمتابعة',
+                style: AppTypography.bodySm(AppColors.textSecondary(context)),
               ),
-              const SizedBox(height: AppSpace.xxl),
+              const SizedBox(height: AppSpace.xl),
 
-              // حقل البريد الإلكتروني
+              // Email
               AppTextField(
                 controller: _emailController,
                 label: 'البريد الإلكتروني',
-                hint: 'doctor@clinic.com',
+                hint: 'name@clinic.com',
                 keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20),
+                prefixIcon: const Icon(Icons.mail_outline_rounded, size: 18),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'يرجى إدخال البريد الإلكتروني';
+                    return 'البريد الإلكتروني مطلوب';
                   }
                   if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                    return 'يرجى إدخال بريد إلكتروني صحيح';
+                    return 'صيغة البريد غير صحيحة';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: AppSpace.lg),
+              const SizedBox(height: AppSpace.md),
 
-              // حقل كلمة المرور
+              // Password
               AppTextField(
                 controller: _passwordController,
                 label: 'كلمة المرور',
                 hint: '••••••••',
                 obscure: !_isPasswordVisible,
                 onEditingComplete: _submit,
-                prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _isPasswordVisible
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    size: 20,
+                    _isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    size: 18,
                   ),
                   onPressed: () {
                     setState(() {
@@ -181,68 +145,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'يرجى إدخال كلمة المرور';
+                    return 'كلمة المرور مطلوبة';
                   }
                   if (value.length < 6) {
-                    return 'يجب ألا تقل كلمة المرور عن 6 أحرف';
+                    return 'كلمة المرور 6 أحرف على الأقل';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: AppSpace.xs),
 
-              // رابط نسيت كلمة المرور
+              // Forgot password link
               Align(
                 alignment: AlignmentDirectional.centerEnd,
                 child: TextButton(
                   onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (ctx) => const ResetPasswordScreen(isUpdateMode: false),
-                      ),
-                    );
+                    AppNavigation.toResetPassword(context, isUpdateMode: false);
                   },
                   child: Text(
                     'نسيت كلمة المرور؟',
-                    style: GoogleFonts.cairo(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12.5,
-                    ),
+                    style: AppTypography.caption(AppColors.accent(context)),
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpace.md),
+              const SizedBox(height: AppSpace.sm),
 
-              // زر تسجيل الدخول
+              // Submit button
               AppButton(
                 label: 'تسجيل الدخول',
                 icon: Icons.login_rounded,
                 loading: loginState.isLoading,
-                size: AppButtonSize.lg,
+                size: AppButtonSize.md,
                 onPressed: _submit,
               ),
-              const SizedBox(height: AppSpace.xl),
+              const SizedBox(height: AppSpace.lg),
 
-              // إنشاء حساب جديد
+              // Register Link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'ليس لديك حساب عيادة؟',
-                    style: GoogleFonts.cairo(
-                      color: AppColors.textSecondary(context),
-                      fontSize: 13,
-                    ),
+                    'ليس لديك حساب؟',
+                    style: AppTypography.bodySm(AppColors.textSecondary(context)),
                   ),
                   const SizedBox(width: AppSpace.xs),
                   TextButton(
                     onPressed: () {
                       final inviteCode = InviteUtils.extractInviteCode();
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (_) => RegisterScreen(initialInviteCode: inviteCode),
-                        ),
+                      AppNavigation.toRegister(
+                        context,
+                        inviteCode: inviteCode,
+                        replace: true,
                       );
                     },
                     style: TextButton.styleFrom(
@@ -250,12 +203,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       minimumSize: Size.zero,
                     ),
                     child: Text(
-                      'أنشئ حساباً الآن',
-                      style: GoogleFonts.cairo(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                      ),
+                      'إنشاء حساب جديد',
+                      style: AppTypography.bodySm(AppColors.accent(context)).copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],

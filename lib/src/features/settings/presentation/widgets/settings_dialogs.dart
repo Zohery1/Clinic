@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/routing/routing.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../../main.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../auth/presentation/login_controller.dart';
-import '../../../auth/presentation/login_screen.dart';
-import '../../../auth/presentation/join_clinic_screen.dart';
 import '../../../clinics/presentation/clinics_controller.dart';
 
 /// نوافذ الحوار الخاصة بالإعدادات (تسجيل الخروج ومغادرة العيادة)
@@ -40,13 +38,10 @@ class SettingsDialogs {
                 ref.read(currentUserProvider.notifier).state = null;
                 if (context.mounted) {
                   Navigator.of(context).pop();
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (route) => false,
-                  );
+                  AppNavigation.toLogin(context, clearStack: true);
                 }
               },
-              child: const Text('خروج', style: TextStyle(fontWeight: FontWeight.w700)),
+              child: const Text('تسجيل الخروج', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -71,13 +66,13 @@ class SettingsDialogs {
               Icon(Icons.warning_amber_rounded, color: AppTheme.error, size: 24),
               SizedBox(width: 8),
               Text(
-                'الخروج من العيادة',
+                'مغادرة العيادة',
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
               ),
             ],
           ),
           content: const Text(
-            'تحذير: هذا الإجراء سيقوم بفصل حسابك عن هذه العيادة نهائياً ومغادرتها. في حال كان لديك عيادات أخرى مسجلة بحسابك فسيتم التبديل إليها تلقائياً. هل أنت متأكد؟',
+            'سيتم إلغاء ارتباط حسابك بهذه العيادة. هل تريد بالتأكيد مغادرة العيادة؟',
             style: TextStyle(fontSize: 13.5, height: 1.5),
           ),
           actions: [
@@ -99,7 +94,7 @@ class SettingsDialogs {
                       .leaveClinic(activeClinicId);
 
                   if (context.mounted) {
-                    final message = res['message']?.toString() ?? 'تمت مغادرة العيادة بنجاح';
+                    final message = res['message']?.toString() ?? 'تمت مغادرة العيادة';
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(message, style: GoogleFonts.cairo()),
@@ -109,19 +104,13 @@ class SettingsDialogs {
 
                     final hasOtherClinics = res['has_other_clinics'] == true;
                     if (!hasOtherClinics) {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (_) => JoinClinicScreen(
-                            userName: user.fullName,
-                            onRefresh: () {
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(builder: (_) => const AuthGate()),
-                                (route) => false,
-                              );
-                            },
-                          ),
-                        ),
-                        (route) => false,
+                      AppNavigation.toJoinClinic(
+                        context,
+                        userName: user.fullName,
+                        onRefresh: () {
+                          AppNavigation.toDashboard(context, clearStack: true);
+                        },
+                        clearStack: true,
                       );
                     }
                   }
@@ -129,14 +118,14 @@ class SettingsDialogs {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('حدث خطأ: $e', style: GoogleFonts.cairo()),
+                        content: Text('تعذر إتمام العملية، يرجى المحاولة لاحقاً', style: GoogleFonts.cairo()),
                         backgroundColor: AppTheme.error,
                       ),
                     );
                   }
                 }
               },
-              child: const Text('نعم، مغادرة العيادة', style: TextStyle(fontWeight: FontWeight.w700)),
+              child: const Text('تأكيد المغادرة', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ],
         ),

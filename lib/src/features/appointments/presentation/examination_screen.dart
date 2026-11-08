@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
+import '../../../core/ui/feedback/app_status_page.dart';
 import '../../../core/ui/tokens/colors.dart';
-import '../../../core/widgets/send_whatsapp_dialog.dart';
+import '../../../core/widgets/clinic_toast.dart';
+import '../../../core/routing/routing.dart';
 import '../../clinics/presentation/clinics_controller.dart';
 import '../../patients/data/patient_repository.dart';
 import '../../auth/presentation/login_controller.dart';
@@ -18,12 +20,12 @@ import 'widgets/clinical_vitals_ribbon.dart';
 import 'widgets/live_queue_rail.dart';
 import 'widgets/patient_medical_sidebar.dart';
 import 'widgets/examination_form.dart';
+import 'widgets/examination_bottom_bar.dart';
 import '../../dashboard/presentation/notifications_controller.dart';
 
-// فاصل الحقول داخل حقل notes الواحد في قاعدة البيانات
 const _fieldSeparator = '\n---\n';
 
-/// شاشة مساحة عمل الفحص السريري الكاملة — قمرة قيادة الطبيب البانورامية (3-Pane Panoramic Cockpit)
+/// شاشة مساحة عمل الفحص الطبي — قمرة قيادة الطبيب (Clinical Examination Workspace)
 class ExaminationScreen extends ConsumerStatefulWidget {
   final String clinicId;
   final String appointmentId;
@@ -47,7 +49,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
   late String _currentPatientId;
   late String _currentPatientName;
 
-  // الحقول الثلاثة المنفصلة
   final _complaintController = TextEditingController();
   final _diagnosisController = TextEditingController();
   final _instructionsController = TextEditingController();
@@ -74,7 +75,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     super.dispose();
   }
 
-  /// تحويل النص المخزّن في قاعدة البيانات لحقول منفصلة
   void _parseNotes(String rawNotes) {
     final parts = rawNotes.split(_fieldSeparator);
     _complaintController.text = parts.isNotEmpty ? parts[0].trim() : '';
@@ -87,7 +87,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     }
   }
 
-  /// دمج الحقول لحقل notes واحد للحفظ
   String _buildNotesText() {
     final complaint = _complaintController.text.trim();
     final diagnosis = _diagnosisController.text.trim();
@@ -98,7 +97,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     return parts.join(_fieldSeparator);
   }
 
-  /// فحص وجود تعديلات غير محفوظة
   bool get _hasUnsavedChanges {
     return _complaintController.text.trim().isNotEmpty ||
         _diagnosisController.text.trim().isNotEmpty ||
@@ -108,7 +106,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
         _selectedServices.isNotEmpty;
   }
 
-  /// حوار تأكيد الخروج عند وجود تعديلات غير محفوظة
   Future<bool> _confirmDiscardChanges() async {
     if (!_hasUnsavedChanges) return true;
     final result = await showDialog<bool>(
@@ -122,18 +119,18 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
             side: BorderSide(color: AppColors.borderSubtle(ctx)),
           ),
           title: Text(
-            'تراجع عن التعديلات؟',
+            'مغادرة الفحص دون حفظ؟',
             style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           content: Text(
-            'يوجد بيانات مدخلة في الفحص الطبي لم يتم حفظها. هل أنت متأكد من رغبتك في الخروج وتجاهلها؟',
+            'توجد بيانات فحص سريري غير محفوظة. هل تريد الخروج وتجاهل التغييرات؟',
             style: GoogleFonts.cairo(fontSize: 13.5, height: 1.5),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: Text(
-                'البقاء في الفحص',
+                'متابعة الفحص',
                 style: GoogleFonts.cairo(
                   fontWeight: FontWeight.w600,
                   color: AppColors.textSecondary(ctx),
@@ -148,7 +145,7 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: Text(
-                'الخروج وتجاهل التعديلات',
+                'مغادرة دون حفظ',
                 style: GoogleFonts.cairo(fontWeight: FontWeight.w700),
               ),
             ),
@@ -159,7 +156,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     return result ?? false;
   }
 
-  /// تبديل المريض النشط في قمرة القيادة
   void _switchAppointment(AppointmentModel appt) {
     if (appt.id == _currentAppointmentId) return;
 
@@ -177,7 +173,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     });
   }
 
-  /// استدعاء المريض التالي في الطابور
   Future<void> _callNextPatient() async {
     final appointments = ref.read(todayAppointmentsProvider).value ?? [];
     final waitingAppointments = appointments
@@ -185,15 +180,9 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
         .toList();
 
     if (waitingAppointments.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'لا يوجد مرضى آخرين في طابور الانتظار حالياً',
-            style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
-          ),
-          backgroundColor: AppColors.warning,
-          behavior: SnackBarBehavior.floating,
-        ),
+      ClinicToast.showWarning(
+        context,
+        'لا يوجد مرضى آخرون في صالة الانتظار حالياً',
       );
       return;
     }
@@ -220,41 +209,13 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       _switchAppointment(nextWaiting);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.record_voice_over_rounded,
-                    color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'تم استدعاء: ${nextWaiting.patient.fullName}',
-                  style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ClinicToast.showSuccess(context, 'تم استدعاء: ${nextWaiting.patient.fullName}');
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'خطأ في استدعاء المريض: $e',
-              style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
-            ),
-            backgroundColor: AppColors.danger,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+    } catch (_) {
+      if (mounted) ClinicToast.showError(context, 'تعذر استدعاء المريض حالياً');
     }
   }
 
-  /// مشاركة الروشتة والتعليمات الطبية عبر واتساب المريض
   Future<void> _sharePrescriptionViaWhatsApp() async {
     String? patientPhone;
     try {
@@ -282,38 +243,35 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     text.writeln('━━━━━━━━━━━━━━━━━━━━');
 
     if (_diagnosisController.text.trim().isNotEmpty) {
-      text.writeln('🩺 التشخيص الطبي:');
+      text.writeln('🩺 التشخيص:');
       text.writeln(_diagnosisController.text.trim());
       text.writeln('');
     }
 
     if (_instructionsController.text.trim().isNotEmpty) {
-      text.writeln('💊 الروشتة وخطة العلاج:');
+      text.writeln('💊 الروشتة والعلاج:');
       text.writeln(_instructionsController.text.trim());
       text.writeln('');
     }
 
     if (_selectedServices.isNotEmpty) {
-      text.writeln('📋 الخدمات والإجراءات:');
+      text.writeln('📋 الخدمات:');
       text.writeln(_selectedServices.map((s) => s.name).join('، '));
       text.writeln('');
     }
 
-    text.writeln('مع تمنياتنا لكم بالشفاء العاجل ودوام الصحة والعافية 🌿');
+    text.writeln('مع تمنياتنا لكم بالشفاء العاجل 🌿');
 
     if (!mounted) return;
-    showSendWhatsAppDialog(
+    AppNavigation.showWhatsApp(
       context,
-      ref,
       phone: patientPhone ?? '',
       patientName: _currentPatientName,
       initialMessage: text.toString(),
     );
   }
 
-  /// حفظ التقرير دون إنهاء الكشف
   Future<void> _save({bool andComplete = false}) async {
-    debugPrint('[Examination] START SAVE: apptId=$_currentAppointmentId, patientId=$_currentPatientId, clinicId=${widget.clinicId}');
     final text = _buildNotesText();
     final hasContent = _complaintController.text.trim().isNotEmpty ||
         _diagnosisController.text.trim().isNotEmpty ||
@@ -323,19 +281,10 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
         _vitals.temperature.isNotEmpty;
 
     if (!hasContent) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            duration: const Duration(seconds: 2),
-            content: Text(
-              'يرجى كتابة محتوى أو علامات حيوية أو اختيار خدمة',
-              style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
-            ),
-            backgroundColor: AppColors.warning,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      ClinicToast.showWarning(
+        context,
+        'أدخل شكوى المريض أو التشخيص أو العلامات الحيوية قبل الحفظ',
+      );
       return;
     }
 
@@ -344,7 +293,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     try {
       final currentUser = ref.read(currentUserProvider);
 
-      // إذا فُتحت شاشة الفحص مباشرة دون حجز مسبق، يتم إنشاء جلسة كشف فورية بالعيادة
       if (_currentAppointmentId.isEmpty || _currentAppointmentId.length < 30) {
         final walkIn = await ref.read(appointmentRepositoryProvider).createWalkInAppointment(
               clinicId: widget.clinicId,
@@ -400,41 +348,16 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       } catch (_) {}
 
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              duration: const Duration(seconds: 2),
-              content: Text(
-                andComplete
-                    ? 'تم إنهاء الكشف وحفظ التقرير بنجاح'
-                    : 'تم حفظ التقرير بنجاح',
-                style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
-              ),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+        ClinicToast.showSuccess(
+          context,
+          andComplete ? 'تم إنهاء الكشف وحفظ السجل الطبي.' : 'تم حفظ بيانات الكشف كمسودة.',
+        );
         if (andComplete) {
           Navigator.pop(context);
         }
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              duration: const Duration(seconds: 2),
-              content: Text(
-                'خطأ في الحفظ: $e',
-                style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
-              ),
-              backgroundColor: AppColors.danger,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-      }
+    } catch (_) {
+      if (mounted) ClinicToast.showError(context, 'تعذر حفظ بيانات الفحص الطبي');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -449,11 +372,11 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
           backgroundColor: AppColors.surface(ctx),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           title: Text(
-            'حذف الجلسة؟',
+            'حذف جلسة الكشف؟',
             style: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 16),
           ),
           content: Text(
-            'سيتم حذف التقرير الطبي وجميع الخدمات المسجلة لهذه الجلسة.',
+            'سيتم حذف التقرير الطبي والخدمات المسجلة لهذا الكشف نهائياً.',
             style: GoogleFonts.cairo(
               fontSize: 13,
               color: AppColors.textSecondary(ctx),
@@ -475,7 +398,7 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
               style: TextButton.styleFrom(
                   foregroundColor: AppColors.danger),
               child: Text(
-                'حذف',
+                'حذف الجلسة',
                 style: GoogleFonts.cairo(
                   color: AppColors.danger,
                   fontWeight: FontWeight.w700,
@@ -506,36 +429,11 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
       ref.invalidate(todayRevenueProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              duration: const Duration(seconds: 2),
-              content: Text(
-                'تم حذف الجلسة',
-                style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
-              ),
-              backgroundColor: AppColors.danger,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+        ClinicToast.showInfo(context, 'تم حذف جلسة الكشف');
         Navigator.pop(context);
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              duration: const Duration(seconds: 2),
-              content: Text(
-                'خطأ في الحذف: $e',
-                style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
-              ),
-              backgroundColor: AppColors.danger,
-            ),
-          );
-      }
+    } catch (_) {
+      if (mounted) ClinicToast.showError(context, 'تعذر حذف جلسة الكشف');
     }
   }
 
@@ -552,7 +450,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     final canEditNotes = isDoctor || (currentUser?.canEditMedicalNotes ?? false);
     final isDesktop = MediaQuery.of(context).size.width >= 1080;
 
-    // تهيئة الخدمات بأمان دون تعديل الـ State أثناء البناء
     if (!_servicesInitialized &&
         availableServicesAsync.hasValue &&
         appServicesAsync.hasValue) {
@@ -562,6 +459,27 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
           .where((av) => appServicesList.any((as) => as.serviceId == av.id))
           .toList();
       _servicesInitialized = true;
+    }
+
+    // Deep-link guard: without an appointment context the note provider spins
+    // forever (observed on the web build via #/examination with no args).
+    if (_currentAppointmentId.isEmpty) {
+      return Directionality(
+        textDirection: TextDirection.rtl,
+        child: AppStatusPage(
+          icon: Icons.medical_information_outlined,
+          iconColor: AppColors.info,
+          title: 'لا توجد جلسة كشف مفتوحة',
+          message: 'افتح الكشف من قائمة مواعيد اليوم أو الطابور لبدء جلسة تسجيل.',
+          primaryAction: StatusAction(
+            label: 'العودة للوحة التحكم',
+            icon: Icons.arrow_back_rounded,
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+      );
     }
 
     return Directionality(
@@ -590,155 +508,179 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
                 }
               },
             ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    'جلسة الفحص الطبي — $_currentPatientName',
-                    style: GoogleFonts.cairo(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary(context),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                    decoration: BoxDecoration(
-                      color: AppColors.primarySubtle,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.2),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'كشف: $_currentPatientName',
+                        style: GoogleFonts.cairo(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary(context),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySubtle,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
                         ),
-                        const SizedBox(width: 5),
-                        Text(
-                          'جلسة نشطة',
-                          style: GoogleFonts.cairo(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 5),
+                          Text(
+                            'جلسة نشطة',
+                            style: GoogleFonts.cairo(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  'الملف الطبي والفحص',
+                  style: GoogleFonts.cairo(
+                    fontSize: 11,
+                    color: AppColors.textSecondary(context),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              if (isDesktop)
+                FilledButton.tonalIcon(
+                  onPressed: _sharePrescriptionViaWhatsApp,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.success.withValues(alpha: 0.12),
+                    foregroundColor: AppColors.success,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.share_rounded, size: 15),
+                  label: Text(
+                    'إرسال الروشتة بالواتساب',
+                    style: GoogleFonts.cairo(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ],
-              ),
-              Text(
-                'الملف الطبي والكشف السريري المباشر',
-                style: GoogleFonts.cairo(
-                  fontSize: 11,
-                  color: AppColors.textSecondary(context),
+                )
+              else
+                IconButton.filledTonal(
+                  onPressed: _sharePrescriptionViaWhatsApp,
+                  tooltip: 'إرسال الروشتة بالواتساب',
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.success.withValues(alpha: 0.12),
+                    foregroundColor: AppColors.success,
+                    padding: const EdgeInsets.all(8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.share_rounded, size: 18),
                 ),
-              ),
+              const SizedBox(width: 8),
+              if (isDoctor)
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert_rounded,
+                      color: AppColors.textPrimary(context)),
+                  color: AppColors.surface(context),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: BorderSide(color: AppColors.borderSubtle(context)),
+                  ),
+                  onSelected: (value) {
+                    if (value == 'delete') _deleteSession();
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.delete_outline_rounded,
+                              color: AppColors.danger,
+                              size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            'حذف الجلسة',
+                            style: GoogleFonts.cairo(
+                              color: AppColors.danger,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(width: 8),
             ],
-          ),
-          actions: [
-            FilledButton.tonalIcon(
-              onPressed: _sharePrescriptionViaWhatsApp,
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.12),
-                foregroundColor: const Color(0xFF10B981),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              icon: const Icon(Icons.share_rounded, size: 15),
-              label: Text(
-                'إرسال الروشتة بالواتساب',
-                style: GoogleFonts.cairo(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(1),
+              child: Divider(height: 1, color: AppColors.borderSubtle(context)),
             ),
-            const SizedBox(width: 8),
-            if (isDoctor)
-              PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert_rounded,
-                    color: AppColors.textPrimary(context)),
-                color: AppColors.surface(context),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(color: AppColors.borderSubtle(context)),
-                ),
-                onSelected: (value) {
-                  if (value == 'delete') _deleteSession();
-                },
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.delete_outline_rounded,
-                            color: AppColors.danger,
-                            size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          'حذف الجلسة',
-                          style: GoogleFonts.cairo(
-                            color: AppColors.danger,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            const SizedBox(width: 8),
-          ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(1),
-            child: Divider(height: 1, color: AppColors.borderSubtle(context)),
           ),
-        ),
-        body: noteAsync.when(
-          data: (note) {
-            if (!_initialized) {
-              if (note != null) _parseNotes(note.notes);
-              _initialized = true;
-            }
+          body: noteAsync.when(
+            data: (note) {
+              if (!_initialized) {
+                if (note != null) _parseNotes(note.notes);
+                _initialized = true;
+              }
 
-            if (isDesktop) {
-              return _buildDesktopLayout(
-                  context, canEditNotes, availableServicesAsync);
-            } else {
-              return _buildMobileLayout(
-                  context, canEditNotes, availableServicesAsync);
-            }
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(
-            child: Text(
-              'خطأ في تحميل التقرير: $err',
-              style: GoogleFonts.cairo(color: AppColors.danger),
+              if (isDesktop) {
+                return _buildDesktopLayout(
+                    context, canEditNotes, availableServicesAsync);
+              } else {
+                return _buildMobileLayout(
+                    context, canEditNotes, availableServicesAsync);
+              }
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, _) => Center(
+              child: Text(
+                'تعذر تحميل التقرير الطبي، يرجى إعادة المحاولة',
+                style: GoogleFonts.cairo(color: AppColors.danger),
+              ),
             ),
           ),
-        ),
-        bottomNavigationBar: canEditNotes
-            ? _buildBottomBar(context, isDoctor: isDoctor)
-            : null,
+          bottomNavigationBar: canEditNotes
+              ? ExaminationBottomBar(
+                  isDoctor: isDoctor,
+                  isSaving: _isSaving,
+                  onSaveDraft: () => _save(andComplete: false),
+                  onCompleteAndSave: () => _save(andComplete: true),
+                  onSharePrescription: _sharePrescriptionViaWhatsApp,
+                )
+              : null,
         ),
       ),
     );
   }
 
-  // ─── Desktop: قمرة قيادة ثلاثية الأجنحة (3-Pane Panoramic View) ───
   Widget _buildDesktopLayout(
     BuildContext context,
     bool isDoctor,
@@ -756,7 +698,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ─── الجناح الأيمن: شريط طابور الانتظار المباشر ───
               SizedBox(
                 width: queueWidth,
                 child: LiveQueueRail(
@@ -767,8 +708,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
                 ),
               ),
               SizedBox(width: gap),
-
-              // ─── الجناح الأوسط: منصة الفحص السريري والملاحظات (Expanded) ───
               Expanded(
                 child: SingleChildScrollView(
                   child: ExaminationForm(
@@ -793,8 +732,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
                 ),
               ),
               SizedBox(width: gap),
-
-              // ─── الجناح الأيسر: شريط المريض الجانبي والسجل السابق ───
               SizedBox(
                 width: sidebarWidth,
                 child: SingleChildScrollView(
@@ -812,7 +749,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
     );
   }
 
-  // ─── Mobile: عمود واحد متتابع ───
   Widget _buildMobileLayout(
     BuildContext context,
     bool isDoctor,
@@ -849,166 +785,6 @@ class _ExaminationScreenState extends ConsumerState<ExaminationScreen> {
             },
           ),
           const SizedBox(height: 100),
-        ],
-      ),
-    );
-  }
-
-  // ─── شريط الحفظ السفلي ───
-  Widget _buildBottomBar(BuildContext context, {required bool isDoctor}) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-    if (!isDoctor) {
-      return Container(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 12,
-          bottom: 12 + bottomInset,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surface(context),
-          border: Border(
-            top: BorderSide(color: AppColors.borderSubtle(context)),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _isSaving ? null : () => _save(andComplete: false),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            icon: _isSaving
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.save_rounded, size: 18),
-            label: Text(
-              _isSaving ? 'جاري الحفظ...' : 'حفظ التقرير فقط',
-              style: GoogleFonts.cairo(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 12,
-        bottom: 12 + bottomInset,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        border: Border(
-          top: BorderSide(color: AppColors.borderSubtle(context)),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // زر إرسال الروشتة بالواتساب للمريض
-          IconButton.filledTonal(
-            onPressed: _sharePrescriptionViaWhatsApp,
-            tooltip: 'إرسال الروشتة بالواتساب',
-            style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
-              foregroundColor: const Color(0xFF10B981),
-              padding: const EdgeInsets.all(12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            icon: const Icon(Icons.share_rounded, size: 20),
-          ),
-          const SizedBox(width: 10),
-
-          // زر حفظ التقرير فقط (المسودة)
-          Expanded(
-            flex: 2,
-            child: OutlinedButton.icon(
-              onPressed: _isSaving ? null : () => _save(andComplete: false),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                side: BorderSide(
-                  color: AppColors.primary.withValues(alpha: 0.4),
-                ),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-              icon: const Icon(Icons.save_outlined, size: 18, color: AppColors.primary),
-              label: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'حفظ مسودة الكشف',
-                  style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.5,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // زر إنهاء الكشف وحفظ التقرير
-          Expanded(
-            flex: 3,
-            child: ElevatedButton.icon(
-              onPressed: _isSaving ? null : () => _save(andComplete: true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-              icon: _isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.check_circle_rounded, size: 18),
-              label: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  _isSaving ? 'جاري الحفظ...' : 'إنهاء الكشف واعتماد التقرير',
-                  style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );

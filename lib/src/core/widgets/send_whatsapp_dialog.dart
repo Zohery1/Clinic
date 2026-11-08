@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../features/auth/presentation/login_controller.dart';
 import '../../features/settings/data/whatsapp_service.dart';
 import '../ui/tokens/colors.dart';
-import '../ui/tokens/radii.dart';
+import '../ui/tokens/spacing.dart';
 
 void showSendWhatsAppDialog(
   BuildContext context,
@@ -45,10 +45,9 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
   late TextEditingController _phoneController;
 
   final List<String> _quickTemplates = [
-    'عزيزي المريض [name]، نتمنى لكم دوام الصحة والعافية.',
-    'عزيزي المريض [name]، نود تذكيركم بموعدكم القادم في العيادة.',
-    'عزيزي المريض [name]، نرجو التكرم بالتواصل مع العيادة للاطمئنان على حالتكم.',
-    'عزيزي المريض [name]، نتائج الفحوصات والتحاليل الخاصة بكم جاهزة في العيادة.',
+    'عزيزي [name]، نذكركم بموعدكم القادم في العيادة.',
+    'عزيزي [name]، نتائج الفحوصات جاهزة بالعيادة.',
+    'عزيزي [name]، نتمنى لكم دوام الصحة والعافية.',
   ];
 
   @override
@@ -110,21 +109,17 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
     }
 
     final user = ref.read(currentUserProvider);
-    Navigator.pop(context); // إغلاق النافذة فوراً لتجربة سريعة وبدون أي انتظار
+    Navigator.pop(context);
 
-    ScaffoldMessenger.of(context)..clearSnackBars()..showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Expanded(child: Text('جاري إرسال الرسالة إلى ${widget.patientName}...')),
-          ],
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('جاري إرسال الرسالة إلى ${widget.patientName}...'),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 3),
         ),
-        backgroundColor: AppColors.successBright,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+      );
 
     if (user != null && user.clinicId.isNotEmpty) {
       final success = await ref.read(whatsappServiceProvider).sendCustomMessage(
@@ -143,19 +138,15 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 500;
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Dialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.radiusXl)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.lg)),
         backgroundColor: AppColors.surface(context),
         child: Container(
-          width: screenWidth > 560 ? 520 : screenWidth * 0.92,
-          padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
+          width: 480,
+          padding: const EdgeInsets.all(AppSpace.xl),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -165,241 +156,173 @@ class _SendWhatsAppDialogState extends ConsumerState<SendWhatsAppDialog> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.successBright.withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
+                        color: AppColors.success.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadii.sm),
                       ),
-                      child: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.successBright, size: 22),
+                      child: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.success, size: 20),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: AppSpace.sm),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'إرسال رسالة واتساب',
-                            style: TextStyle(
-                              fontSize: isSmallScreen ? 16 : 18,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).textTheme.titleLarge?.color,
+                            style: GoogleFonts.cairo(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary(context),
                             ),
                           ),
-                          const SizedBox(height: 2),
                           Text(
-                            'المريض: ${widget.patientName} (${widget.phone})',
-                            style: TextStyle(
+                            'المريض: ${widget.patientName}',
+                            style: GoogleFonts.cairo(
                               fontSize: 12,
-                              color: Theme.of(context).textTheme.bodySmall?.color,
+                              color: AppColors.textSecondary(context),
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close_rounded, size: 20),
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      color: AppColors.textMuted(context),
+                      splashRadius: 18,
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpace.lg),
 
-                // Phone number field
+                // Phone input
                 Text(
-                  'رقم الهاتف المراد الإرسال إليه:',
-                  style: TextStyle(
-                    fontSize: 12,
+                  'رقم الهاتف',
+                  style: GoogleFonts.cairo(
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  style: GoogleFonts.cairo(fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'أدخل رقم الواتساب...',
-                    isDense: true,
-                    filled: true,
-                    fillColor: AppColors.canvas(context),
-                    prefixIcon: const Icon(Icons.phone_rounded, size: 18, color: AppColors.successBright),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
-                      borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
-                      borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
-                      borderSide: const BorderSide(color: AppColors.successBright, width: 1.5),
-                    ),
+                  style: GoogleFonts.cairo(fontSize: 13.5),
+                  decoration: const InputDecoration(
+                    hintText: 'رقم الهاتف...',
+                    prefixIcon: Icon(Icons.phone_rounded, size: 18),
+                    prefixIconConstraints: BoxConstraints(minWidth: 36),
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSpace.md),
 
-                // Quick template chips
+                // Quick Templates
                 Text(
-                  'نماذج رسائل سريعة:',
-                  style: TextStyle(
+                  'نماذج سريعة',
+                  style: GoogleFonts.cairo(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    color: AppColors.textMuted(context),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: [
-                    _buildChip('تواصل واطمئنان', 0),
-                    _buildChip('تذكير بموعد', 1),
-                    _buildChip('متابعة حالة', 2),
-                    _buildChip('استلام فحوصات', 3),
-                  ],
+                  children: _quickTemplates.map((template) {
+                    final preview = template.replaceAll('[name]', widget.patientName);
+                    return InkWell(
+                      onTap: () {
+                        setState(() {
+                          _messageController.text = preview;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.subtle(context),
+                          borderRadius: BorderRadius.circular(AppRadii.sm),
+                          border: Border.all(color: AppColors.borderSubtle(context), width: 1),
+                        ),
+                        child: Text(
+                          preview.length > 30 ? '${preview.substring(0, 30)}...' : preview,
+                          style: GoogleFonts.cairo(
+                            fontSize: 11.5,
+                            color: AppColors.textSecondary(context),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSpace.md),
 
-                // Message field
-                TextField(
-                  controller: _messageController,
-                  maxLines: isSmallScreen ? 3 : 4,
-                  style: GoogleFonts.cairo(fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'اكتب نص الرسالة هنا...',
-                    filled: true,
-                    fillColor: AppColors.canvas(context),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
-                      borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
-                      borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadii.radiusMd),
-                      borderSide: const BorderSide(color: AppColors.successBright, width: 1.5),
-                    ),
+                // Message Text
+                Text(
+                  'نص الرسالة',
+                  style: GoogleFonts.cairo(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: _messageController,
+                  maxLines: 4,
+                  style: GoogleFonts.cairo(fontSize: 13.5),
+                  decoration: const InputDecoration(
+                    hintText: 'اكتب نص الرسالة هنا...',
+                  ),
+                ),
+                const SizedBox(height: AppSpace.lg),
 
-                // Buttons (Responsive Layout)
-                isSmallScreen
-                    ? Column(
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _sendViaApi,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.successBright,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.radiusMd)),
-                                elevation: 0,
-                              ),
-                              icon: const Icon(Icons.send_rounded, size: 18),
-                              label: Text(
-                                'إرسال',
-                                style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                            ),
+                // Actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadii.sm),
                           ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: _openInWhatsAppApp,
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                side: const BorderSide(color: AppColors.successBright),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.radiusMd)),
-                              ),
-                              icon: const Icon(Icons.open_in_new_rounded, color: AppColors.successBright, size: 18),
-                              label: Text(
-                                'فتح الواتساب',
-                                style: GoogleFonts.cairo(
-                                  color: AppColors.successBright,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _sendViaApi,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.successBright,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.radiusMd)),
-                                elevation: 0,
-                              ),
-                              icon: const Icon(Icons.send_rounded, size: 18),
-                              label: Text(
-                                'إرسال',
-                                style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          OutlinedButton.icon(
-                            onPressed: _openInWhatsAppApp,
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                              side: const BorderSide(color: AppColors.successBright),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.radiusMd)),
-                            ),
-                            icon: const Icon(Icons.open_in_new_rounded, color: AppColors.successBright, size: 18),
-                            label: Text(
-                              'فتح الواتساب',
-                              style: GoogleFonts.cairo(
-                                color: AppColors.successBright,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
+                        child: Text(
+                          'إلغاء',
+                          style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
                       ),
+                    ),
+                    const SizedBox(width: AppSpace.sm),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        onPressed: _sendViaApi,
+                        icon: const Icon(Icons.send_rounded, size: 16),
+                        label: Text(
+                          'إرسال',
+                          style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w700),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadii.sm),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChip(String label, int index) {
-    return InkWell(
-      onTap: () {
-        final text = _quickTemplates[index].replaceAll('[name]', widget.patientName);
-        _messageController.text = text;
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.primary,
           ),
         ),
       ),

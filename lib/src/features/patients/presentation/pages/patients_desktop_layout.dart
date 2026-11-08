@@ -30,17 +30,25 @@ class PatientsDesktopLayout extends ConsumerStatefulWidget {
 class _PatientsDesktopLayoutState
     extends ConsumerState<PatientsDesktopLayout> {
   PatientModel? _selectedPatient;
+  List<PatientModel>? _lastFullList;
+  Map<String, int> _cachedFileNumbers = const {};
 
   @override
   Widget build(BuildContext context) {
     final patientsAsync = ref.watch(patientsListProvider(widget.clinicId));
     final full = patientsAsync.value ?? <PatientModel>[];
-    final sortedFull = List<PatientModel>.from(full)
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    final fileNumbers = <String, int>{};
-    for (int i = 0; i < sortedFull.length; i++) {
-      fileNumbers[sortedFull[i].id] = i + 1;
+
+    if (!identical(full, _lastFullList) && full != _lastFullList) {
+      _lastFullList = full;
+      final sortedFull = List<PatientModel>.from(full)
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final numbers = <String, int>{};
+      for (int i = 0; i < sortedFull.length; i++) {
+        numbers[sortedFull[i].id] = i + 1;
+      }
+      _cachedFileNumbers = numbers;
     }
+    final fileNumbers = _cachedFileNumbers;
 
     // Synchronize selected patient state:
     // If no patient selected yet and list has patients, preselect the first one
@@ -98,9 +106,9 @@ class _PatientsDesktopLayoutState
                     ? const AppEmptyState(
                         key: ValueKey('empty'),
                         icon: Icons.assignment_ind_outlined,
-                        title: 'يرجى اختيار مريض من القائمة',
+                        title: 'اختر مريضاً من القائمة الجانبية',
                         message:
-                            'لعرض وتعديل ملفه الطبي وسجل زياراته وتفاصيل الحالات.',
+                            'لاستعراض وتحديث الملف الطبي الشامل وسجل الزيارات السابقة.',
                       )
                     : KeyedSubtree(
                         key: ValueKey(selected.id),

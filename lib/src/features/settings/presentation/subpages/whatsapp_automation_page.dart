@@ -62,17 +62,17 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
         final dbBookingTemplate = res['booking_message_template'] as String?;
         _bookingTemplateController.text = (dbBookingTemplate != null && dbBookingTemplate.isNotEmpty)
             ? dbBookingTemplate
-            : 'عزيزي المريض [patient_name]، تم تسجيل حجزك في العيادة لدى [doctor_name] ([branch_name]) بتاريخ [date] في تمام الساعة [time]. لمتابعة دورك في العيادة مباشرة: [queue_link]';
+            : 'أهلاً [patient_name]، تم تأكيد موعد كشفك لدى [doctor_name] ([branch_name]) يوم [date] الساعة [time]. لمتابعة دورك بالطابور مباشرة: [queue_link]';
 
         final dbReminderTemplate = res['reminder_message_template'] as String?;
         _reminderTemplateController.text = (dbReminderTemplate != null && dbReminderTemplate.isNotEmpty)
             ? dbReminderTemplate
-            : 'تذكير: عزيزي المريض [patient_name]، موعد كشفك القادم لدى [doctor_name] ([branch_name]) هو غداً [date] في تمام الساعة [time]. لمتابعة دورك في العيادة: [queue_link]';
+            : 'تذكير بموعد الكشف: أهلاً [patient_name]، موعدك لدى [doctor_name] ([branch_name]) غداً [date] الساعة [time]. رابط متابعة الطابور: [queue_link]';
 
         final dbCancelTemplate = res['cancellation_message_template'] as String?;
         _cancellationTemplateController.text = (dbCancelTemplate != null && dbCancelTemplate.isNotEmpty)
             ? dbCancelTemplate
-            : 'عزيزي المريض [patient_name]، نعتذر عن إلغاء موعدك لدى [doctor_name] ([branch_name]) بتاريخ [date] لظروف طارئة بالعيادة. نتمنى لكم دوام الصحة والعافية.';
+            : 'أهلاً [patient_name]، نعتذر عن إلغاء موعد كشفك لدى [doctor_name] ([branch_name]) بتاريخ [date]. نرجو التواصل مع العيادة لتحديد موعد بديل.';
         _isLoading = false;
       });
     } catch (_) {
@@ -131,7 +131,7 @@ class _WhatsAppAutomationPageState extends ConsumerState<WhatsAppAutomationPage>
             ..showSnackBar(
               SnackBar(
                 duration: const Duration(seconds: 2),
-                content: Text('خطأ أثناء الحفظ: $e', style: GoogleFonts.cairo()),
+                content: Text('تعذر حفظ إعدادات الواتساب، يرجى المحاولة مجدداً', style: GoogleFonts.cairo()),
                 backgroundColor: AppColors.danger,
               ),
             );

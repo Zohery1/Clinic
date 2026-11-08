@@ -10,6 +10,12 @@ class ClinicalVitalsData {
   String weight;
   String height;
   String bloodGlucose;
+  // Eye grid (ophthalmology cockpit). VA = Snellen acuity (e.g. 20/20),
+  // IOP = intraocular pressure mmHg. UI-only additions, persist in note text.
+  String vaRight;
+  String vaLeft;
+  String iopRight;
+  String iopLeft;
 
   ClinicalVitalsData({
     this.bloodPressure = '',
@@ -18,7 +24,20 @@ class ClinicalVitalsData {
     this.weight = '',
     this.height = '',
     this.bloodGlucose = '',
+    this.vaRight = '',
+    this.vaLeft = '',
+    this.iopRight = '',
+    this.iopLeft = '',
   });
+
+  /// Abnormal IOP: >21 mmHg reads as warning, color coded downstream.
+  double? get iopRightValue => double.tryParse(iopRight);
+  double? get iopLeftValue => double.tryParse(iopLeft);
+  bool get hasEyeData =>
+      vaRight.isNotEmpty ||
+      vaLeft.isNotEmpty ||
+      iopRight.isNotEmpty ||
+      iopLeft.isNotEmpty;
 
   double? get bmi {
     final w = double.tryParse(weight);
@@ -49,7 +68,8 @@ class ClinicalVitalsData {
   }
 
   String encode() {
-    return 'BP=$bloodPressure;HR=$pulse;T=$temperature;WT=$weight;HT=$height;BG=$bloodGlucose';
+    return 'BP=$bloodPressure;HR=$pulse;T=$temperature;WT=$weight;HT=$height;BG=$bloodGlucose;'
+        'VAR=$vaRight;VAL=$vaLeft;IOR=$iopRight;IOL=$iopLeft';
   }
 
   static ClinicalVitalsData decode(String raw) {
@@ -79,6 +99,18 @@ class ClinicalVitalsData {
             break;
           case 'BG':
             data.bloodGlucose = v;
+            break;
+          case 'VAR':
+            data.vaRight = v;
+            break;
+          case 'VAL':
+            data.vaLeft = v;
+            break;
+          case 'IOR':
+            data.iopRight = v;
+            break;
+          case 'IOL':
+            data.iopLeft = v;
             break;
         }
       }
@@ -111,6 +143,10 @@ class _ClinicalVitalsRibbonState extends State<ClinicalVitalsRibbon> {
   late TextEditingController _weightCtrl;
   late TextEditingController _heightCtrl;
   late TextEditingController _sugarCtrl;
+  late TextEditingController _vaRightCtrl;
+  late TextEditingController _vaLeftCtrl;
+  late TextEditingController _iopRightCtrl;
+  late TextEditingController _iopLeftCtrl;
 
   @override
   void initState() {
@@ -121,6 +157,10 @@ class _ClinicalVitalsRibbonState extends State<ClinicalVitalsRibbon> {
     _weightCtrl = TextEditingController(text: widget.vitals.weight);
     _heightCtrl = TextEditingController(text: widget.vitals.height);
     _sugarCtrl = TextEditingController(text: widget.vitals.bloodGlucose);
+    _vaRightCtrl = TextEditingController(text: widget.vitals.vaRight);
+    _vaLeftCtrl = TextEditingController(text: widget.vitals.vaLeft);
+    _iopRightCtrl = TextEditingController(text: widget.vitals.iopRight);
+    _iopLeftCtrl = TextEditingController(text: widget.vitals.iopLeft);
   }
 
   @override
@@ -145,6 +185,18 @@ class _ClinicalVitalsRibbonState extends State<ClinicalVitalsRibbon> {
       if (_sugarCtrl.text != widget.vitals.bloodGlucose) {
         _sugarCtrl.text = widget.vitals.bloodGlucose;
       }
+      if (_vaRightCtrl.text != widget.vitals.vaRight) {
+        _vaRightCtrl.text = widget.vitals.vaRight;
+      }
+      if (_vaLeftCtrl.text != widget.vitals.vaLeft) {
+        _vaLeftCtrl.text = widget.vitals.vaLeft;
+      }
+      if (_iopRightCtrl.text != widget.vitals.iopRight) {
+        _iopRightCtrl.text = widget.vitals.iopRight;
+      }
+      if (_iopLeftCtrl.text != widget.vitals.iopLeft) {
+        _iopLeftCtrl.text = widget.vitals.iopLeft;
+      }
     }
   }
 
@@ -156,6 +208,10 @@ class _ClinicalVitalsRibbonState extends State<ClinicalVitalsRibbon> {
     _weightCtrl.dispose();
     _heightCtrl.dispose();
     _sugarCtrl.dispose();
+    _vaRightCtrl.dispose();
+    _vaLeftCtrl.dispose();
+    _iopRightCtrl.dispose();
+    _iopLeftCtrl.dispose();
     super.dispose();
   }
 
@@ -166,6 +222,10 @@ class _ClinicalVitalsRibbonState extends State<ClinicalVitalsRibbon> {
     widget.vitals.weight = _weightCtrl.text.trim();
     widget.vitals.height = _heightCtrl.text.trim();
     widget.vitals.bloodGlucose = _sugarCtrl.text.trim();
+    widget.vitals.vaRight = _vaRightCtrl.text.trim();
+    widget.vitals.vaLeft = _vaLeftCtrl.text.trim();
+    widget.vitals.iopRight = _iopRightCtrl.text.trim();
+    widget.vitals.iopLeft = _iopLeftCtrl.text.trim();
     widget.onChanged(widget.vitals);
     setState(() {});
   }
@@ -176,14 +236,12 @@ class _ClinicalVitalsRibbonState extends State<ClinicalVitalsRibbon> {
     final bmiCat = widget.vitals.bmiCategory;
     final bmiCol = widget.vitals.bmiColor;
 
-    final isDark = AppColors.isDark(context);
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0C1424) : AppColors.subtle(context),
+        color: AppColors.subtle(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? AppColors.obsidianBorder : AppColors.borderSubtle(context)),
+        border: Border.all(color: AppColors.borderSubtle(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,8 +339,134 @@ class _ClinicalVitalsRibbonState extends State<ClinicalVitalsRibbon> {
               ],
             ),
           ),
+          const SizedBox(height: 10),
+          if (widget.vitals.hasEyeData || !widget.readOnly)
+            _buildEyeGrid(context),
         ],
       ),
+    );
+  }
+
+  Color _iopColor(String value) {
+    final v = double.tryParse(value);
+    if (v == null) return AppColors.borderSubtle(context);
+    if (v >= 30) return AppColors.danger;
+    if (v > 21) return AppColors.warning;
+    return AppColors.success;
+  }
+
+  Widget _buildEyeGrid(BuildContext context) {
+    final labelStyle = GoogleFonts.cairo(
+      fontSize: 10.5,
+      fontWeight: FontWeight.w600,
+      color: AppColors.textSecondary(context),
+    );
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.borderSubtle(context)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            color: AppColors.borderSubtle(context).withValues(alpha: 0.35),
+            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 96,
+                  child: Text('المؤشر', style: labelStyle),
+                ),
+                Expanded(
+                  child: Text('العين اليمنى', textAlign: TextAlign.center, style: labelStyle),
+                ),
+                Expanded(
+                  child: Text('العين اليسرى', textAlign: TextAlign.center, style: labelStyle),
+                ),
+              ],
+            ),
+          ),
+          _eyeRow(
+            label: 'حدة البصر',
+            hint: '20/20',
+            isIop: false,
+            right: _vaRightCtrl,
+            left: _vaLeftCtrl,
+            labelStyle: labelStyle,
+          ),
+          Divider(height: 1, color: AppColors.borderSubtle(context)),
+          _eyeRow(
+            label: 'ضغط العين',
+            hint: '15',
+            isIop: true,
+            right: _iopRightCtrl,
+            left: _iopLeftCtrl,
+            labelStyle: labelStyle,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _eyeRow({
+    required String label,
+    required String hint,
+    required bool isIop,
+    required TextEditingController right,
+    required TextEditingController left,
+    required TextStyle labelStyle,
+  }) {
+    Widget cell(TextEditingController c) {
+      final borderColor = isIop ? _iopColor(c.text.trim()) : null;
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.surface(context),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: (borderColor != null && borderColor != AppColors.borderSubtle(context))
+                ? borderColor.withValues(alpha: 0.5)
+                : AppColors.borderSubtle(context),
+          ),
+        ),
+        child: TextField(
+          controller: c,
+          readOnly: widget.readOnly,
+          onChanged: (_) => _notify(),
+          textAlign: TextAlign.center,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary(context),
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 6),
+            hintText: hint,
+            hintStyle: GoogleFonts.jetBrainsMono(
+              fontSize: 12,
+              color: AppColors.textMuted(context),
+            ),
+            border: InputBorder.none,
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 96,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: Text(label, style: labelStyle),
+          ),
+        ),
+        Expanded(child: cell(right)),
+        Expanded(child: cell(left)),
+      ],
     );
   }
 

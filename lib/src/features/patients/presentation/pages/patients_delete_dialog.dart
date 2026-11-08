@@ -56,7 +56,7 @@ Future<void> showPatientsDeleteDialog({
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'تأكيد الحذف',
+                  'حذف ملف المريض',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 18,
@@ -65,7 +65,7 @@ Future<void> showPatientsDeleteDialog({
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'هل أنت متأكد من حذف المريض "$fullName"؟\nسيتم حذف جميع الحجوزات والسجلات التابعة له.',
+                  'هل تريد بالتأكيد حذف ملف المريض "$fullName"؟\nسيتم حذف سجل الزيارات والمواعيد السابقة نهائياً ولا يمكن استرجاعها.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13.5,
@@ -86,7 +86,7 @@ Future<void> showPatientsDeleteDialog({
                     const SizedBox(width: 12),
                     Expanded(
                       child: AppButton(
-                        label: 'نعم، احذف',
+                        label: 'حذف الملف',
                         icon: Icons.delete_outline_rounded,
                         variant: AppButtonVariant.danger,
                         onPressed: () => Navigator.of(ctx).pop(true),
@@ -108,12 +108,12 @@ Future<void> showPatientsDeleteDialog({
     await ref.read(patientRepositoryProvider).deletePatient(patient.id);
     ref.invalidate(patientsListProvider(clinicId));
     if (context.mounted) {
-      ClinicToast.showSuccess(context, 'تم حذف المريض بنجاح');
+      ClinicToast.showSuccess(context, 'تم حذف ملف المريض');
     }
     onAfterDelete?.call();
   } catch (e) {
     if (context.mounted) {
-      ClinicToast.showError(context, 'خطأ: $e');
+      ClinicToast.showError(context, 'تعذر حذف ملف المريض، يرجى المحاولة مجدداً');
     }
   }
 }

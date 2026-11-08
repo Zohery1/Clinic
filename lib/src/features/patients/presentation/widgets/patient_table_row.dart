@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/ui/tokens/colors.dart';
 import '../../../../core/widgets/clinic_dialog.dart';
 import '../../../../core/widgets/clinic_toast.dart';
-import '../../../../core/widgets/send_whatsapp_dialog.dart';
-import '../../../appointments/presentation/book_appointment_dialog.dart';
+import '../../../../core/routing/routing.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../auth/presentation/login_controller.dart';
 import '../../data/patient_repository.dart';
 import '../../domain/patient_model.dart';
-import '../patient_details_dialog.dart';
 import 'edit_patient_dialog.dart';
 
-/// صف جدول المرضى للعرض المكتبي
+/// صف جدول المرضى للعرض المكتبي (Desktop Patient Row)
 class PatientTableRow extends ConsumerWidget {
   final PatientModel patient;
   final int fileNumber;
@@ -53,7 +52,7 @@ class PatientTableRow extends ConsumerWidget {
           }
         } catch (e) {
           if (context.mounted) {
-            ClinicToast.showError(context, 'حدث خطأ أثناء الحذف: $e');
+            ClinicToast.showError(context, 'تعذر حذف ملف المريض، يرجى المحاولة مجدداً');
           }
         }
       },
@@ -62,22 +61,20 @@ class PatientTableRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final user = ref.watch(currentUserProvider);
     final isDoctor = user?.role == UserRole.doctor;
     final age = _calculateAge(patient.birthDate);
 
     return InkWell(
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (_) => PatientDetailsDialog(clinicId: clinicId, patient: patient),
-        );
-      },
+      onTap: () => AppNavigation.showPatientDetails(
+        context,
+        clinicId: clinicId,
+        patient: patient,
+      ),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.3))),
+          border: Border(bottom: BorderSide(color: AppColors.borderSubtle(context))),
         ),
         child: Row(
           children: [
@@ -86,7 +83,11 @@ class PatientTableRow extends ConsumerWidget {
               width: 70,
               child: Text(
                 '#$fileNumber',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                style: GoogleFonts.jetBrainsMono(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: AppColors.textPrimary(context),
+                ),
               ),
             ),
             // المريض
@@ -96,13 +97,13 @@ class PatientTableRow extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: 16,
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    backgroundColor: AppColors.primarySubtle,
                     child: Text(
                       patient.fullName.trim().isNotEmpty ? patient.fullName.trim().substring(0, 1) : '؟',
-                      style: TextStyle(
+                      style: GoogleFonts.cairo(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -110,7 +111,11 @@ class PatientTableRow extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       patient.fullName,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+                      style: GoogleFonts.cairo(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                        color: AppColors.textPrimary(context),
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -122,36 +127,35 @@ class PatientTableRow extends ConsumerWidget {
               flex: 2,
               child: patient.phone != null && patient.phone!.isNotEmpty
                   ? InkWell(
-                      onTap: () => showSendWhatsAppDialog(
+                      onTap: () => AppNavigation.showWhatsApp(
                         context,
-                        ref,
                         phone: patient.phone!,
                         patientName: patient.fullName,
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.chat_bubble_outline_rounded, size: 13, color: Color(0xFF10B981)),
+                          const Icon(Icons.chat_bubble_outline_rounded, size: 13, color: AppColors.success),
                           const SizedBox(width: 4),
                           Text(
                             patient.phone!,
-                            style: const TextStyle(
+                            style: GoogleFonts.jetBrainsMono(
                               fontSize: 12,
-                              color: Color(0xFF10B981),
+                              color: AppColors.success,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     )
-                  : Text('بدون هاتف', style: TextStyle(fontSize: 11, color: theme.hintColor)),
+                  : Text('بدون هاتف', style: GoogleFonts.cairo(fontSize: 11, color: AppColors.textMuted(context))),
             ),
             // العمر
             Expanded(
               flex: 1,
               child: Text(
                 age != null ? '$age سنة' : '--',
-                style: const TextStyle(fontSize: 12),
+                style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary(context)),
               ),
             ),
             // الجنس
@@ -163,7 +167,7 @@ class PatientTableRow extends ConsumerWidget {
                     : patient.gender == 'female'
                         ? 'أنثى'
                         : '--',
-                style: const TextStyle(fontSize: 12),
+                style: GoogleFonts.cairo(fontSize: 12, color: AppColors.textSecondary(context)),
               ),
             ),
             // الإجراءات
@@ -175,15 +179,11 @@ class PatientTableRow extends ConsumerWidget {
                   IconButton(
                     icon: const Icon(Icons.calendar_today_outlined, size: 16),
                     tooltip: 'حجز موعد',
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => BookAppointmentDialog(
-                          clinicId: clinicId,
-                          preselectedPatientId: patient.id,
-                        ),
-                      );
-                    },
+                    onPressed: () => AppNavigation.showBookAppointment(
+                      context,
+                      clinicId: clinicId,
+                      preselectedPatientId: patient.id,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 16),
@@ -197,7 +197,7 @@ class PatientTableRow extends ConsumerWidget {
                   ),
                   if (user?.isOwner == true || isDoctor)
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.error),
+                      icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.danger),
                       tooltip: 'حذف',
                       onPressed: () => _showDeleteDialog(context, ref),
                     ),

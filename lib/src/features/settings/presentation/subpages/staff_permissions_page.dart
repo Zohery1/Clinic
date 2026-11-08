@@ -70,7 +70,7 @@ class StaffPermissionsPage extends ConsumerWidget {
         backgroundColor: AppColors.canvas(context),
         appBar: AppBar(
           title: Text(
-            'كود الدعوة والصلاحيات',
+            'طاقم العمل والصلاحيات',
             style: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 16),
           ),
         ),
@@ -92,7 +92,7 @@ class StaffPermissionsPage extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'رابط دعوة السكرتارية والمساعدين',
+                    'كود ورابط دعوة طاقم العمل',
                     style: GoogleFonts.cairo(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
@@ -101,7 +101,7 @@ class StaffPermissionsPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'انسخ الرابط وأرسله للسكرتيرة لتسجيل حسابها والدخول للعيادة تلقائياً',
+                    'شارك كود الدعوة أو الرابط لانضمام أفراد الطاقم للعيادة مباشرة.',
                     style: GoogleFonts.cairo(
                       fontSize: 11,
                       color: AppColors.textSecondary(context),
@@ -166,7 +166,7 @@ class StaffPermissionsPage extends ConsumerWidget {
                                     SnackBar(
                                       duration: const Duration(seconds: 2),
                                       content: Text(
-                                        'تم نسخ رابط التسجيل المباشر للسكرتيرة!',
+                                        'تم نسخ رابط الدعوة بنجاح',
                                         style: GoogleFonts.cairo(),
                                       ),
                                       backgroundColor: AppColors.success,
@@ -656,7 +656,7 @@ class StaffPermissionsPage extends ConsumerWidget {
               ),
               error: (err, _) => Center(
                 child: Text(
-                  'خطأ: $err',
+                  'تعذر تحميل بيانات طاقم العمل، يرجى إعادة المحاولة',
                   style: GoogleFonts.cairo(color: AppColors.danger),
                 ),
               ),
